@@ -92,7 +92,7 @@ function StatusMark({ tone }: { tone: 'ok' | 'warn' | 'bad' | 'neutral' }) {
   }
   if (tone === 'ok') {
     return (
-      <span aria-hidden style={{ ...frame, background: 'var(--ok)', color: 'var(--on-pri)' }}>
+      <span aria-hidden style={{ ...frame, background: 'var(--ok)', color: 'var(--on-fill)' }}>
         <Check size={12} strokeWidth={3} aria-hidden />
       </span>
     )

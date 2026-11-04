@@ -163,7 +163,7 @@ export function DogsPage() {
                     ) : item === 'nuovi' ? (
                       <>
                         {tabLabel[item]}
-                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pri)', color: 'var(--on-pri)', borderRadius: '999px', minWidth: 18, height: 18, fontSize: 11, lineHeight: 1, padding: '0 4px' }}>{counts.nuovi}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pri)', color: 'var(--on-fill)', borderRadius: '999px', minWidth: 18, height: 18, fontSize: 11, lineHeight: 1, padding: '0 4px' }}>{counts.nuovi}</span>
                       </>
                     ) : (
                       <>{tabLabel[item]} {counts[item]}</>

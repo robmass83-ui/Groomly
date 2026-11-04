@@ -102,7 +102,7 @@ export function PianoPage() {
           <Card>
             <Row style={{ borderTop: 'none', minHeight: 48 }}>
               {salone ? (
-                <Link to="/impostazioni/pro" style={{ flex: 1, color: 'inherit', textDecoration: 'none', fontWeight: 650 }}>{frasi.hubCollaboratori}</Link>
+                <Link to="/impostazioni/pro" className="tocco" style={{ flex: 1, color: 'inherit', textDecoration: 'none', fontWeight: 650 }}>{frasi.hubCollaboratori}</Link>
               ) : (
                 <span style={{ flex: 1, fontWeight: 650 }}>{frasi.hubCollaboratori}</span>
               )}

@@ -33,7 +33,7 @@
 1. Sign in as `titolare`. Navigate to `/impostazioni`.
 2. Assert: heading `Impostazioni` visible; the four sections `SALONE`, `FUNZIONI`, `APP`, `ACCOUNT` are rendered.
 3. Assert: salone name `Pet Spa Napoli 36` is shown.
-4. Assert: completeness card `Completa il tuo salone` shows a progress (seed: 3/6) with chips `Logo`, `Backup impostato`, `Partita IVA o codice fiscale`.
+4. Assert: completeness card `Completa il tuo salone` shows a progress (seed: 3/6) with chips `Logo`, `Fai il primo backup`, `Partita IVA o codice fiscale`.
 5. Assert: row `Abbonamento` shows the trial hint (seed: `Prova Plus, ancora 10 giorni`).
 6. Assert: `Tema` row shows `Auto`, `Lingua` row shows `Italiano`.
 
@@ -47,7 +47,7 @@ For each row in `Test data`:
 | Button | Action taken | Expected result |
 |---|---|---|
 | `Logo` | click | goes to `/impostazioni/account?scheda=personali` |
-| `Backup impostato` | click | modal `Backup` opens |
+| `Fai il primo backup` | click | modal `Backup` opens |
 | `Partita IVA o codice fiscale` | click | goes to `/impostazioni/account?scheda=personali` and the `Dati del salone` dialog opens |
 | `Gestisci account Groomly` | click | goes to `/impostazioni/account` |
 | `Aggiungi` (tab bar FAB) | click | opens the new-appointment flow |

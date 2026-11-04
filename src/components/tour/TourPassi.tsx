@@ -516,7 +516,7 @@ export function TourFine({ passi, onEntra }: { passi: readonly { id: PassoSalone
               style={{ '--i': i, display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, fontSize: 14, borderTop: i === 0 ? 'none' : '1px solid var(--line)' } as Vars}
             >
               {passo.fatto ? (
-                <span className="tour-spunta" style={{ '--i': i, width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', flex: 'none', background: 'var(--ok)', color: '#fff' } as Vars} aria-hidden>
+                <span className="tour-spunta" style={{ '--i': i, width: 22, height: 22, borderRadius: '50%', display: 'grid', placeItems: 'center', flex: 'none', background: 'var(--ok)', color: 'var(--on-fill)' } as Vars} aria-hidden>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                 </span>
               ) : (

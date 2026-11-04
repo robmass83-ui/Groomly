@@ -26,6 +26,7 @@ export function Info({
     <>
       <button
         type="button"
+        className="tocco"
         aria-label={etichetta ?? t(lingua, 'notInfo', { nome })}
         onClick={() => setAperto(true)}
         onPointerDown={() => setPremuto(true)}

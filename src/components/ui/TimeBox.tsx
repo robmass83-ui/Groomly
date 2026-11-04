@@ -16,7 +16,7 @@ export function TimeBox({ time, duration, active }: { time: string; duration: st
       }}
     >
       <div style={{ fontSize: SIZES.timeBox.time, fontWeight: 800, lineHeight: 1.15 }}>{time}</div>
-      <div style={{ fontSize: SIZES.timeBox.duration, color: active ? 'rgba(255,255,255,.8)' : 'var(--tx3)', lineHeight: 1.2 }}>
+      <div style={{ fontSize: SIZES.timeBox.duration, color: active ? 'var(--on-pri)' : 'var(--tx3)', lineHeight: 1.2 }}>
         {duration}
       </div>
     </div>

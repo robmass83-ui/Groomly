@@ -173,6 +173,8 @@ describe('ui kit', () => {
       </div>,
     )
     expect(screen.getByText('09:00').parentElement?.getAttribute('style')).toContain('background: var(--pri-solid)')
+    // la durata resta leggibile sul fondo pieno anche in tema scuro: niente bianco trasparente
+    expect(screen.getByText('45 min').getAttribute('style')).toContain('color: var(--on-pri)')
     expect(screen.getByText('Data')).toBeInTheDocument()
     expect(screen.getByText('10 ott')).toBeInTheDocument()
   })

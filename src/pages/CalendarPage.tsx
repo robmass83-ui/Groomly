@@ -337,7 +337,7 @@ function CountBadge({ value, tone, halo }: { value: string; tone: 'salon' | 'per
         padding: wide ? '0 2px' : 0,
         borderRadius: 99,
         background: tone === 'salon' ? 'var(--ok)' : 'var(--personal)',
-        color: 'var(--on-pri)',
+        color: tone === 'salon' ? 'var(--on-fill)' : 'var(--on-pri)',
         boxShadow: halo ? '0 0 0 2px var(--card)' : undefined,
       }}
     >
@@ -742,7 +742,7 @@ function DayColumn({
               top: -11,
               fontSize: TYPE.meta,
               fontWeight: 700,
-              color: 'var(--on-pri)',
+              color: 'var(--on-fill)',
               background: 'var(--bad)',
               padding: '1px 6px',
               borderRadius: 6,

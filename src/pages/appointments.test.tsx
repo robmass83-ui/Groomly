@@ -141,7 +141,7 @@ describe('agenda', () => {
     const riga = screen.getByRole('button', { name: /Rex/ })
     expect(riga).not.toBeDisabled()
     expect(riga).toHaveTextContent(`Da confermare · entro le ${ora}`)
-    expect(screen.queryByText('30m')).not.toBeInTheDocument()
+    expect(screen.queryByText('30 min')).not.toBeInTheDocument()
     expect(screen.queryByText('Bagno')).not.toBeInTheDocument()
 
     cleanup()
@@ -187,7 +187,7 @@ describe('agenda', () => {
         </Routes>
       </MemoryRouter>,
     )
-    expect(screen.getByText('30m')).toBeInTheDocument()
+    expect(screen.getByText('30 min')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Bagno' })).toHaveAttribute('width', '13')
     expect(screen.getByRole('img', { name: 'Bravo' })).toHaveAttribute('width', '25')
     expect(screen.getByRole('img', { name: 'Anziano' })).toHaveAttribute('width', '25')
@@ -217,7 +217,7 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: 'Mese successivo' }))
     expect(screen.getByRole('heading', { name: 'Novembre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Apri Rex' })).not.toBeInTheDocument()
-    expect(screen.getByText('0 cani · 0m stimate')).toBeInTheDocument()
+    expect(screen.getByText('0 cani · 0 min stimate')).toBeInTheDocument()
     expect(screen.queryByText('Lunedì 5 ottobre')).not.toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: 'Listino' }))
     expect(await screen.findByRole('heading', { name: 'Listino prezzi' })).toBeInTheDocument()
@@ -778,7 +778,7 @@ describe('agenda', () => {
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
     render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
-    expect(await screen.findByText('1 cane · 30m stimate · 1 mordace')).toBeInTheDocument()
+    expect(await screen.findByText('1 cane · 30 min stimate · 1 mordace')).toBeInTheDocument()
     const compact = screen.getByRole('button', { name: 'Apri Rex' })
     expect(within(compact).getByText('Morde')).toBeInTheDocument()
     expect(screen.queryByText('Sta attenta')).not.toBeInTheDocument()
@@ -1187,11 +1187,11 @@ describe('agenda', () => {
     const personal = cell.querySelector('[data-personal-badge]')
     expect(salon?.textContent).toBe('1')
     expect(salon?.getAttribute('style')).toContain('background: var(--ok)')
-    expect(salon?.getAttribute('style')).toContain('color: var(--on-pri)')
+    expect(salon?.getAttribute('style')).toContain('color: var(--on-fill)')
     expect(personal?.textContent).toBe('1')
     expect(personal?.getAttribute('style')).toContain('background: var(--personal)')
     expect(personal?.getAttribute('style')).toContain('color: var(--on-pri)')
-    expect(screen.getByText('1 cane · 30m stimate')).toBeInTheDocument()
+    expect(screen.getByText('1 cane · 30 min stimate')).toBeInTheDocument()
     expect(screen.queryByText(/2 cani/)).not.toBeInTheDocument()
   })
 

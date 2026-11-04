@@ -4,8 +4,9 @@ import { ageText, averageDuration, etaScheda, formatCompactDuration, shortOwner,
 
 describe('formatCompactDuration', () => {
   it('compatta minuti e ore', () => {
-    expect(formatCompactDuration(0)).toBe('0m')
-    expect(formatCompactDuration(45)).toBe('45m')
+    expect(formatCompactDuration(0)).toBe('0 min')
+    expect(formatCompactDuration(45)).toBe('45 min')
+    expect(formatCompactDuration(60)).toBe('1h')
     expect(formatCompactDuration(120)).toBe('2h')
     expect(formatCompactDuration(65)).toBe('1h05')
     expect(formatCompactDuration(435)).toBe('7h15')
@@ -93,7 +94,7 @@ describe('averageDuration', () => {
         services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 10 }],
       }),
     ]
-    expect(averageDuration(planned, dogId)).toBe('45m')
+    expect(averageDuration(planned, dogId)).toBe('45 min')
     expect(averageDuration([], dogId)).toBe('—')
   })
 })

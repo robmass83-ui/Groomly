@@ -7,7 +7,7 @@ import { FlagIcon } from '../components/domain/FlagIcon'
 import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { Header } from '../components/layout/Header'
-import { AnimalsReturn } from '../components/layout/AnimalsReturn'
+import { AnimalsReturn, ANIMALS_RETURN_SPAZIO } from '../components/layout/AnimalsReturn'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import './schedaEnter.css'
 import { Dialog } from '../components/layout/Dialog'
@@ -473,7 +473,7 @@ function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undef
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <button type="button" aria-label={frasi.schedaFotoCane} onClick={foto.apri} style={{ position: 'relative', border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT }}>
         <Portrait src={src} variant="thumb" />
-        <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: 'var(--on-pri)', display: 'grid', placeItems: 'center' }}>
+        <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: 'var(--on-fill)', display: 'grid', placeItems: 'center' }}>
           <Camera size={13} strokeWidth={2} />
         </span>
       </button>
@@ -600,7 +600,7 @@ const roundCall = {
   height: 'auto',
   borderRadius: 999,
   background: 'var(--pri)',
-  color: 'var(--on-pri)',
+  color: 'var(--on-fill)',
   display: 'grid',
   placeItems: 'center',
   textDecoration: 'none',
@@ -692,7 +692,7 @@ function ContactSheet({ open, dogs, onClose, onAdd }: { open: boolean; dogs: Dog
                 borderRadius: 999,
                 border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
                 background: selected ? 'var(--pri)' : 'var(--surf)',
-                color: selected ? 'var(--on-pri)' : 'var(--tx)',
+                color: selected ? 'var(--on-fill)' : 'var(--tx)',
                 font: 'inherit',
                 fontWeight: 700,
                 padding: '0 14px',
@@ -800,7 +800,7 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
         {hiddenPhotos > 0 ? (
           <button type="button" onClick={() => setLimit(gallery.length)} style={{ width: 50, height: 50, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surf)' }}>{`+${hiddenPhotos}`}</button>
         ) : null}
-        <button type="button" onClick={foto.apri} style={textAction}>{frasi.schedaAggiungi}</button>
+        <button type="button" className="tocco" onClick={foto.apri} style={textAction}>{frasi.schedaAggiungi}</button>
         {foto.elementi}
       </div>
       <CenteredPhoto src={zoom} onClose={() => setZoom(null)} />
@@ -1000,7 +1000,7 @@ function SchedaFrame({ children }: { children: ReactNode }) {
         onFocus={keepFieldVisible}
         style={{ flex: 1, minHeight: 0, overflowY: 'auto', touchAction: 'pan-y', overscrollBehavior: 'contain' }}
       >
-        <div className={settled ? 'scheda-enter is-settled' : 'scheda-enter'} data-testid="scheda" onAnimationEnd={() => setSettled(true)} style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>{children}</div>
+        <div className={settled ? 'scheda-enter is-settled' : 'scheda-enter'} data-testid="scheda" onAnimationEnd={() => setSettled(true)} style={{ paddingBottom: ANIMALS_RETURN_SPAZIO }}>{children}</div>
       </div>
       <AnimalsReturn />
     </PhoneShell>
@@ -1477,7 +1477,7 @@ export function DogPage() {
                     <div style={{ color: 'var(--tx2)', fontSize: 12, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...USER_TEXT }}>
                       {[shortOwner(owner), frasi.contattoProprietario].filter((part) => part !== '').join(' · ')}
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phone}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3, fontVariantNumeric: 'tabular-nums', overflowWrap: 'anywhere' }}>{phone}</div>
                   </div>
                   <a href={`tel:${phone}`} aria-label={frasi.schedaChiama} style={{ ...STILE_ICONA_CONTATTO, background: 'var(--pri-solid)', color: 'var(--on-pri)' }}>
                     <Phone size={19} strokeWidth={2} aria-hidden />

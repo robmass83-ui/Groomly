@@ -1570,7 +1570,7 @@ describe('scheda cane', () => {
     await user.click(closed)
     const opened = root.textContent ?? ''
     expect(opened).toContain('Bagno e tosatura')
-    expect(opened).toMatch(/€.*Forbici.*55m/)
+    expect(opened).toMatch(/€.*Forbici.*55 min/)
     expect(opened.indexOf('12 mar 2026')).toBeLessThan(opened.indexOf('28 feb 2026'))
     expect(screen.getAllByText('Bagno e tosatura')).toHaveLength(1)
     expect(screen.getAllByText('12 mar 2026')).toHaveLength(1)
@@ -1677,7 +1677,7 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Storico' }))
     const note = screen.getByText('Pieno di nodi')
-    const detail = screen.getByText(/^€ 70 · 55m/)
+    const detail = screen.getByText(/^€ 70 · 55 min/)
     expect(note).not.toBe(detail)
     expect(detail).not.toContainElement(note)
     expect(detail.textContent).not.toContain('Pieno di nodi')

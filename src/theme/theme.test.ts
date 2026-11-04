@@ -13,7 +13,7 @@ it('i token chiari e scuri sono quelli del mockup', () => {
   expect(css).toContain('--tx3: #5C677A;')
   expect(css).toContain('--warn: #7A4C09;')
   expect(css).toContain('--sh-btn: 0 6px 14px -6px rgba(58,91,160,.55), inset 0 1px 0 rgba(255,255,255,.14);')
-  expect(css).toContain('--s-bagno: #2775C9;')
+  expect(css).toContain('--s-bagno: #246BB8;')
   expect(css).toContain('--personal-s: #F3E4D2;')
   expect(css).toContain('--personal: #8A5A32;')
   expect(css).toContain('--s-bagno-bg: #E2EFFB;')

@@ -174,7 +174,7 @@
 .tour-tappa.is-attiva { color: var(--pri-ink); }
 .tour-tappa.is-attiva .tour-tappa-n { background: var(--pri-solid); color: #fff; animation: tour-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both; }
 .tour-tappa.is-fatta { color: var(--ok); }
-.tour-tappa.is-fatta .tour-tappa-n { background: var(--ok); color: #fff; }
+.tour-tappa.is-fatta .tour-tappa-n { background: var(--ok); color: var(--on-fill); }
 .tour-tappe-linea { flex: 1; position: relative; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .tour-tappe-linea.is-piena::after {
   content: "";

@@ -1,11 +1,11 @@
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { AgeCategory, Appointment } from '../types/models'
-import { sumDuration } from './appointments'
+import { sumDuration } from './fineServizi'
 
 export function formatCompactDuration(minutes: number): string {
   const whole = Math.max(0, Math.round(minutes))
-  if (whole < 60) return `${whole}m`
+  if (whole < 60) return `${whole} min`
   const hours = Math.floor(whole / 60)
   const rest = whole % 60
   if (rest === 0) return `${hours}h`

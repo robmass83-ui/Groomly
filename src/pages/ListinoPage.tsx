@@ -142,9 +142,9 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, marginBottom: -2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 40, marginTop: 0, marginBottom: 0 }}>
         <SectionTitle>{frasi.lisPerRazza}</SectionTitle>
-        {soloLettura ? null : <Link to="/listino/gestione" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisGestisci}</Link>}
+        {soloLettura ? null : <Link to="/listino/gestione" className="tocco" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisGestisci}</Link>}
       </div>
       <div style={{ display: 'flex', gap: 2, margin: '0 -12px', padding: '0 10px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--line)' }}>
         {jumpTabs.map((item) => (
@@ -303,9 +303,10 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
           </Card>
         ) : null}
         {visibleSection(sheet, 'saluto') ? (
-          <div style={{ textAlign: 'center', fontStyle: 'italic', fontSize: 22, color: colore, padding: '4px 0' }}>
+          // Il saluto è scritto col colore scelto dal salone per il foglio stampabile: sta su un fondo da carta anche nel tema scuro.
+          <Card style={{ textAlign: 'center', fontStyle: 'italic', fontSize: 22, color: colore, padding: '4px 0', background: '#FFFFFF' }}>
             {sheet.saluto}
-          </div>
+          </Card>
         ) : null}
       </div>
     </>
@@ -547,9 +548,9 @@ export function ListinoPage() {
         />
         )}
         <BreedSheet sheet={foglio} soloLettura={soloLettura} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8, marginBottom: -2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 40, marginTop: 0, marginBottom: 0 }}>
           <SectionTitle>{frasi.lisPrezziTempi}</SectionTitle>
-          {soloLettura ? null : <Link to="/impostazioni/servizi" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisModifica}</Link>}
+          {soloLettura ? null : <Link to="/impostazioni/servizi" className="tocco" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisModifica}</Link>}
         </div>
         {view.rows.length === 0 && view.extras.length === 0 ? (
           <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.base }}>{frasi.lisNessunServizio}</p>

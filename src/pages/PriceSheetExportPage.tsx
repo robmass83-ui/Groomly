@@ -274,6 +274,7 @@ export function PriceSheetExportPage() {
           </div>
           <button
             type="button"
+            className="tocco"
             onClick={() => {
               rememberScale(1)
               rememberPan({ x: 0, y: 0 })

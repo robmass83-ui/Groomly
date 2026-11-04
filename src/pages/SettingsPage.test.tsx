@@ -220,6 +220,26 @@ describe('impostazioni', () => {
     pianoForzato.valore = pianoBase(() => undefined, 'pro')
   })
 
+  it('Backup completo: una modifica fatta mentre lavora resta quando scrive l’ultimo backup', async () => {
+    const pronto = await raccoltoCompleto()
+    let release: (value: typeof pronto) => void = () => undefined
+    const gate = new Promise<typeof pronto>((resolve) => { release = resolve })
+    raccogliBackup.mockImplementation(() => gate)
+    captureDownloads()
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    await openBackup(user)
+    const uid = getAccount()!.uid
+    const prima = getSettings(uid).backup.autoDaily
+    await user.click(screen.getByRole('button', { name: 'Completo con foto' }))
+    await user.click(screen.getByRole('switch', { name: 'Backup automatico giornaliero' }))
+    expect(getSettings(uid).backup.autoDaily).toBe(!prima)
+    release(pronto)
+    await waitFor(() => expect(getSettings(uid).backup.lastAt).toBeTruthy(), { timeout: 10_000 })
+    expect(getSettings(uid).backup.autoDaily).toBe(!prima)
+  })
+
   it('Backup completo consegna il file del giorno di Roma e intanto è disabilitato', async () => {
     const pronto = await raccoltoCompleto()
     let release: (value: typeof pronto) => void = () => undefined
@@ -241,6 +261,21 @@ describe('impostazioni', () => {
     release(pronto)
     const name = `Groomly Backup completo – Pelosetti – ${romeDay(new Date())}.zip`
     await waitFor(() => expect(downloads.some((item) => item.name === name)).toBe(true), { timeout: 10_000 })
+    await waitFor(() => expect(screen.getAllByText(/Oggi \d{2}:\d{2} · completato/).length).toBeGreaterThan(0))
+    const uid = getAccount()!.uid
+    expect(getSettings(uid).backup.lastAt).toBeTruthy()
+  })
+
+  it('Backup completo annullato non segna il backup come fatto', async () => {
+    raccogliBackup.mockRejectedValue(Object.assign(new Error('Share canceled'), { name: 'Error' }))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/" />)
+    await enter(user)
+    await openBackup(user)
+    await user.click(screen.getByRole('button', { name: 'Completo con foto' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Completo con foto' })).toBeEnabled())
+    expect(getSettings(getAccount()!.uid).backup.lastAt).toBeUndefined()
+    expect(screen.getAllByText('Mai eseguito').length).toBeGreaterThan(0)
   })
 
   it('Backup completo senza rete dice che serve la connessione', async () => {
@@ -272,13 +307,22 @@ describe('impostazioni', () => {
     expect(getSettings(account.uid).theme).toBe('light')
   })
 
-  it('senza Google Drive il passo si chiama Backup impostato', async () => {
+  it('senza Google Drive il passo si chiama Fai il primo backup', async () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
     await enter(user)
-    expect(screen.getByRole('button', { name: 'Backup impostato' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Fai il primo backup' })).toBeInTheDocument()
     expect(screen.queryByText('Primo backup')).not.toBeInTheDocument()
     expect(screen.queryByText('Profilo completato')).not.toBeInTheDocument()
+  })
+
+  it('un backup già fatto a mano segna il passo come completato', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const settings = getSettings(account.uid)
+    writeJson(storageKeys.settings(account.uid), { ...settings, backup: { ...settings.backup, lastAt: new Date().toISOString() } })
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Fai il primo backup' })).not.toBeInTheDocument()
   })
 
   it('con Google Drive collegato il passo sparisce e resta Profilo completato', async () => {
@@ -300,7 +344,7 @@ describe('impostazioni', () => {
     })
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     expect(await screen.findByText('Profilo completato')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Backup impostato' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Fai il primo backup' })).not.toBeInTheDocument()
     await waitFor(() => expect(getSettings(account.uid).backup.impostato).toBe(true))
   })
 
@@ -340,7 +384,7 @@ describe('impostazioni', () => {
     expect(screen.queryByText('Aggiungi')).not.toBeInTheDocument()
     expect(screen.getByText('Backup e ripristino')).toBeInTheDocument()
     expect(screen.getByText('Mai eseguito')).toBeInTheDocument()
-    expect(screen.getByText('Mai eseguito').getAttribute('style')).toContain('var(--ok)')
+    expect(screen.getByText('Mai eseguito').getAttribute('style')).toContain('var(--warn)')
     expect(screen.getByText('Salone').closest('h2')?.nextElementSibling?.firstElementChild?.getAttribute('style')).toContain('min-height: 52px')
     expect(screen.queryByRole('switch', { name: 'Backup automatico giornaliero' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /^Backup\./ }))
@@ -642,7 +686,7 @@ describe('impostazioni', () => {
     })
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     const date = await screen.findByText('3 set 2026')
-    expect(date.getAttribute('style') ?? '').not.toContain('var(--warn)')
+    expect(date.getAttribute('style') ?? '').toContain('var(--warn)')
     expect(screen.queryByText('Mai eseguito')).not.toBeInTheDocument()
   })
 

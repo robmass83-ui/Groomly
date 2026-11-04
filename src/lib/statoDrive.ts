@@ -58,6 +58,14 @@ export function statoDrive(input: {
   return { testo, tono: input.now.getTime() - then > limite ? 'warn' : 'ok' }
 }
 
+/** Il tono della pillola quando Drive non dice nulla: mai fatto o troppo vecchio è giallo. */
+export function tonoBackup(lastAt: string | undefined, frequenza: string | undefined, now: Date): 'ok' | 'warn' {
+  const then = lastAt ? Date.parse(lastAt) : Number.NaN
+  if (Number.isNaN(then)) return 'warn'
+  const limite = millisecondiFrequenza(frequenza) + 24 * 60 * 60 * 1000
+  return now.getTime() - then > limite ? 'warn' : 'ok'
+}
+
 export function bannerBackup(input: {
   ultimo: string | null
   errore: boolean

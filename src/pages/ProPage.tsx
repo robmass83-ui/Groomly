@@ -52,7 +52,7 @@ function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: I
           aria-pressed={value === role}
           onClick={() => onChange(role)}
           style={{
-            height: 26,
+            height: 40,
             padding: '0 8px',
             border: 0,
             borderRight: role === 'socio' ? '1px solid var(--line2)' : 0,
@@ -268,6 +268,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                             {canManage ? (
                               <button
                                 type="button"
+                                className="tocco"
                                 aria-label={t(lingua, member.role === 'socio' ? 'teamRendiCollaboratoreA' : 'teamRendiSocioA', { nome: label })}
                                 onClick={() => setToChangeRole(member)}
                                 style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontSize: 12, fontWeight: 650, whiteSpace: 'nowrap' }}
@@ -275,7 +276,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                                 {member.role === 'socio' ? frasi.teamRendiCollaboratore : frasi.teamRendiSocio}
                               </button>
                             ) : null}
-                            <button type="button" aria-label={t(lingua, 'teamTogliA', { nome: label })} onClick={() => setToRevoke(member)} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                            <button type="button" className="tocco" aria-label={t(lingua, 'teamTogliA', { nome: label })} onClick={() => setToRevoke(member)} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
                               {frasi.teamTogli}
                             </button>
                           </span>
@@ -323,7 +324,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                         {frasi.teamInvitoScade.replace('{{ruolo}}', roleLabel(invite.ruolo)).replace('{{data}}', new Date(invite.scade).toLocaleDateString(lingua))}
                       </span>
                     </span>
-                    <button type="button" aria-label={t(lingua, 'teamAnnullaInvitoA', { email: invite.email })} onClick={() => { setCancelError(''); setToCancel(invite) }} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
+                    <button type="button" className="tocco" aria-label={t(lingua, 'teamAnnullaInvitoA', { email: invite.email })} onClick={() => { setCancelError(''); setToCancel(invite) }} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
                       {frasi.teamAnnullaInvito}
                     </button>
                   </div>

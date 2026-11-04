@@ -97,3 +97,35 @@ describe('SchedaAbbonamento con avviso', () => {
     expect(link).not.toHaveTextContent('Pagamento non riuscito')
   })
 })
+
+describe('SchedaAbbonamento senza puntini', () => {
+  afterEach(cleanup)
+
+  it('«Il tuo piano» e «Groomly Salone» vanno a capo, non si tagliano', () => {
+    conStato('salone', 'attivo', null)
+    const link = scheda()
+    const testi = [...link.querySelectorAll('span')].filter((el) => /Il tuo piano|Groomly Salone/.test(el.textContent ?? '') && el.children.length === 0)
+    expect(testi).toHaveLength(2)
+    for (const el of testi) {
+      expect(el.style.textOverflow).not.toBe('ellipsis')
+      expect(el.style.whiteSpace).toBe('normal')
+    }
+  })
+
+  it('su Go «Groomly Go» e «Passa a Plus» vanno a capo', () => {
+    pianoForzato.valore = {
+      mostraPiani: false, abbonamentiAttivi: false, tour: { acceso: false, dal: null },
+      stato: statoPiano({ piano: 'base', stato: 'attivo', fonte: 'manuale', scadeIl: null }, OGGI),
+      provaUsata: true, provaConcessa: false, paywall: null, esitoProva: 'spento', messaggioProva: '',
+      apriPaywall: () => undefined, chiudiPaywall: () => undefined, prova: async () => undefined, avvisa: async () => undefined,
+      livelloNome: 'base', pronto: true,
+    } as PianoValore
+    const link = scheda()
+    const testi = [...link.querySelectorAll('span')].filter((el) => /Passa a Plus|Go/.test(el.textContent ?? '') && el.style.fontWeight !== '')
+    expect(testi.length).toBeGreaterThan(0)
+    for (const el of testi) {
+      expect(el.style.textOverflow).not.toBe('ellipsis')
+      expect(el.style.whiteSpace).toBe('normal')
+    }
+  })
+})

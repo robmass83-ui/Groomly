@@ -1,0 +1,3 @@
+/* Zona toccabile di almeno 40 px: l'aspetto non cambia, si allarga solo l'area che prende il tocco. */
+.tocco { position: relative; }
+.tocco::after { content: ''; position: absolute; left: 50%; top: 50%; width: max(100%, 40px); height: max(100%, 40px); transform: translate(-50%, -50%); }

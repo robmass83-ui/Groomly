@@ -18,7 +18,7 @@ export function RigaRecensione({
     return (
       <section aria-label={frasi.recensione}>
         <p>{frasi.testoRecensione}</p>
-        <button type="button" onClick={plus.apri} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <button type="button" className="tocco" onClick={plus.apri} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           {frasi.chiediRecensione}
           <SegnoPlus feature="recensioni" />
         </button>
@@ -29,7 +29,7 @@ export function RigaRecensione({
   return (
     <section aria-label={frasi.recensione}>
       <p>{frasi.testoRecensione}</p>
-      <button type="button" onClick={onChiedi}>{frasi.chiediRecensione}</button>
+      <button type="button" className="tocco" onClick={onChiedi}>{frasi.chiediRecensione}</button>
     </section>
   )
 }

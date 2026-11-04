@@ -209,6 +209,7 @@ const closeActions: CSSProperties = {
   display: 'flex',
   flexWrap: 'nowrap',
   gap: 6,
+  marginTop: 2,
 }
 
 const closeAction: CSSProperties = {
@@ -629,7 +630,7 @@ export function HomePage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>{frasi.homeOggi}</SectionHeader>
           </div>
-          <Link to={todayPath} style={sectionLink}>{frasi.homeCalendario}</Link>
+          <Link to={todayPath} className="tocco" style={sectionLink}>{frasi.homeCalendario}</Link>
         </div>
         {todayClosure ? <ClosureBand reason={todayClosure.reason} onOpen={() => openSheet(`/chiusure/${todayClosure.id}`)} /> : null}
         {attesaAgenda || listed.length === 0 ? (
@@ -710,12 +711,12 @@ export function HomePage() {
                       />
                     </div>
                     <div style={closeActions}>
-                      <Button size="sm" variant="ok" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, STATO_COMPLETATO)} style={closeAction}>
+                      <Button size="sm" variant="ok" className="tocco" aria-label={frasi.homeCompletatoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, STATO_COMPLETATO)} style={closeAction}>
                         <Check size={14} aria-hidden />
                         {frasi.homeCompletato}
                       </Button>
-                      <Button size="sm" variant="secondary" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
-                      <Button size="sm" variant="bad" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', nome)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
+                      <Button size="sm" variant="secondary" className="tocco" aria-label={frasi.homeNonVenutoNome.replace('{{nome}}', nome)} onClick={() => closeVisit(appointment, 'non_venuto')} style={closeAction}>{frasi.homeNonVenuto}</Button>
+                      <Button size="sm" variant="bad" className="tocco" aria-label={frasi.homeDisdettoNome.replace('{{nome}}', nome)} onClick={() => setAskingCancel(appointment)} style={closeAction}>{frasi.homeDisdetto}</Button>
                     </div>
                     {!dog && !ospite && dalServer ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

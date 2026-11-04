@@ -58,9 +58,25 @@
 
 .bottom-nav__label {
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: normal;
 }
+
+/* Sui telefoni stretti la stessa parola, un po' piu' piccola: mai tagliata, mai con i puntini. */
+@media (max-width: 399px) {
+  /* Le icone restano allineate anche se un'etichetta lunga va su due righe. */
+  .bottom-nav__bar {
+    align-items: flex-start;
+    padding-top: 10px;
+  }
+
+  .bottom-nav__label {
+    font-size: 9px;
+    letter-spacing: -0.05em;
+  }
+}
+
 
 .bottom-nav__icon {
   position: relative;
@@ -95,7 +111,7 @@
   padding: 0 4px;
   border-radius: 999px;
   background: var(--bad);
-  color: var(--on-pri);
+  color: var(--on-fill);
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
