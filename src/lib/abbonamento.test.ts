@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, statoScheda } from './abbonamento'
+import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, offertaPiano, pianoAttivo, pianoInCorso, statoScheda } from './abbonamento'
 import { livelloElenco } from './funzioniPiano'
 import { provaConcessa, statoPiano, type ProMain } from './piano'
 
@@ -24,6 +24,16 @@ describe('pianoAttivo', () => {
     for (const livello of ['salone', 'vip'] as const) {
       for (const piano of ['go', 'plus', 'salone'] as const) expect(pianoAttivo(livello, piano)).toBe(true)
     }
+  })
+})
+
+describe('pianoInCorso', () => {
+  it('il piano in corso è quello pagato, non tutti quelli compresi', () => {
+    expect(pianoInCorso(undefined)).toBe('go')
+    expect(pianoInCorso('base')).toBe('go')
+    expect(pianoInCorso('pro')).toBe('plus')
+    expect(pianoInCorso('salone')).toBe('salone')
+    expect(pianoInCorso('vip')).toBe('salone')
   })
 })
 
@@ -112,5 +122,23 @@ describe('avvisoPiano', () => {
     expect(avvisoPiano(piano({ piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: fine.toISOString() }), true)).toBeNull()
     expect(avvisoPiano(piano(undefined as unknown as ProMain), true)).toBeNull()
     expect(avvisoPiano(piano({ piano: 'pro', stato: 'disdetto', fonte: 'play', scadeIl: new Date(2026, 9, 1).toISOString() }), true)).toBeNull()
+  })
+})
+
+describe('offertaPiano', () => {
+  it('per il titolare la prova segue provaConcessa e l’acquisto segue abbonamentiAttivi', () => {
+    expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: false, ruolo: 'titolare' })).toEqual({ prova: true, acquisto: 'avvisami' })
+    expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: true, ruolo: 'titolare' })).toEqual({ prova: true, acquisto: 'abbonati' })
+    expect(offertaPiano({ provaConcessa: false, abbonamentiAttivi: false, ruolo: 'titolare' })).toEqual({ prova: false, acquisto: 'avvisami' })
+    expect(offertaPiano({ provaConcessa: false, abbonamentiAttivi: true, ruolo: 'titolare' })).toEqual({ prova: false, acquisto: 'abbonati' })
+  })
+
+  it('senza ruolo (sessione non ancora letta) vale come titolare', () => {
+    expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: false, ruolo: undefined }).prova).toBe(true)
+  })
+
+  it('collaboratore e socio non vedono la prova', () => {
+    expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: true, ruolo: 'collaboratore' }).prova).toBe(false)
+    expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: false, ruolo: 'socio' }).prova).toBe(false)
   })
 })

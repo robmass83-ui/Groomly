@@ -2,7 +2,7 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
-import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
+import { settimanaValida, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import type { ProMain } from '../../../src/lib/piano'
 import { postiEmailSalone, TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
@@ -136,11 +136,12 @@ function attesaDi(value: unknown): AttesaMinuto[] {
   return voci
 }
 
-function iscrittoDi(id: string, data: Record<string, unknown>): IscrittoAttesa | null {
+export function iscrittoDi(id: string, data: Record<string, unknown>): IscrittoAttesa | null {
   if (data.attivo === false) return null
   const testo = (valore: unknown) => (typeof valore === 'string' ? valore : '')
   const specie = data.specie === 'gatto' || data.specie === 'altro' ? data.specie : 'cane'
   const taglia = data.taglia === 'piccola' || data.taglia === 'grande' ? data.taglia : 'media'
+  const settimana = settimanaValida(data.settimana)
   return {
     id,
     nome: testo(data.nome),
@@ -153,6 +154,7 @@ function iscrittoDi(id: string, data: Record<string, unknown>): IscrittoAttesa |
     trattamento: testo(data.trattamento),
     durataMin: typeof data.durataMin === 'number' ? data.durataMin : 0,
     creatoIl: testo(data.creatoIl),
+    ...(settimana ? { settimana } : {}),
   }
 }
 

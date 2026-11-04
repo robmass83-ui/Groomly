@@ -230,7 +230,7 @@
     nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
     foto: [], fotoErrore: '', fotoCarico: false,
     mese: '', liberi: null, errore: false, invio: false,
-    lista: { aperta: false, invio: false, fatto: false },
+    lista: { aperta: false, invio: false, fatto: false, settimana: null },
   }
   var URL_FUNZIONI = 'https://europe-west1-groomly-3128b.cloudfunctions.net/'
   var ORIZZONTE = 42
@@ -1027,6 +1027,7 @@
     bottone.addEventListener('click', function () {
       stato.lista.aperta = true
       stato.lista.fatto = false
+      stato.lista.settimana = settimana ? { inizio: settimana.inizio, fine: settimana.fine } : null
       disegna()
       mostra(document.getElementById('lista-attesa'))
     })
@@ -1139,21 +1140,24 @@
       form.append(avviso)
       if (bottone) bottone.disabled = false
     }
+    var corpoIscrizione = {
+      salonId: dati.salonId,
+      nome: stato.nome.trim(),
+      phone: stato.telefono.trim(),
+      email: stato.email.trim(),
+      nomeCane: stato.cane.trim(),
+      specie: stato.specie,
+      taglia: stato.taglia,
+      servizioIds: serviziScelti(),
+      esca: esca.value,
+      consenso: true,
+    }
+    // La settimana della riga da cui si è partiti; dal pulsante generale non c'è e l'iscritto riceve ogni giorno.
+    if (stato.lista.settimana) corpoIscrizione.settimana = stato.lista.settimana
     fetch(URL_FUNZIONI + 'iscrivitiAttesa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: {
-        salonId: dati.salonId,
-        nome: stato.nome.trim(),
-        phone: stato.telefono.trim(),
-        email: stato.email.trim(),
-        nomeCane: stato.cane.trim(),
-        specie: stato.specie,
-        taglia: stato.taglia,
-        servizioIds: serviziScelti(),
-        esca: esca.value,
-        consenso: true,
-      } }),
+      body: JSON.stringify({ data: corpoIscrizione }),
     }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
       var esito = corpo && corpo.result ? corpo.result : {}
       if (esito.ok === true) {

@@ -834,6 +834,7 @@ export const iscrivitiAttesa = onCall(pianoCall, async (request) => {
     servizioIds: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
     consenso: field(request.data, 'consenso') === true,
     esca: text(field(request.data, 'esca')),
+    settimana: field(request.data, 'settimana'),
     mittente: await mittenteDi(request.rawRequest),
     adesso: new Date(),
   })

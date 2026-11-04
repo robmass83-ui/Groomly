@@ -174,6 +174,14 @@ describe('riquadro richiesta', () => {
     expect(screen.getByRole('button', { name: 'Rifiuta' })).toBeEnabled()
   })
 
+  it('la visita nata da questa richiesta dopo Accetta non è un conflitto, quella di un’altra richiesta sì', () => {
+    const { unmount } = apri({ visite: [visita({ richiestaId: 'r1' })] })
+    expect(screen.queryByText('A quest’ora c’è già una visita.')).toBeNull()
+    unmount()
+    apri({ visite: [visita({ richiestaId: 'r2' })] })
+    expect(screen.getByText('A quest’ora c’è già una visita.')).toBeInTheDocument()
+  })
+
   it('un’altra richiesta sulla stessa ora lo dice e spegne Accetta, un orario diverso no', async () => {
     const user = userEvent.setup()
     const { unmount } = apri({ altre: [richiesta({ id: 'r2' })] })

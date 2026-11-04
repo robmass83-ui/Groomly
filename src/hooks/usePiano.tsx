@@ -7,7 +7,8 @@ import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, provaConcessa, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
 import { salvaPiano } from '../lib/pianoSalvato'
-import { useUidSessione } from './useSession'
+import { offertaPiano } from '../lib/abbonamento'
+import { useRuoloSessione, useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 
 export type PianoValore = {
@@ -120,6 +121,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
           (data) => {
             if (chiuso || currentSalonId() !== richiesto) return
             setPro(data)
+            setAdesso(new Date())
             setCaricato(true)
           },
           (data) => { if (!chiuso && currentSalonId() === richiesto) setConfig(data) },
@@ -202,12 +204,13 @@ export function PaywallPiano() {
   const piano = usePiano()
   const navigate = useNavigate()
   const feature = piano.paywall
+  const offerta = offertaPiano({ provaConcessa: piano.provaConcessa, abbonamentiAttivi: piano.abbonamentiAttivi, ruolo: useRuoloSessione() })
   return (
     <PaywallSheet
       open={feature !== null || piano.esitoProva !== 'spento'}
       feature={feature}
-      mostraProva={piano.mostraPiani && piano.provaConcessa}
-      abbonamentiAttivi={piano.abbonamentiAttivi}
+      mostraProva={offerta.prova}
+      abbonamentiAttivi={offerta.acquisto === 'abbonati'}
       esitoProva={piano.esitoProva}
       messaggioProva={piano.messaggioProva}
       onClose={piano.chiudiPaywall}

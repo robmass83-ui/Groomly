@@ -1,4 +1,4 @@
-import type { Firestore } from 'firebase-admin/firestore'
+import { FieldValue, type Firestore } from 'firebase-admin/firestore'
 import { describe, expect, it } from 'vitest'
 import { iscrivitiAttesaPer } from './iscrivitiAttesa'
 
@@ -18,6 +18,14 @@ function memoria(iniziale: Record<string, Dati>) {
     id: path.split('/').pop() as string,
     get: async () => snap(path),
     set: async (dati: Dati) => { store.set(path, structuredClone(dati)) },
+    update: async (dati: Dati) => {
+      const attuale = structuredClone(store.get(path) ?? {})
+      for (const [chiave, valore] of Object.entries(dati)) {
+        if (valore instanceof FieldValue && valore.isEqual(FieldValue.delete())) delete attuale[chiave]
+        else attuale[chiave] = structuredClone(valore)
+      }
+      store.set(path, attuale)
+    },
   })
   const db = {
     doc: (path: string) => ref(path),
@@ -198,5 +206,54 @@ describe('iscrivitiAttesaPer', () => {
     expect(await iscrivitiAttesaPer({ ...base, salonId: 'a/b' }, db)).toEqual({ ok: false, errore: 'dati' })
     expect(elenco(`${BASE}/attesa`)).toHaveLength(0)
     expect([...store.keys()].some((chiave) => chiave.includes('/attesa/'))).toBe(false)
+  })
+})
+
+describe('iscrivitiAttesaPer con la settimana', () => {
+  it('una settimana valida finisce sul documento', async () => {
+    const { db, elenco } = salone()
+    const settimana = { inizio: '2026-11-16', fine: '2026-11-22' }
+    expect((await iscrivitiAttesaPer({ ...base, settimana }, db)).ok).toBe(true)
+    expect(elenco(`${BASE}/attesa`)[0].settimana).toEqual(settimana)
+  })
+
+  it('una settimana non valida o assente non blocca e non si salva', async () => {
+    for (const settimana of ['x', undefined]) {
+      const { db, elenco } = salone()
+      expect((await iscrivitiAttesaPer({ ...base, settimana }, db)).ok).toBe(true)
+      expect(elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('settimana')
+    }
+  })
+})
+
+describe('iscrivitiAttesaPer: riscriversi aggiorna la settimana', () => {
+  const prima = { inizio: '2026-11-16', fine: '2026-11-22' }
+  const dopo = { inizio: '2026-11-23', fine: '2026-11-29' }
+
+  it('con un’altra settimana valida sostituisce quella salvata e restituisce lo stesso id', async () => {
+    const { db, elenco } = salone()
+    const uno = await iscrivitiAttesaPer({ ...base, settimana: prima }, db)
+    const due = await iscrivitiAttesaPer({ ...base, settimana: dopo }, db)
+    expect(due).toEqual(uno)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
+    expect(elenco(`${BASE}/attesa`)[0].settimana).toEqual(dopo)
+  })
+
+  it('senza settimana (o non valida) toglie quella salvata: vale «qualunque giorno»', async () => {
+    for (const settimana of [undefined, 'x']) {
+      const { db, elenco } = salone()
+      const uno = await iscrivitiAttesaPer({ ...base, settimana: prima }, db)
+      expect(await iscrivitiAttesaPer({ ...base, settimana }, db)).toEqual(uno)
+      expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
+      expect(elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('settimana')
+    }
+  })
+
+  it('con la stessa settimana lascia tutto com’è e restituisce lo stesso id', async () => {
+    const { db, elenco } = salone()
+    const uno = await iscrivitiAttesaPer({ ...base, settimana: prima }, db)
+    const prima1 = elenco(`${BASE}/attesa`)
+    expect(await iscrivitiAttesaPer({ ...base, settimana: { ...prima } }, db)).toEqual(uno)
+    expect(elenco(`${BASE}/attesa`)).toEqual(prima1)
   })
 })

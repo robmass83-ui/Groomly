@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { contaAperte, ingressoRichiestaPubblica } from '../../../src/lib/prenotazione'
 
 describe('inviaRichiesta pubblica', () => {
   it('non scrive sul ramo inizio/fine e il posto usa la durata del servizio', () => {
@@ -14,5 +15,14 @@ describe('inviaRichiesta pubblica', () => {
     const a = index.indexOf('function chiaveBrevo')
     const corpo = index.slice(da, a)
     expect(corpo).toContain('chiaveBrevo()')
+  })
+  it('la terza richiesta con lo stesso cellulare senza prefisso è rifiutata come con lo stesso formato', () => {
+    const aperte = [{ phone: '+39 320 5550000' }, { phone: '0039 320 5550000' }]
+    const conti = contaAperte(aperte, '320 5550000', 'nuova@cliente.it')
+    const esito = ingressoRichiestaPubblica({
+      nome: 'Ada Rossi', phone: '320 5550000', email: 'nuova@cliente.it', giorno: '2026-11-10', ora: '10:00',
+      esca: '', consenso: true, adesso: new Date('2026-11-03T10:00:00Z'), aperteTelefono: conti.aperteTelefono, aperteEmail: conti.aperteEmail, aperteMittente: conti.aperteMittente, aperteSalone: conti.aperteSalone,
+    })
+    expect(esito).toEqual({ ok: false, message: 'Troppe richieste' })
   })
 })

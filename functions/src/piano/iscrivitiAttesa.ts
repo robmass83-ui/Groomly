@@ -1,8 +1,8 @@
-import { getFirestore, type Firestore } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { scegliCatalogo } from '../../../src/lib/catalogoPrenotazione'
 import { emailValida } from '../../../src/lib/codaEmail'
 import { decisioneAntispam } from '../../../src/lib/disponibilita'
-import type { IscrittoAttesa, SpecieAttesa, TagliaAttesa } from '../../../src/lib/listaAttesa'
+import { settimanaValida, type IscrittoAttesa, type SpecieAttesa, type TagliaAttesa } from '../../../src/lib/listaAttesa'
 import { contaAperte } from '../../../src/lib/prenotazione'
 import { idValido } from './gestisciPrenotazione'
 import type { ProMain } from '../../../src/lib/piano'
@@ -37,6 +37,8 @@ export async function iscrivitiAttesaPer(input: {
   taglia: TagliaAttesa
   servizioIds: readonly string[]
   consenso: boolean
+  /** La settimana scelta sulla pagina; se manca o non è valida si iscrive lo stesso, senza. */
+  settimana?: unknown
   /** Il campo nascosto del modulo: se un robot lo riempie, si risponde ok e non si scrive. */
   esca?: string
   /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
@@ -74,7 +76,14 @@ export async function iscrivitiAttesaPer(input: {
   const gia = attive.find((riga) => (
     pulito(riga.data.email).toLowerCase() === minuscola && pulito(riga.data.nomeCane) === nomeCane && pulito(riga.data.servizioId) === principale.id
   ))
-  if (gia) return { ok: true, iscrittoId: gia.id }
+  if (gia) {
+    // Chi si riscrive aggiorna la settimana: una nuova vale al posto della vecchia, nessuna (o non valida) vuol dire «qualunque giorno».
+    const nuova = settimanaValida(input.settimana)
+    const vecchia = settimanaValida(gia.data.settimana)
+    const uguale = nuova ? vecchia?.inizio === nuova.inizio && vecchia.fine === nuova.fine : gia.data.settimana === undefined
+    if (!uguale) await db.doc(`${base}/attesa/${gia.id}`).update({ settimana: nuova ?? FieldValue.delete() })
+    return { ok: true, iscrittoId: gia.id }
+  }
   const mittente = input.mittente ?? ''
   const conti = contaAperte(attive.map((riga) => riga.data), phone, email, mittente)
   const antispam = decisioneAntispam({
@@ -91,6 +100,7 @@ export async function iscrivitiAttesaPer(input: {
   }
 
   const ref = db.collection(`${base}/attesa`).doc()
+  const settimana = settimanaValida(input.settimana)
   const iscritto: Omit<IscrittoAttesa, 'id'> & { attivo: true } = {
     nome,
     phone,
@@ -103,6 +113,7 @@ export async function iscrivitiAttesaPer(input: {
     durataMin: scelta.durataMin,
     creatoIl: input.adesso.toISOString(),
     attivo: true,
+    ...(settimana ? { settimana } : {}),
   }
   await ref.set(mittente ? { ...iscritto, mittente } : iscritto)
   return { ok: true, iscrittoId: ref.id }

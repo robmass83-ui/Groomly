@@ -23,7 +23,8 @@ vi.mock('../data/firebase/client', () => ({
   callAvviaProva,
 }))
 
-vi.mock('./useSession', () => ({ useUidSessione: () => 'u9' }))
+const sessione = vi.hoisted(() => ({ ruolo: 'titolare' as string | undefined }))
+vi.mock('./useSession', () => ({ useUidSessione: () => 'u9', useRuoloSessione: () => sessione.ruolo }))
 
 function ConFinestra({ children }: { children: ReactNode }) {
   return (
@@ -72,6 +73,7 @@ describe('paywall avvisami', () => {
     listenDocumentoPiano.mockReset()
     listenDocumentoPiano.mockResolvedValue(() => undefined)
     clearSalon()
+    sessione.ruolo = 'titolare'
   })
 
   it('aggancia il piano quando il salone si apre dopo l’avvio', async () => {
@@ -139,6 +141,27 @@ describe('paywall avvisami', () => {
       expect(screen.getByText('pronto:12')).toBeInTheDocument()
       act(() => { vi.advanceTimersByTime(24 * 60 * 60 * 1000) })
       expect(screen.getByText('pronto:11')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('la prova appena avviata dice 30 giorni anche se l’app era aperta da dieci minuti', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-11-01T10:00:00.000Z'))
+    try {
+      let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+      listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+        onPro = pro
+        return () => undefined
+      })
+      bindSalon('salon-1')
+      render(<PianoProvider><Caricato /></PianoProvider>)
+      await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+      act(() => { vi.advanceTimersByTime(10 * 60 * 1000) })
+      const oraDocumento = Date.now()
+      act(() => { onPro({ piano: 'pro', stato: 'prova', fonte: 'prova', scadeIl: new Date(oraDocumento + 30 * 24 * 60 * 60 * 1000).toISOString(), provaUsata: true }) })
+      expect(screen.getByText('pronto:30')).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
     }
@@ -226,5 +249,37 @@ describe('paywall avvisami', () => {
     await user.click(screen.getByRole('button', { name: 'Abbonati' }))
     expect(screen.getByText('pagina piano')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  async function apriConConfig(config: Record<string, unknown>, provaPossibile: boolean) {
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, onConfig?: (data: Record<string, unknown> | null) => void) => {
+      pro(provaPossibile ? null : { piano: 'base', stato: 'scaduto', fonte: null, provaUsata: true })
+      onConfig?.(config)
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    const user = userEvent.setup()
+    render(<ConFinestra><Apri feature="export" /></ConFinestra>)
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    await user.click(screen.getByRole('button', { name: 'Apri' }))
+  }
+
+  it('con i piani nascosti il titolare vede comunque Prova gratis e Avvisami', async () => {
+    await apriConConfig({ mostraPiani: false }, true)
+    expect(await screen.findByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
+  })
+
+  it('con gli abbonamenti attivi il paywall mostra Abbonati e non Avvisami', async () => {
+    await apriConConfig({ mostraPiani: false, abbonamentiAttivi: true }, true)
+    expect(await screen.findByRole('button', { name: 'Abbonati' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Avvisami' })).not.toBeInTheDocument()
+  })
+
+  it('un collaboratore non vede la prova nel paywall', async () => {
+    sessione.ruolo = 'collaboratore'
+    await apriConConfig({ mostraPiani: true }, true)
+    expect(await screen.findByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { istanteRoma, oraRoma } from './disponibilita'
-import { emailPrenotazioneValida, esitoEmailPrenotazione, icsRoma, ingressoRichiestaPubblica, contaAperte, intervalloRichiesta, templatePrenotazione, transizionePrenotazione } from './prenotazione'
+import { telefonoConfronto, emailPrenotazioneValida, esitoEmailPrenotazione, icsRoma, ingressoRichiestaPubblica, contaAperte, intervalloRichiesta, templatePrenotazione, transizionePrenotazione } from './prenotazione'
 
 describe('prenotazione online', () => {
   it('da nuova si passa agli stati previsti e un token errato non cambia nulla', () => {
@@ -119,5 +119,19 @@ describe('ingresso richiesta pubblica', () => {
   it('il terzo invio dallo stesso mittente è rifiutato anche con email e telefono nuovi', () => {
     expect(ingressoRichiestaPubblica({ ...base, aperteMittente: 2 })).toEqual({ ok: false, message: 'Troppe richieste' })
     expect(ingressoRichiestaPubblica({ ...base, aperteMittente: 1 }).ok).toBe(true)
+  })
+
+  it('telefonoConfronto toglie il prefisso italiano e lascia le cifre', () => {
+    for (const t of ['+39 320 5550000', '0039 320 5550000', '39 320 5550000', '320 5550000', '+39 (320) 555-0000']) {
+      expect(telefonoConfronto(t)).toBe('3205550000')
+    }
+    expect(telefonoConfronto('393 1234567')).toBe('3931234567')
+    expect(telefonoConfronto('06 1234567')).toBe('061234567')
+    expect(telefonoConfronto('')).toBe('')
+  })
+
+  it('contaAperte tratta lo stesso cellulare con o senza prefisso come uno solo', () => {
+    const righe = [{ phone: '+39 320 5550000' }, { phone: '0039 320 5550000' }]
+    expect(contaAperte(righe, '320 5550000', 'a@b.it').aperteTelefono).toBe(2)
   })
 })

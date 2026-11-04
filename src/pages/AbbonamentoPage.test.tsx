@@ -19,6 +19,7 @@ vi.mock('../hooks/usePiano', async () => {
   }
 })
 
+vi.mock('../data/firebase/client', async () => ({ ...(await vi.importActual<object>('../data/firebase/client')), scriviInteresse: async () => undefined }))
 vi.mock('../components/team/PersoneCollegate', () => ({
   PersoneCollegate: ({ salonId }: { salonId: string }) => <p>Persone collegate di {salonId ? '' : 'x'}salone</p>,
 }))
@@ -26,7 +27,7 @@ vi.mock('../components/team/PersoneCollegate', () => ({
 function piano(livello: LivelloElenco, extra: Partial<PianoValore> = {}): PianoValore {
   return {
     mostraPiani: false,
-    abbonamentiAttivi: false,
+    abbonamentiAttivi: true,
     tour: { acceso: false, dal: null },
     stato: statoDaLivello(livello, new Date(2026, 9, 31)),
     provaUsata: true,
@@ -91,7 +92,35 @@ describe('Abbonamento', () => {
   it('vip vede tutti e tre i piani attivi nella scelta', async () => {
     await apri('/impostazioni/abbonamento', 'vip')
     expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
-    expect(screen.getAllByText('Attivo')).toHaveLength(3)
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent('Attivo')
+  })
+
+  it('con Plus attivo: Go Gratis, Plus Attivo, Salone il prezzo', async () => {
+    await apri('/impostazioni/abbonamento', 'pro')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Groomly Go/ })).toHaveTextContent('Gratis')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent('Attivo')
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent(/19,99 €\s*al mese/)
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
+  })
+
+  it('con Salone attivo: Go Gratis, Plus il prezzo, Salone Attivo', async () => {
+    await apri('/impostazioni/abbonamento', 'salone')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Groomly Go/ })).toHaveTextContent('Gratis')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent(/9,99 €\s*al mese/)
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent('Attivo')
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
+  })
+
+  it('con Go attivo: Go Attivo e gli altri due con il prezzo', async () => {
+    await apri('/impostazioni/abbonamento', 'base')
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Groomly Go/ })).toHaveTextContent('Attivo')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent(/9,99 €\s*al mese/)
+    expect(screen.getByRole('link', { name: /Groomly Salone/ })).toHaveTextContent(/19,99 €\s*al mese/)
+    expect(screen.getAllByText('Attivo')).toHaveLength(1)
   })
 
   it('base su Plus vede la vetrina senza interruttori', async () => {
@@ -123,10 +152,10 @@ describe('Abbonamento', () => {
     }
   })
 
-  it('Abbonati apre «In arrivo»', async () => {
+  it('con gli abbonamenti spenti Avvisami apre «In arrivo»', async () => {
     const user = userEvent.setup()
-    await apri('/impostazioni/abbonamento/salone', 'base')
-    await user.click(await screen.findByRole('button', { name: 'Abbonati' }))
+    await apri('/impostazioni/abbonamento/salone', 'base', undefined, { abbonamentiAttivi: false })
+    await user.click(await screen.findByRole('button', { name: 'Avvisami' }))
     expect(await screen.findByRole('dialog', { name: 'In arrivo' })).toHaveTextContent('Presto potrai abbonarti direttamente dall’app.')
   })
 

@@ -16,6 +16,13 @@ export function pianoAttivo(livello: LivelloElenco | undefined, piano: PianoVetr
   return RANGO_LIVELLO[livello ?? 'base'] >= RANGO_PIANO[piano]
 }
 
+// Il piano pagato in corso, quello che la scheda segna «Attivo». Un Salone ha anche Plus, ma il suo piano è Salone.
+const PIANO_IN_CORSO: Record<LivelloElenco, PianoVetrina> = { base: 'go', pro: 'plus', salone: 'salone', vip: 'salone' }
+
+export function pianoInCorso(livello: LivelloElenco | undefined): PianoVetrina {
+  return livello === undefined ? 'go' : PIANO_IN_CORSO[livello]
+}
+
 export function ePianoVetrina(value: string | undefined): value is PianoVetrina {
   return value === 'go' || value === 'plus' || value === 'salone'
 }
@@ -40,6 +47,17 @@ export function statoScheda(
     return piano.stato.inProva ? { tipo: 'prova', giorni: piano.stato.giorniProva ?? 0 } : { tipo: 'plus' }
   }
   return { tipo: 'go', provaDisponibile: titolare && piano.provaConcessa }
+}
+
+export type OffertaPiano = { prova: boolean; acquisto: 'abbonati' | 'avvisami' }
+
+// Cosa offrono insieme il paywall e la pagina del piano. La prova la avvia solo il titolare e la concede il server (provaConcessa);
+// «Abbonati» c'è solo quando il Play Store è collegato, altrimenti «Avvisami». L'interruttore mostraPiani non c'entra.
+export function offertaPiano(input: { provaConcessa: boolean; abbonamentiAttivi: boolean; ruolo: string | undefined }): OffertaPiano {
+  return {
+    prova: input.provaConcessa && (input.ruolo === undefined || input.ruolo === 'titolare'),
+    acquisto: input.abbonamentiAttivi ? 'abbonati' : 'avvisami',
+  }
 }
 
 export type AvvisoPiano = { tipo: 'grazia' } | { tipo: 'disdetto'; fine: Date }

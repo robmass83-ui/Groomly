@@ -14,7 +14,7 @@ import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
 import { haAccesso } from '../lib/piano'
-import { COLORE_PIANO, LINK_PLAY_ABBONAMENTI, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, type PianoVetrina } from '../lib/abbonamento'
+import { COLORE_PIANO, LINK_PLAY_ABBONAMENTI, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, pianoInCorso, type PianoVetrina } from '../lib/abbonamento'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -64,7 +64,7 @@ export function AbbonamentoPage() {
           </p>
         ) : null}
         {SCHEDE.map(({ piano, nome, frase, icona }) => {
-          const attivo = pianoAttivo(livelloNome, piano)
+          const attivo = pianoInCorso(livelloNome) === piano
           return (
             <Link key={piano} to={`/impostazioni/abbonamento/${piano}`} style={scheda}>
               <span aria-hidden style={{ width: 8, flex: 'none', background: COLORE_PIANO[piano] }} />

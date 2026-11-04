@@ -969,7 +969,7 @@ export const it = {
   sbloccaSalone: 'Si sblocca con Salone',
   avvisaSalone: 'Avvisami per il Salone',
   pianoLoAccendeTitolare: 'Lo accende il titolare.',
-  prenotaMancaProfilo: 'Per accendere le prenotazioni completa il profilo, 5 su 5. Il link qui sopra si può già condividere.',
+  prenotaMancano: 'Per accendere le prenotazioni manca: {{passi}}.',
   prenotaMancaFiscale: 'Serve la partita IVA oppure il codice fiscale. Il link qui sopra si può già condividere.',
   prenotaMancaServizi: 'Prima imposta prezzi e servizi.',
   prenotaBio: 'Metti questo link nella bio di Instagram o di Facebook.',

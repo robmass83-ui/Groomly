@@ -13,7 +13,7 @@ import { TYPE } from '../../theme/theme'
 import { Dialog } from '../layout/Dialog'
 import { SegnoPlus } from '../piano/SegnoPlus'
 import { FoglioServizio, RigaServizio } from '../piano/FoglioServizio'
-import { LinkCondivisione, usePrenotazioniOnline } from '../piano/LinkCondivisione'
+import { FrasePassiMancanti, LinkCondivisione, usePrenotazioniOnline } from '../piano/LinkCondivisione'
 import { Card, Row } from '../ui/Card'
 import { IconTile } from '../ui/IconTile'
 import { Info } from '../ui/Info'
@@ -179,7 +179,7 @@ export function BloccoPlus() {
                   <p role="status" style={{ margin: '0 0 8px', color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>
                     {prenotazioni.decisione.manca === 'servizi' ? (
                       <Link to="/impostazioni/servizi" style={{ color: 'var(--pri)', fontWeight: 700 }}>{frasi.prenotaMancaServizi}</Link>
-                    ) : prenotazioni.decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : frasi.prenotaMancaProfilo}
+                    ) : prenotazioni.decisione.manca === 'fiscale' ? frasi.prenotaMancaFiscale : <FrasePassiMancanti mancanti={prenotazioni.mancanti} />}
                   </p>
                 ) : null}
                 {prenotazioni.errore ? <p style={{ margin: '0 0 8px', color: 'var(--bad)', fontSize: TYPE.meta }}>{prenotazioni.errore}</p> : null}

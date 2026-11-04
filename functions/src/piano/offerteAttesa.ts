@@ -1,4 +1,4 @@
-import { idOfferta, inizioDaDoc, oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
+import { idOfferta, inizioDaDoc, nellaSettimana, oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 
 /** Chi si è iscritto dopo che il posto si è aperto non lo riceve. Parità di istante: la mail parte. Data illeggibile: nessuna esclusione. */
 function iscrittoDopo(creatoIl: string, apertoIl: Date): boolean {
@@ -19,6 +19,7 @@ export function offerteDaCreare(input: {
   for (const buco of input.buchi) {
     if (!oraAncoraDavanti(buco.inizio, input.adesso)) continue
     for (const iscritto of input.iscritti) {
+      if (!nellaSettimana(buco.inizio, iscritto.settimana)) continue
       if (buco.apertoIl && iscrittoDopo(iscritto.creatoIl, buco.apertoIl)) continue
       const id = idOfferta(buco.appointmentId, iscritto.id)
       if (esistentiIds.has(id)) continue
