@@ -7,6 +7,7 @@ import { Providers } from './providers'
 const mocks = vi.hoisted(() => ({
   appointmentListener: null as ((items: Appointment[], fromCache?: boolean) => void) | null,
   removeAppointment: vi.fn(async (..._args: unknown[]) => undefined),
+  allineaLinguaAccount: vi.fn(async (..._args: unknown[]) => undefined),
 }))
 
 vi.mock('@capacitor/core', () => ({
@@ -47,6 +48,7 @@ vi.mock('../data/firebase/client', () => ({
     return () => undefined
   },
   removeAppointment: (...args: unknown[]) => mocks.removeAppointment(...args),
+  allineaLinguaAccount: (...args: unknown[]) => mocks.allineaLinguaAccount(...args),
   saveAppointment: vi.fn(async () => undefined),
 }))
 
@@ -73,6 +75,7 @@ vi.mock('../components/beta/BetaProvider', () => ({
 }))
 vi.mock('../i18n/LinguaContext', () => ({
   LinguaProvider: ({ children }: { children: unknown }) => children,
+  useLingua: () => ({ lingua: 'de', scegli: () => undefined }),
   useFrasi: () => ({ authSalvataggio: '' }),
 }))
 vi.mock('../components/layout/Toast', () => ({
@@ -102,6 +105,11 @@ describe('avvio dell’app', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('all’avvio l’account riceve la lingua attiva', async () => {
+    render(<Providers><div /></Providers>)
+    await waitFor(() => expect(mocks.allineaLinguaAccount).toHaveBeenCalledWith('uid-1', 'de'))
   })
 
   it('all avvio con la lista cani vuota nessuna visita viene cancellata', async () => {

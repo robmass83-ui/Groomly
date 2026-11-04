@@ -24,7 +24,7 @@ describe('lingua del messaggio', () => {
   })
 
   it('un valore salvato non valido torna alla lingua predefinita', () => {
-    localStorage.setItem('groomly.linguaMessaggio.393331234567', 'fr')
+    localStorage.setItem('groomly.linguaMessaggio.393331234567', 'pt')
     expect(leggiLinguaMessaggio('333 1234567', 'es')).toBe('es')
   })
 })

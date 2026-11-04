@@ -182,9 +182,6 @@
     "Connessione assente",
     "Salvataggio non riuscito"
   ],
-  "src/i18n/debitoLingue.ts": [
-    "Backup"
-  ],
   "src/i18n/format.ts": [
     "${giorno} à ${ora}"
   ],

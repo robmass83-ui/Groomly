@@ -474,3 +474,19 @@ Scelte prese da B4 senza Roberto:
 - **Attesa dopo il pagamento:** la vetrina aspetta il piano Play; dopo 20 secondi dice «entro qualche minuto».
 - **Testi:** chiavi con prefisso `b4` per non collidere con quelle di B2.
 - **Client:** si è esportata da `src/data/firebase/client.ts` la funzione esistente `callCallableData`, usata da `abbonamentiClient.ts`.
+
+## Cinque lingue — T1 Basi (4 novembre 2026)
+
+Spec: `docs/superpowers/specs/2026-11-04-lingue-basi-design.md`.
+
+- **Chi ha già l'app:** riconosciuto da `groomly.session`, `groomly.auth`, `groomly.lastSignIn` o dai dati `groomly.users.*` e `groomly.mirror.*`. Il segno `groomly.linguaPassaggio` si scrive anche sulle installazioni nuove.
+- **Vecchia regola:** il passaggio usa le tre lingue di allora. Un telefono francese a Parigi vedeva l'inglese e continua a vederlo finché non sceglie.
+- **`accounts.lingua`:** si scrive dal componente `LinguaAccount`, anche quando la lingua cambia a mano, e alla creazione dell'account perché l'email di verifica parte subito. Le regole Firestore non cambiano: il proprietario poteva già scrivere il campo.
+- **Lingua dei clienti:** riga sotto «Lingua» in Impostazioni, con il suo dialogo. Si compila alla creazione del salone, non alla prima apertura della voce.
+- **Testo «Lingua»:** `linguaMessaggiDettaglio` citava il luogo, che non conta più: riscritto in it, en, es.
+- **Login:** il selettore non esisteva. È una riga in fondo alla pagina con il nome della lingua.
+- **Catene `lingua === 'es'`:** restano fino all'ondata 2, con fr e de che cadono sull'italiano, elencate in `DEBITO_CATENE`. Nessuna APK esce prima della chiusura.
+- **Hosting:** non toccato. Accettare `?lang=fr` senza tabelle lascerebbe pagine vuote: è di T6. Lo stesso vale per il ripiego sull'italiano di `linguaPagina` lato server.
+- **`frasiFisse`:** guarda anche i template con backtick. Nei `.ts` ignora la parola sola in minuscolo, che è un valore salvato. Ignora le righe di `console` e `logger`.
+- **Formati:** francese con spazio insecabile come separatore delle migliaia e prima di €; tedesco con `Mittwoch, 4. November` e `4. Nov`.
+

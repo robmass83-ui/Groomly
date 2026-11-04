@@ -47,7 +47,7 @@ export function fileTsx(dir: string, out: string[] = []): string[] {
 /** Cataloghi e tabelle con le lingue affiancate, liste di parole, pagine per soli operatori: qui l'italiano sta di casa. */
 export const FILE_AMMESSI = new Set([
   'src/i18n/it.ts', 'src/i18n/en.ts', 'src/i18n/es.ts', 'src/i18n/fr.ts', 'src/i18n/de.ts',
-  'src/i18n/frasiFisse.ts', 'src/i18n/emailHtml.ts', 'src/i18n/errori.ts', 'src/i18n/listino.ts', 'src/i18n/report.ts',
+  'src/i18n/frasiFisse.ts', 'src/i18n/debitoLingue.ts', 'src/i18n/emailHtml.ts', 'src/i18n/errori.ts', 'src/i18n/listino.ts', 'src/i18n/report.ts',
   'src/i18n/servizioVisibile.ts', 'src/lib/italianoSchermo.ts', 'src/lib/htmlEsito.ts', 'src/lib/paginaPubblica.ts',
   'src/lib/messaggiManuali.ts', 'src/lib/avvisoPiano.ts', 'src/components/beta/testi.ts',
   'functions/src/beta/emailBeta.ts', 'functions/src/abbonamenti/emailAnnuncio.ts', 'functions/src/piano/emailEliminazione.ts',

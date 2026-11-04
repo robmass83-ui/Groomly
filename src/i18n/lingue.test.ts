@@ -49,11 +49,11 @@ describe('cinque lingue', () => {
   })
 
   // Con i file provvisori di T1 tutto è uguale all'inglese: il controllo parte da solo coi file veri.
-  it.each(['fr', 'de'])('%s è uguale a en o it solo per le frasi in elenco', (lingua) => {
+  it.each(['fr', 'de'] as const)('%s è uguale a en o it solo per le frasi in elenco', (lingua) => {
     if (testo(`src/i18n/${lingua}.ts`).includes(DA_TRADURRE)) return
     const uguali = Object.keys(italiano).filter((chiave) => {
       const frase = CATALOGHI[lingua][chiave]
-      return (frase === en[chiave as keyof typeof en] || frase === italiano[chiave as keyof typeof italiano]) && !FRASI_UGUALI.has(frase)
+      return (frase === en[chiave as keyof typeof en] || frase === italiano[chiave as keyof typeof italiano]) && !FRASI_UGUALI[lingua].has(frase)
     })
     expect(uguali).toEqual([])
   })

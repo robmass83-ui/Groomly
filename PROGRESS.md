@@ -339,3 +339,19 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Con B1:
   - i messaggi `failed-precondition` noti di `rispondiInvitoBeta`/`inviaFeedbackBeta` si traducono in it/en/es (`messaggioErroreBeta`); gli altri passano così come sono;
   - B1 scrive anche `salons/{id}/avvisi/beta` (con `segnaAvvisoBeta`), ma l'app non lo legge: gli avvisi li calcola da sola. Per la chiusura: valutare se mostrare gli avvisi che solo il server conosce (revoca con testo dell'operatore, estensione, invito ritirato) leggendo quel documento.
+
+## Cinque lingue — T1 Basi (4 novembre, ramo `claude/lingue-t1-basi-7822a1`, non unito)
+- Spec `docs/superpowers/specs/2026-11-04-lingue-basi-design.md`, piano `docs/superpowers/plans/2026-11-04-lingue-basi.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md`.
+- Fatto:
+  - `Lingua` a cinque valori da `LINGUE`, con `NOMI_LINGUA`, `OPZIONI_LINGUA`, `LOCALE_INTL`; unioni scritte a mano sostituite in `src` e `functions/src`;
+  - regola scelta, telefono, inglese; passaggio una tantum `passaggioLingua`; `linguaDalLuogo` serve solo a quello;
+  - `accounts/{uid}.lingua` allineato a ogni avvio e al cambio lingua, e scritto alla creazione;
+  - voce «Lingua dei clienti» (solo titolare), compilata nei saloni nuovi;
+  - selettore a cinque lingue in Impostazioni, Login (nuovo), messaggi, stampa del listino; `format.ts` per fr e de.
+- Provvisori: `fr.ts` e `de.ts` copiano l'inglese, le tabelle hanno l'inglese con `// LINGUE: da tradurre`. All'unione vincono i file di T2 e T3, che hanno già le chiavi `// Lingue T1`.
+- Per l'ondata 2:
+  - `src/i18n/debitoFrasi.json`: frasi fisse da tradurre, file per file; tolte dal codice, si tolgono da lì;
+  - `src/i18n/debitoLingue.ts`: `DEBITO_CATENE` da svuotare; `SEGNAPOSTO_AMMESSI` da mettere a `false` a fine ondata 2;
+  - `hosting/*` non toccato: è di T6;
+  - in `src/i18n/emailHtml.test.ts` il tipo `LinguaEmail` esclude fr e de finché T5 non scrive le email.
+
