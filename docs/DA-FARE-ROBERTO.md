@@ -29,6 +29,7 @@ In attesa. Non fanno parte dell’aggiornamento corrente. Si riprendono quando s
 - App Check in console. I tre flag nel codice restano spenti. I passi sono più sotto. Non imporre l’enforcement prima.
 - Test chiuso: 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`.
 - Pagamenti, solo quando si accendono gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. Lista in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. `abbonamentiAttivi` resta false.
+- **Beta Plus/Salon (4/11/2026).** Guida all’uso in `docs/GUIDA-ADMIN-MANAGER.md`. Al prossimo rilascio: deploy di functions **e** regole, poi APK.
 - **Abbonamenti (codice pronto e spento, B4 del 4/11/2026).** Prima del prossimo deploy delle functions crea i due segreti, anche con un valore provvisorio, altrimenti il deploy si ferma:
   `npx firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH` e `npx firebase functions:secrets:set REVENUECAT_API_KEY`.
   Poi, quando vuoi (gratis): account RevenueCat, chiave segreta V2, ID progetto in `functions/.env` (`REVENUECAT_PROJECT_ID`), chiave `goog_…` nell'Admin Manager, webhook con «Send test event». Il giorno dei pagamenti: annuncio 15 giorni prima, pannello di accensione tutto verde, ACCENDI. Passi completi in `docs/legal/PRIMA-DEI-PAGAMENTI.md` §3.
