@@ -1,5 +1,5 @@
+import { opzioniDate } from './format'
 import { addWeeks, format } from 'date-fns'
-import { enGB, es } from 'date-fns/locale'
 import type { Lingua } from '../i18n/lingua'
 import type { Appointment, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, Dog, DogSize, Service } from '../types/models'
 import { assigneeOf } from './salonAccess'
@@ -131,7 +131,7 @@ const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', '
 export function formatBookedWhen(date: Date, lingua: Lingua = 'it'): string {
   const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
   if (lingua === 'it') return `${WEEKDAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]} ${time}`
-  return format(date, 'EEE d MMM HH:mm', { locale: lingua === 'en' ? enGB : es, weekStartsOn: 1 })
+  return format(date, 'EEE d MMM HH:mm', opzioniDate(lingua))
 }
 
 export function localDayKey(date: Date): string {

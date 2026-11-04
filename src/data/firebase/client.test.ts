@@ -2874,6 +2874,31 @@ describe('client Firebase', () => {
     })
   })
 
+  describe('allineaLinguaAccount', () => {
+    function accountConLingua(lingua?: string) {
+      if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())
+      fs.store.get('accounts')?.set('uid-l', { salonId: 'uid-l', role: 'titolare', ...(lingua ? { lingua } : {}) })
+    }
+
+    it('lingua assente o diversa: scrive solo la lingua', async () => {
+      accountConLingua()
+      await client.allineaLinguaAccount('uid-l', 'de')
+      expect(fs.updates).toEqual(['accounts/uid-l'])
+      expect(fs.updateData).toEqual([{ lingua: 'de' }])
+    })
+
+    it('lingua già uguale: nessuna scrittura', async () => {
+      accountConLingua('fr')
+      await client.allineaLinguaAccount('uid-l', 'fr')
+      expect(fs.updates).toEqual([])
+    })
+
+    it('senza account non scrive e non si ferma', async () => {
+      await expect(client.allineaLinguaAccount('senza-account', 'en')).resolves.toBeUndefined()
+      expect(fs.updates).toEqual([])
+    })
+  })
+
   describe('allineaEmailAccount', () => {
     function accountConEmail(email: string) {
       if (!fs.store.has('accounts')) fs.store.set('accounts', new Map())

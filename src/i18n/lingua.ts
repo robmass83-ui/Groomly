@@ -11,6 +11,8 @@ export const NOMI_LINGUA: Record<Lingua, string> = {
   de: 'Deutsch',
 }
 
+export const OPZIONI_LINGUA: { value: Lingua; label: string }[] = LINGUE.map((value) => ({ value, label: NOMI_LINGUA[value] }))
+
 export const LOCALE_INTL: Record<Lingua, string> = {
   it: 'it-IT',
   en: 'en-GB',
