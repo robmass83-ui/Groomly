@@ -474,3 +474,12 @@ Scelte prese da B4 senza Roberto:
 - **Attesa dopo il pagamento:** la vetrina aspetta il piano Play; dopo 20 secondi dice «entro qualche minuto».
 - **Testi:** chiavi con prefisso `b4` per non collidere con quelle di B2.
 - **Client:** si è esportata da `src/data/firebase/client.ts` la funzione esistente `callCallableData`, usata da `abbonamentiClient.ts`.
+
+## Lingue T3 Tedesco (4 novembre)
+
+- **`homeAnnulla` è `Zurück`.** La stessa chiave vale «Annulla» nei dialoghi e nei toast dopo un'azione già fatta. In tedesco `Abbrechen` è sbagliato nei toast e `Rückgängig` nei dialoghi. `Zurück` regge in entrambi. Meglio due chiavi: lavoro per T4.
+- **`navImpostazioni` con il trattino morbido.** `Einstellungen` non entra nella barra in basso a 320 px e la stessa chiave è il titolo della pagina, quindi niente sinonimo: va a capo solo dove serve.
+- **Parole da scrivere per confermare.** `delParola` e `b4ParolaAccendi` restano `ELIMINA` e `ACCENDI`, come in inglese, perché il codice le confronta fisse. `uteEliminaParola` e `bakParolaSostituisci` sono tedesche (`LÖSCHEN`, `ERSETZEN`) perché il controllo legge il catalogo.
+- **Età e sesso nella scheda.** `Adult` invece di `Erwachsen` e `Unbekannt` invece di `Keine Angabe`, per stare nei pulsanti affiancati a 320 px.
+- **Pagine per soli operatori.** Le chiavi dell'Admin Manager sono tradotte comunque: il catalogo le chiede tutte.
+- **Testi legati a regole italiane.** `authIvaForma` («11 Ziffern, ohne IT») e `linguaMessaggiDettaglio` sono tradotti alla lettera. Il secondo cita la vecchia regola della lingua: se T1 cambia l'italiano, va riallineato.

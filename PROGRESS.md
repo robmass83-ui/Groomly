@@ -339,3 +339,13 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Con B1:
   - i messaggi `failed-precondition` noti di `rispondiInvitoBeta`/`inviaFeedbackBeta` si traducono in it/en/es (`messaggioErroreBeta`); gli altri passano così come sono;
   - B1 scrive anche `salons/{id}/avvisi/beta` (con `segnaAvvisoBeta`), ma l'app non lo legge: gli avvisi li calcola da sola. Per la chiusura: valutare se mostrare gli avvisi che solo il server conosce (revoca con testo dell'operatore, estensione, invito ritirato) leggendo quel documento.
+
+
+## Cinque lingue — T3 Tedesco (4 novembre, ramo `claude/lingue-t3-tedesco-8f1243`, non unito)
+- Nuovo `src/i18n/de.ts`: tutte le 1.965 chiavi, stessa struttura di `en.ts`, `export const de`. Non è ancora collegato: `Lingua` e `t.ts` li cambia T1. All'unione questo file vince sul provvisorio di T1.
+- Controllato con uno script: chiavi uguali a `it.ts`, stessi segnaposto, nessun *du*, `tsc` senza errori sul file. Riletto tutto una seconda volta.
+- Lunghezza a 320 px: controllata leggendo il codice e facendo i conti su larghezze e font, **non ancora su un telefono**. Tocca a T7. I punti da guardare: barra in basso, i tre pulsanti di chiusura in Home, età e sesso nella scheda.
+- 74 frasi uguali a inglese o italiano, tutte volute: elenco in `docs/superpowers/specs/2026-11-04-lingue-tedesco-design.md`, per il test di T1.
+- Termini nuovi nel glossario, scelte in `docs/DECISIONI-AUTOMATICHE.md`.
+- Da fare per T4: `homeAnnulla` copre sia «Annulla» sia l'annullamento nei toast, conviene dividerla.
+- `npm test` non eseguito: il worktree non ha `node_modules` e il file non è ancora importato da nessuno.
