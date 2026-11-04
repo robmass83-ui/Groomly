@@ -11,6 +11,8 @@ import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
 import { useRuoloSessione, useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
+import { useToast } from '../components/layout/Toast'
+import { useFrasi } from '../i18n/LinguaContext'
 
 export type PianoValore = {
   mostraPiani: boolean
@@ -57,7 +59,7 @@ const spento: PianoValore = {
   configPiani: CONFIG_PIANI_DEFAULT,
 }
 
-const PianoContext = createContext<PianoValore>(spento)
+export const PianoContext = createContext<PianoValore>(spento)
 
 export function usePiano(): PianoValore {
   return useContext(PianoContext)
@@ -211,6 +213,8 @@ export function PianoProvider({ children }: { children: ReactNode }) {
 export function PaywallPiano() {
   const piano = usePiano()
   const navigate = useNavigate()
+  const toast = useToast()
+  const frasi = useFrasi()
   const feature = piano.paywall
   const offerta = offertaPiano({ provaConcessa: piano.provaConcessa, abbonamentiAttivi: piano.abbonamentiAttivi, ruolo: useRuoloSessione() })
   return (
@@ -225,6 +229,7 @@ export function PaywallPiano() {
       onAvvisami={() => {
         if (feature) void piano.avvisa(feature)
         piano.chiudiPaywall()
+        toast.show(frasi.vetTiAvviseremo, 'ok')
       }}
       onProva={() => { void piano.prova() }}
       onAbbonati={(percorso) => {

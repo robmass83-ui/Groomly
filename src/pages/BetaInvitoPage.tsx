@@ -7,7 +7,7 @@ import iconaSalone from '../assets/brand/groomly-salon-icon-tonda.svg'
 import scrittaSalone from '../assets/brand/groomly-salon-scritta-scura.svg'
 import { FUNZIONI, sfondoPiano } from '../components/abbonamento/Vetrina'
 import { useBeta } from '../components/beta/BetaProvider'
-import { dataBeta, nomePiano, riempi, testoOfferta } from '../components/beta/testi'
+import { dataBeta, MOTIVO_ALTRO, nomePiano, riempi, testoOfferta } from '../components/beta/testi'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -193,7 +193,7 @@ function DialogoRifiuto({ open, onClose }: { open: boolean; onClose: () => void 
     try {
       const { rispondiInvitoBeta } = await import('../data/firebase/betaClient')
       const testo = altro.trim()
-      await rispondiInvitoBeta(motivo === 'altro' && testo ? { accetta: false, motivo, altro: testo } : { accetta: false, motivo })
+      await rispondiInvitoBeta(motivo === MOTIVO_ALTRO && testo ? { accetta: false, motivo, altro: testo } : { accetta: false, motivo })
       toast.show(frasi.betaGrazieRisposta, 'ok')
       navigate('/', { replace: true })
     } catch (error) {
@@ -226,7 +226,7 @@ function DialogoRifiuto({ open, onClose }: { open: boolean; onClose: () => void 
           )
         })}
       </div>
-      {motivo === 'altro' ? (
+      {motivo === MOTIVO_ALTRO ? (
         <textarea
           aria-label={frasi.betaMotivoAltroCampo}
           placeholder={frasi.betaMotivoAltroCampo}

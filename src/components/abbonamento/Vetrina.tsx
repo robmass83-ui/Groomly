@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import { ArrowLeft, Bell, CalendarPlus, Cloud, Download, Heart, Layers, List, MessageCircle, PawPrint, Star, UserPlus, Users, type LucideIcon } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ArrowLeft, Bell, CalendarPlus, Check, Clock, Cloud, Download, FlaskConical, Heart, Layers, List, MessageCircle, PawPrint, Star, UserPlus, Users, type LucideIcon } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import iconaPlus from '../../assets/brand/groomly-plus-icon-tonda.svg'
 import scrittaPlus from '../../assets/brand/groomly-plus-scritta-scura.svg'
 import iconaSalone from '../../assets/brand/groomly-salon-icon-tonda.svg'
@@ -12,7 +12,9 @@ import type { Chiave } from '../../i18n/t'
 import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, offertaPiano } from '../../lib/abbonamento'
 import { compra } from '../../lib/billing'
 import { PRO_SEAT_LIMIT } from '../../lib/salonAccess'
+import { useBeta } from '../beta/BetaProvider'
 import { Dialog } from '../layout/Dialog'
+import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
 
 type PianoPagato = 'plus' | 'salone'
@@ -92,19 +94,33 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
   const provaDisponibile = offerta.prova && piano === 'plus'
   const [inArrivo, setInArrivo] = useState(false)
   const testi = TESTI[piano]
+  const toast = useToast()
+  const navigate = useNavigate()
+  const beta = useBeta()
+  // Abbonamenti spenti (spec 9.6): «In arrivo · Avvisami», niente prezzo salvo l'interruttore della beta.
+  const avvisami = offerta.acquisto === 'avvisami'
+  const prezzoVisibile = !avvisami || stato.configPiani?.showPrezziInBeta === true
+  const [avvisato, setAvvisato] = useState(false)
+  // Chi ha un invito aperto per questo piano non deve chiedere di essere avvisato: lo apre.
+  const invitoQui = avvisami && beta.invitoValido && (beta.piano === 'salone' ? 'salone' : 'plus') === piano
 
   function abbonati() {
     if (offerta.acquisto === 'avvisami') {
       // Play non è collegato: ci segniamo chi vuole essere avvisato (errori ignorati, come nel paywall) e diciamo «In arrivo».
       void import('../../data/firebase/client').then(({ scriviInteresse }) => scriviInteresse(`piano-${piano}`)).catch(() => undefined)
-      setInArrivo(true)
+      setAvvisato(true)
+      toast.show(frasi.vetTiAvviseremo, 'ok')
       return
     }
     // Finché il Play Store non è collegato, compra risponde «spento» e mostriamo «In arrivo».
     if (compra(stato.abbonamentiAttivi).stato === 'spento') setInArrivo(true)
   }
 
-  const etichettaAcquisto = offerta.acquisto === 'avvisami' ? frasi.avvisami : frasi.abbAbbonati
+  const etichettaAcquisto = avvisami
+    ? avvisato
+      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Check size={17} strokeWidth={2.6} aria-hidden />{frasi.vetTiAvviseremoBreve}</span>
+      : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Bell size={17} strokeWidth={2.4} aria-hidden />{frasi.avvisami}</span>
+    : frasi.abbAbbonati
   const scuro = COLORE_PIANO_SCURO[piano]
   const principale: CSSProperties = { display: 'block', width: '100%', minHeight: 50, border: 0, borderRadius: 999, background: '#fff', color: scuro, font: 'inherit', fontWeight: 800, fontSize: 17, boxShadow: '0 8px 20px rgba(0,0,0,.25)' }
 
@@ -113,7 +129,13 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
     <div style={{ height: 'calc(100dvh - var(--safe-top))', display: 'flex', flexDirection: 'column', background: sfondoPiano(piano), color: '#fff', overflow: 'hidden' }}>
       <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
         <div data-testid="vetrina-scorre" style={{ position: 'absolute', inset: 0, overflowY: 'auto', paddingBottom: 24 }}>
-          <TestataPiano piano={piano} sfondo={false} compatta />
+          <TestataPiano piano={piano} sfondo={false} compatta>
+            {avvisami ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', fontSize: 12, fontWeight: 800 }}>
+                <Clock size={12} strokeWidth={2.4} aria-hidden />{frasi.vetInArrivo}
+              </span>
+            ) : null}
+          </TestataPiano>
           <ul style={{ listStyle: 'none', margin: '0 16px 14px', padding: '2px 12px', background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.28)', borderRadius: 18 }}>
             {FUNZIONI[piano].map(({ chiave, icona: Icona }, index) => (
               <li key={chiave} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0', fontWeight: 600, fontSize: 14, lineHeight: 1.25, borderTop: index === 0 ? 'none' : '1px solid rgba(255,255,255,.15)' }}>
@@ -133,15 +155,20 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
         <div data-testid="vetrina-sfumatura" aria-hidden style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 36, pointerEvents: 'none', background: `linear-gradient(to bottom, transparent, ${scuro})` }} />
       </div>
       <footer style={{ flex: 'none', padding: '10px 18px calc(14px + env(safe-area-inset-bottom, 0px))', background: scuro, textAlign: 'center' }}>
-        <p style={{ margin: '0 0 2px' }}>
-          <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>{PREZZI[piano]}</span>
-          <span style={{ fontSize: 15, opacity: 0.9 }}> {frasi.abbMese}</span>
-        </p>
+        {avvisami && !collaboratore ? <p style={{ margin: '0 0 6px', fontSize: 12.5, lineHeight: 1.35, opacity: 0.92 }}>{frasi.vetNonAperti}</p> : null}
+        {prezzoVisibile ? (
+          <p style={{ margin: '0 0 2px' }}>
+            <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.5 }}>{PREZZI[piano]}</span>
+            <span style={{ fontSize: 15, opacity: 0.9 }}> {frasi.abbMese}</span>
+          </p>
+        ) : (
+          <p style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 800 }}>{frasi.vetPrezzoApertura}</p>
+        )}
         {collaboratore ? (
           <p style={{ margin: '6px 0 0', fontWeight: 700 }}>{frasi.pianoLoAccendeTitolare}</p>
         ) : (
           <>
-            {provaDisponibile ? (
+            {provaDisponibile && prezzoVisibile ? (
               <p style={{ margin: '0 0 8px', fontSize: 13, color: '#EDE4FF' }}>{frasi.abbProvaPoi.replace('{{prezzo}}', PREZZI.plus)}</p>
             ) : (
               <div style={{ height: 6 }} />
@@ -157,10 +184,14 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
                   {etichettaAcquisto}
                 </button>
               </>
+            ) : invitoQui ? (
+              <button type="button" onClick={() => navigate('/impostazioni/beta')} style={{ ...principale, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <FlaskConical size={17} strokeWidth={2.4} aria-hidden />{frasi.betaApriInvito}
+              </button>
             ) : (
               <button type="button" onClick={abbonati} style={principale}>{etichettaAcquisto}</button>
             )}
-            <p style={{ margin: provaDisponibile ? 0 : '8px 0 0', fontSize: 12, opacity: 0.85 }}>{frasi.abbDisdici}</p>
+            <p style={{ margin: provaDisponibile ? 0 : '8px 0 0', fontSize: 12, opacity: 0.85 }}>{avvisami ? frasi.vetNessunPagamento : frasi.abbDisdici}</p>
           </>
         )}
       </footer>

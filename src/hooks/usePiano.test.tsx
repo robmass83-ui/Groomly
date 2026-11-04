@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { PaywallPiano, PianoProvider, usePiano } from './usePiano'
+import { ToastProvider } from '../components/layout/Toast'
 import { haAccesso, type FeatureKey } from '../lib/piano'
 
 const { scriviInteresse, callAvviaProva, listenDocumentoPiano } = vi.hoisted(() => ({
@@ -28,14 +29,16 @@ vi.mock('./useSession', () => ({ useUidSessione: () => 'u9', useRuoloSessione: (
 
 function ConFinestra({ children }: { children: ReactNode }) {
   return (
-    <PianoProvider>
-      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/" element={<>{children}<PaywallPiano /></>} />
-          <Route path="/impostazioni/abbonamento/:piano" element={<p>pagina piano</p>} />
-        </Routes>
-      </MemoryRouter>
-    </PianoProvider>
+    <ToastProvider>
+      <PianoProvider>
+        <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route path="/" element={<>{children}<PaywallPiano /></>} />
+            <Route path="/impostazioni/abbonamento/:piano" element={<p>pagina piano</p>} />
+          </Routes>
+        </MemoryRouter>
+      </PianoProvider>
+    </ToastProvider>
   )
 }
 
@@ -210,6 +213,7 @@ describe('paywall avvisami', () => {
     await user.click(screen.getByRole('button', { name: 'Apri' }))
     await user.click(screen.getByRole('button', { name: 'Avvisami' }))
     expect(scriviInteresse).toHaveBeenCalledWith('export')
+    expect(screen.getByRole('status')).toHaveTextContent('Ti avviseremo appena disponibile')
   })
 
   it('la prova apre il foglio sullo schermo e lo lascia aperto con l’esito', async () => {

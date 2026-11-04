@@ -26,6 +26,7 @@ import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
 import { DogsPage } from '../pages/DogsPage'
 import { DevKitPage } from '../pages/DevKitPage'
+import { DevBetaPage } from '../pages/DevBetaPage'
 import { EarningsPage } from '../pages/EarningsPage'
 import { EarningsReportPage } from '../pages/EarningsReportPage'
 import { StatistichePage } from '../pages/StatistichePage'
@@ -202,6 +203,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })
+  if (isDev) pageRoutes.push({ path: '/dev/beta', element: <Guard><DevBetaPage /></Guard> })
   const sheetRoutes: RouteObject[] = [
     { path: '/appuntamenti/nuovo', element: <Guard><AppointmentPage /></Guard> },
     { path: '/appuntamenti/personale/nuovo', element: <Guard><PersonalAppointmentPage /></Guard> },

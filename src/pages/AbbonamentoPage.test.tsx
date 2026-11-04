@@ -153,11 +153,12 @@ describe('Abbonamento', () => {
     }
   })
 
-  it('con gli abbonamenti spenti Avvisami apre «In arrivo»', async () => {
+  it('con gli abbonamenti spenti Avvisami conferma «Ti avviseremo appena disponibile»', async () => {
     const user = userEvent.setup()
     await apri('/impostazioni/abbonamento/salone', 'base', undefined, { abbonamentiAttivi: false })
     await user.click(await screen.findByRole('button', { name: 'Avvisami' }))
-    expect(await screen.findByRole('dialog', { name: 'In arrivo' })).toHaveTextContent('Presto potrai abbonarti direttamente dall’app.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Ti avviseremo appena disponibile')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('un abbonato Plus vede Attivo e gli interruttori Plus', async () => {

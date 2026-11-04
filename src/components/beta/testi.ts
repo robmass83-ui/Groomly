@@ -1,4 +1,5 @@
 import type { Lingua } from '../../i18n/lingua'
+import type { MotivoRifiutoBeta } from '../../lib/betaInvito'
 import type { it } from '../../i18n/it'
 
 type Frasi = Record<keyof typeof it, string>
@@ -22,3 +23,6 @@ export function dataBeta(lingua: Lingua, data: Date): string {
 export function testoOfferta(offerta: Record<Lingua, string>, lingua: Lingua): string {
   return (offerta[lingua] || offerta.it || '').trim()
 }
+
+// Il motivo che apre il campo di testo nel «No grazie».
+export const MOTIVO_ALTRO: MotivoRifiutoBeta = 'altro'

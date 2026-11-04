@@ -42,7 +42,7 @@ export function BetaFinePage() {
   const navigate = useNavigate()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
 
-  if (!beta.pronto) return <ShellFrame><Header title={frasi.betaFeedbackTitolo} backTo="/" /></ShellFrame>
+  if (!beta.pronto) return <ShellFrame><Header title={frasi.betaTipoAvviso} backTo="/" /></ShellFrame>
   if (!beta.domandaFine || !beta.piano || ruolo === 'collaboratore') return <Navigate to="/" replace />
 
   const nome = nomePiano(frasi, beta.piano)
@@ -54,7 +54,7 @@ export function BetaFinePage() {
 
   return (
     <ShellFrame>
-      <Header title={frasi.betaFeedbackTitolo} backTo="/" />
+      <Header title={frasi.betaTipoAvviso} backTo="/" />
       <div style={{ padding: `12px ${SIZES.pagePadX}px 128px`, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         <section style={{ background: 'var(--card)', borderRadius: 16, boxShadow: 'var(--sh-2)', padding: '20px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
           <span style={{ width: 64, height: 64, borderRadius: 32, background: beta.piano === 'salone' ? 'var(--sal-s)' : 'var(--plus-s)', color: beta.piano === 'salone' ? 'var(--sal-ink)' : 'var(--plus-ink)', display: 'grid', placeItems: 'center' }}>

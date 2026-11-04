@@ -1,12 +1,14 @@
 // @vitest-environment happy-dom
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Providers } from '../../app/providers'
 import { createAccount } from '../../data/local/auth'
 import type { PianoValore } from '../../hooks/usePiano'
 import { provaConcessa, statoPiano, type ProMain } from '../../lib/piano'
+import { ConBeta, invitoDiProva, valoreBeta } from '../beta/provaBeta'
+import { CONFIG_PIANI_DEFAULT } from '../../lib/configPiani'
 import { Vetrina } from './Vetrina'
 
 const { scriviInteresse } = vi.hoisted(() => ({ scriviInteresse: vi.fn(async (_feature: string) => undefined) }))
@@ -79,12 +81,67 @@ describe('Vetrina Plus', () => {
     expect(screen.queryByRole('button', { name: 'Abbonati' })).not.toBeInTheDocument()
   })
 
-  it('Avvisami su Plus scrive l’interesse piano-plus e apre «In arrivo»', async () => {
+  it('Avvisami su Plus scrive l’interesse piano-plus e conferma con un toast, senza dialogo', async () => {
     const user = userEvent.setup()
     await monta({ piano: 'pro', stato: 'sospeso', fonte: 'play', scadeIl: '2026-10-20T00:00:00.000Z' })
     await user.click(await screen.findByRole('button', { name: 'Avvisami' }))
     await waitFor(() => expect(scriviInteresse).toHaveBeenCalledWith('piano-plus'))
-    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent('Ti avviseremo appena disponibile')
+    expect(screen.getByRole('button', { name: 'Ti avviseremo' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('con gli abbonamenti spenti: «In arrivo», niente prezzo e «Nessun pagamento ora»', async () => {
+    await monta({ piano: 'pro', stato: 'sospeso', fonte: 'play', scadeIl: '2026-10-20T00:00:00.000Z' })
+    expect(await screen.findByText('In arrivo')).toBeInTheDocument()
+    expect(screen.getByText('Gli abbonamenti non sono ancora aperti. Tocca Avvisami: ti scriviamo appena puoi attivarlo.')).toBeInTheDocument()
+    expect(screen.getByText('Prezzo annunciato all’apertura')).toBeInTheDocument()
+    expect(screen.queryByText('9,99 €')).not.toBeInTheDocument()
+    expect(screen.getByText('Nessun pagamento ora')).toBeInTheDocument()
+  })
+
+  it('con l’interruttore dei prezzi in beta il prezzo si vede anche ad abbonamenti spenti', async () => {
+    await createAccount('ada@salone.it', 'segretissimo')
+    pianoForzato.valore = { ...pianoDa(undefined), provaConcessa: false, configPiani: { ...CONFIG_PIANI_DEFAULT, showPrezziInBeta: true } }
+    render(<Providers><MemoryRouter><Vetrina piano="plus" /></MemoryRouter></Providers>)
+    expect(await screen.findByText('9,99 €')).toBeInTheDocument()
+    expect(screen.queryByText('Prezzo annunciato all’apertura')).not.toBeInTheDocument()
+  })
+
+  it('con un invito aperto per Plus il piede porta all’invito invece di Avvisami', async () => {
+    const user = userEvent.setup()
+    await createAccount('ada@salone.it', 'segretissimo')
+    pianoForzato.valore = { ...pianoDa(undefined), provaConcessa: false }
+    render(
+      <Providers>
+        <MemoryRouter>
+          <ConBeta valore={valoreBeta({ fase: 'invitato', invitoValido: true, piano: 'pro', invito: invitoDiProva() })}>
+            <Routes>
+              <Route path="/" element={<Vetrina piano="plus" />} />
+              <Route path="/impostazioni/beta" element={<p>pagina invito</p>} />
+            </Routes>
+          </ConBeta>
+        </MemoryRouter>
+      </Providers>,
+    )
+    expect(screen.queryByRole('button', { name: 'Avvisami' })).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Apri l’invito' }))
+    expect(screen.getByText('pagina invito')).toBeInTheDocument()
+  })
+
+  it('l’invito Plus non cambia la vetrina Salon', async () => {
+    await createAccount('ada@salone.it', 'segretissimo')
+    pianoForzato.valore = { ...pianoDa(undefined), provaConcessa: false }
+    render(
+      <Providers>
+        <MemoryRouter>
+          <ConBeta valore={valoreBeta({ fase: 'invitato', invitoValido: true, piano: 'pro', invito: invitoDiProva() })}>
+            <Vetrina piano="salone" />
+          </ConBeta>
+        </MemoryRouter>
+      </Providers>,
+    )
+    expect(await screen.findByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
   })
 
   it('Avvisami su Salone scrive l’interesse piano-salone', async () => {

@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { fileTsx, frasiNelFile } from './frasiFisse'
 
-/** Tutte le schermate, salvo i test e la pagina del kit. */
+/** Tutte le schermate, salvo i test e le pagine di sviluppo (kit, anteprima beta). */
 export const puliti = [...fileTsx('src/pages'), ...fileTsx('src/components')]
   .map((file) => file.replace(/\\/g, '/'))
   .sort()

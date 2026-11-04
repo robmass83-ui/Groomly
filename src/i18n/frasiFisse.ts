@@ -35,7 +35,7 @@ export function fileTsx(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name)
     if (statSync(path).isDirectory()) fileTsx(path, out)
-    else if (name.endsWith('.tsx') && !name.includes('.test.') && name !== 'DevKitPage.tsx') out.push(path)
+    else if (name.endsWith('.tsx') && !name.includes('.test.') && name !== 'DevKitPage.tsx' && name !== 'DevBetaPage.tsx') out.push(path)
   }
   return out
 }
