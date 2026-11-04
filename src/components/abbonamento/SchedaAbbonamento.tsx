@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom'
 import { usePiano } from '../../hooks/usePiano'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { avvisoPiano, statoScheda } from '../../lib/abbonamento'
+import { useBeta } from '../beta/BetaProvider'
+import { BarraGiorni } from './BarraGiorni'
+import { EtichettaBeta } from './EtichettaBeta'
 import { BollinoPiano, MarchioGo } from './MarchioPiano'
 
 // Testo verificato almeno 4.5:1 sul colore più chiaro di ogni sfumatura.
@@ -24,6 +27,7 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
   const frasi = useFrasi()
   const piano = usePiano()
   const { lingua } = useLingua()
+  const beta = useBeta()
   const scheda = statoScheda(piano, titolare)
   const avviso = avvisoPiano(piano.stato, titolare)
   const base: CSSProperties = { ...stile, padding: 0 }
@@ -85,6 +89,34 @@ export function SchedaAbbonamento({ stile, stileBollino, titolare }: { stile: CS
         <span style={colonna}>
           <span data-riga="1" style={{ ...riga1, ...aCapoTesto, fontSize: 13 }}>{titoloAvviso}</span>
           <span data-riga="2" style={{ ...riga2, ...aCapoTesto, color: COLORI[colore].seconda }}>{dettaglio}</span>
+        </span>
+      </Link>
+    )
+  }
+
+  // Beta in corso: «Il tuo piano», «Beta gratuita · fino al …», la pillola BETA e la barra dei giorni (spec 9.3).
+  // Tutto nel flusso: a mezza riga la pillola va a capo e la scheda cresce, il testo non si taglia.
+  if (beta.fase === 'in-corso' && beta.piano && (colore === 'plus' || colore === 'salone')) {
+    const fine = beta.fine ? beta.fine.toLocaleDateString(lingua, { day: '2-digit', month: '2-digit' }) : ''
+    const dettaglio = frasi.betaGratuitaFino.replace('{{data}}', fine)
+    return (
+      <Link
+        to="/impostazioni/abbonamento"
+        aria-label={`${frasi.abbTitolo}, ${frasi.abbIlTuoPiano}, BETA, ${dettaglio}, ${frasi.betaGiorniRimasti.replace('{{n}}', String(beta.giorniRimasti ?? 0))}`}
+        data-riflesso="no"
+        data-scheda-beta={beta.piano}
+        style={{ ...base, ...sfondo }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', minWidth: 0, flex: 1 }}>
+          {bollino}
+          <span style={{ ...colonna, gap: 4 }}>
+            <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+              <span style={{ ...riga1, ...aCapoTesto }}>{frasi.abbIlTuoPiano}</span>
+              <EtichettaBeta piano={beta.piano} piena />
+            </span>
+            <span style={{ ...riga2, ...aCapoTesto, marginTop: 0, color: COLORI[colore].seconda }}>{dettaglio}</span>
+            {beta.giorniRimasti !== null ? <BarraGiorni rimasti={beta.giorniRimasti} totali={beta.giorniTotali} /> : null}
+          </span>
         </span>
       </Link>
     )

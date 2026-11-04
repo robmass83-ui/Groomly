@@ -5,6 +5,8 @@ import iconaGo from '../assets/brand/groomly-icon.svg'
 import iconaPlus from '../assets/brand/groomly-plus-icon-tonda.svg'
 import iconaSalone from '../assets/brand/groomly-salon-icon-tonda.svg'
 import { BloccoGo, BloccoPlus, BloccoSalone } from '../components/abbonamento/BlocchiPiano'
+import { TestataBeta } from '../components/beta/TestataBeta'
+import { useBeta } from '../components/beta/BetaProvider'
 import { TestataPiano, Vetrina } from '../components/abbonamento/Vetrina'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
@@ -42,7 +44,11 @@ const pagina: CSSProperties = { padding: SIZES.pagePadX, display: 'flex', flexDi
 export function AbbonamentoPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
-  const { livelloNome, stato, pronto } = usePiano()
+  const { livelloNome, stato, pronto, abbonamentiAttivi, configPiani } = usePiano()
+  const beta = useBeta()
+  // Senza Play collegato i prezzi si vedono solo se l'operatore li accende per la beta.
+  const prezziVisibili = abbonamentiAttivi || configPiani?.showPrezziInBeta === true
+  const pianoBeta = beta.fase === 'in-corso' ? (beta.piano === 'salone' ? 'salone' : 'plus') : null
   const session = useSession()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const account = session.gate.kind === 'in' ? session.gate.account : null
@@ -53,6 +59,7 @@ export function AbbonamentoPage() {
     <ShellFrame>
       <Header title={frasi.abbTitolo} backTo="/impostazioni" />
       <div style={{ ...pagina, gap: 12 }}>
+        {pianoBeta ? <TestataBeta /> : null}
         {avviso ? (
           <p style={{ margin: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx)' }}>
             {avviso.tipo === 'grazia' ? (
@@ -65,6 +72,7 @@ export function AbbonamentoPage() {
         ) : null}
         {SCHEDE.map(({ piano, nome, frase, icona }) => {
           const attivo = pianoInCorso(livelloNome) === piano
+          const inBeta = attivo && pianoBeta === piano
           return (
             <Link key={piano} to={`/impostazioni/abbonamento/${piano}`} style={scheda}>
               <span aria-hidden style={{ width: 8, flex: 'none', background: COLORE_PIANO[piano] }} />
@@ -74,8 +82,8 @@ export function AbbonamentoPage() {
                   <span style={{ fontWeight: 800, fontSize: 16 }}>{frasi[nome]}</span>
                   <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>{frasi[frase]}</small>
                 </span>
-                <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontSize: TYPE.meta, fontWeight: 800, color: attivo ? 'var(--ok)' : COLORE_PIANO[piano] }}>
-                  {attivo ? frasi.abbAttivo : piano === 'go' ? frasi.abbGratis : (
+                <span style={{ textAlign: 'right', whiteSpace: inBeta ? 'normal' : 'nowrap', maxWidth: inBeta ? 96 : undefined, fontSize: TYPE.meta, fontWeight: 800, color: attivo ? 'var(--ok)' : COLORE_PIANO[piano] }}>
+                  {inBeta ? frasi.betaInBetaOra : attivo ? frasi.abbAttivo : piano === 'go' ? frasi.abbGratis : !prezziVisibili ? frasi.vetInArrivo : (
                     <>
                       {PREZZI[piano]}
                       <small style={{ display: 'block', fontWeight: 500, color: 'var(--tx2)' }}>{frasi.abbAlMese.replace('{{prezzo}}', '').trim()}</small>

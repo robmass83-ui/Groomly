@@ -13,6 +13,7 @@ import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
 import { SchedaAbbonamento } from '../components/abbonamento/SchedaAbbonamento'
 import { useBeta } from '../components/beta/BetaProvider'
+import { RigaFeedbackBeta } from '../components/beta/RigaFeedbackBeta'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -888,6 +889,8 @@ export function SettingsPage() {
           </Link>
           <SchedaAbbonamento stile={vedeIncassi(account?.role) ? scorciatoia : { ...scorciatoia, gridColumn: '1 / -1' }} stileBollino={bollinoAngolo} titolare={titolare} />
         </div>
+
+        <RigaFeedbackBeta />
 
         {collaboratore ? null : (
           <Card>
