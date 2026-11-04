@@ -37,7 +37,7 @@ import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import type { SceltaSalonePersonale } from '../../lib/pausaSalone'
 import { livelloElenco } from '../../lib/funzioniPiano'
-import { fonteDi } from '../../lib/piano'
+import { fonteDi, tracciaBetaDi } from '../../lib/piano'
 import { leggiConfigPiani, type ConfigPiani, type ModificheConfigPiani } from '../../lib/configPiani'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
@@ -235,7 +235,7 @@ export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
 }
 
-async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
+export async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
   await attachEmulators('functions', functions)
@@ -752,7 +752,7 @@ async function auth(): Promise<Auth> {
 
 let firestoreNs: Promise<typeof import('firebase/firestore')> | null = null
 
-function loadFirestore(): Promise<typeof import('firebase/firestore')> {
+export function loadFirestore(): Promise<typeof import('firebase/firestore')> {
   if (!firestoreNs) {
     firestoreNs = import('firebase/firestore').catch((error: unknown) => {
       firestoreNs = null
@@ -828,7 +828,7 @@ async function svuotaCacheRimasta(db: Firestore): Promise<void> {
   }
 }
 
-async function database(): Promise<Firestore> {
+export async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const app = await firebaseApp()
@@ -2152,6 +2152,7 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
           const stato = data?.stato === 'attivo' || data?.stato === 'prova' || data?.stato === 'grazia' || data?.stato === 'sospeso' || data?.stato === 'disdetto' || data?.stato === 'scaduto' ? data.stato : undefined
           const fonte = fonteDi(data?.fonte)
           const scadeIl = typeof data?.scadeIl === 'string' || data?.scadeIl === null ? data.scadeIl : undefined
+          const traccia = tracciaBetaDi(data)
           return {
             uid: account.uid,
             salonId,
@@ -2161,6 +2162,7 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
             ...(stato ? { stato } : {}),
             ...(fonte ? { fonte } : {}),
             ...(scadeIl !== undefined ? { scadeIl } : {}),
+            ...(Object.keys(traccia).length > 0 ? { traccia } : {}),
           }
         } catch {
           enabled = false
