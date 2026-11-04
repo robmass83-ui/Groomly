@@ -1,5 +1,6 @@
 import { messaggioInvio, programmaInvio, provaInvioAutomatico } from './lib/driveInvio'
 import type { PonteNativo } from './lib/ponteBackup'
+import { frase } from './i18n/frase'
 
 type Esito = { esito: 'inviato' | 'saltato' | 'errore'; messaggio: string }
 
@@ -40,7 +41,7 @@ export async function backupNotturno(ponte: PonteNativo, deps: Partial<Dipendenz
   try {
     const uid = await accesso(60_000)
     if (!uid) {
-      esito = { esito: 'errore', messaggio: 'Apri Groomly ed entra con il tuo account' }
+      esito = { esito: 'errore', messaggio: frase('bakApriGroomly') }
     } else {
       const fatto = await prova(uid, now())
       if (fatto === 'saltato') await programma(uid).catch(() => undefined)

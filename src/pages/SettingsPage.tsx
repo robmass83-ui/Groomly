@@ -437,7 +437,7 @@ export function SettingsPage() {
             presaRef.current = true
             pubblicaUndo(true)
           } catch {
-            toast.show('Copia di sicurezza non riuscita', 'plain')
+            toast.show(frasi.errCopiaSicurezza, 'plain')
             return
           }
         }
@@ -474,7 +474,7 @@ export function SettingsPage() {
           presaRef.current = true
           pubblicaUndo(true)
         } catch {
-          toast.show('Copia di sicurezza non riuscita', 'plain')
+          toast.show(frasi.errCopiaSicurezza, 'plain')
           return
         }
       }
@@ -522,7 +522,7 @@ export function SettingsPage() {
           await eliminaFileDalSalone(copia.assenti)
         }
         await cancellaCopiaCloud()
-        toast.show('Ripristino annullato', 'plain')
+        toast.show(frasi.bakRipristinoAnnullato, 'plain')
         pubblicaUndo(false)
         setPending(null)
         presaRef.current = false
@@ -546,7 +546,7 @@ export function SettingsPage() {
       restoreBackup(uid, copia)
       reload()
       cancellaCopiaLocale(uid)
-      toast.show('Ripristino annullato', 'plain')
+      toast.show(frasi.bakRipristinoAnnullato, 'plain')
       pubblicaUndo(false)
       setPending(null)
       presaRef.current = false
@@ -926,7 +926,7 @@ export function SettingsPage() {
             <SRow style={{ borderTop: 'none' }}>
               <button
                 type="button"
-                aria-label={`Backup. ${backupLabel}. ${autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`}
+                aria-label={`${frasi.impBackupTitolo}. ${backupLabel}. ${autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}${driveEmail ? `. ${driveEmail}` : ''}`}
                 onClick={() => setBackupOpen(true)}
                 style={rowButton}
               >

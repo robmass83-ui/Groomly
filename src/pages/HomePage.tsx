@@ -582,7 +582,7 @@ export function HomePage() {
       return
     }
     const message = status === 'non_venuto' ? frasi.homeNonVenuto : frasi.homeAppuntamentoDisdetto
-    toast.show(message, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+    toast.show(message, 'plain', { label: frasi.toastAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   const promemoriaAcceso = servizioEmailAcceso(serviziEmail?.promemoria?.modo ?? 'spento')

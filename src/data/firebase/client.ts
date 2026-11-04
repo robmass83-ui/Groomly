@@ -31,7 +31,7 @@ import { listServices } from '../local/services'
 import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '../local/settings'
 import { storageKeys } from '../local/storage'
 import { prendiCacheDaSvuotare } from '../local/uscita'
-import { AppError } from '../errors'
+import { AppError, erroreApp } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
@@ -159,22 +159,22 @@ function firebaseCode(error: unknown): string {
 function mapAuthError(error: unknown): AppError {
   const code = firebaseCode(error)
   if (code === 'auth/network-request-failed' && !knownUid) {
-    return new AppError('Connessione assente', 'auth_offline')
+    return erroreApp('auth_offline')
   }
   if (code === 'auth/invalid-credential') {
-    return new AppError('Email o password non corretti', 'auth_invalid')
+    return erroreApp('auth_invalid')
   }
   if (code === 'auth/email-already-in-use') {
-    return new AppError('Questa email ha già un account', 'auth_email_taken')
+    return erroreApp('auth_email_taken')
   }
   if (error instanceof AppError) return error
-  return new AppError('Email o password non corretti', 'auth_invalid')
+  return erroreApp('auth_invalid')
 }
 
 function mapMailError(error: unknown): AppError {
   const code = firebaseCode(error)
   if (code === 'auth/network-request-failed' || code === 'functions/unavailable' || code === 'functions/deadline-exceeded') {
-    return new AppError('Connessione assente', 'auth_offline')
+    return erroreApp('auth_offline')
   }
   if (
     code === 'auth/too-many-requests'
@@ -182,7 +182,7 @@ function mapMailError(error: unknown): AppError {
     || code === 'functions/internal'
     || code === 'functions/failed-precondition'
   ) {
-    return new AppError('Aspetta un momento e riprova', 'auth_slow')
+    return erroreApp('auth_slow')
   }
   return mapAuthError(error)
 }
@@ -1085,7 +1085,7 @@ async function copyUserKind(uid: string, kind: 'dogs' | 'appointments' | 'servic
       : kind === 'appointments'
         ? await liftVisitDoc(uid, item.id, kept)
         : kept
-    if (containsDataUrl(ready)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+    if (containsDataUrl(ready)) throw erroreApp('storage_write')
     await putDoc(salonDocPath(kind, item.id), ready)
   }
 }
@@ -1202,7 +1202,7 @@ async function saveWithMedia(
   const kept = stale ? { next: withMissingMedia(incoming, current, fields), dropped: [] } : withKeptMedia(await upload(), current, fields)
   if (!kept.next || !(await stillWanted())) return
   const data = await lift(kept.next)
-  if (containsDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (containsDataUrl(data)) throw erroreApp('storage_write')
   if (!(await stillWanted())) return
   // Nel ripristino un documento uguale a quello presente non si riscrive.
   if (cloudReplaceDepth > 0 && current !== null && stessiDati(data, current)) return
@@ -1282,13 +1282,13 @@ function ensureShared(uid: string, email: string | null): Promise<void> {
 
 async function writeUploadPatch(path: string[], patch: Record<string, unknown>): Promise<void> {
   if (Object.keys(patch).length === 0) return
-  if (containsDataUrl(patch)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (containsDataUrl(patch)) throw erroreApp('storage_write')
   const { doc, updateDoc } = await loadFirestore()
   await updateDoc(doc(await database(), path[0], ...path.slice(1)), patch as UpdateData<DocumentData>)
 }
 
 async function putDoc(path: string[], data: Record<string, unknown>): Promise<void> {
-  if (containsNonImageDataUrl(data)) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (containsNonImageDataUrl(data)) throw erroreApp('storage_write')
   lettureRipristino?.delete(path.join('/'))
   const { doc, setDoc } = await loadFirestore()
   await setDoc(doc(await database(), path[0], ...path.slice(1)), data)
@@ -2113,7 +2113,7 @@ function docText(data: Record<string, unknown> | null, key: string): string {
 }
 
 export async function listSalonDirectory(): Promise<SalonDirectory> {
-  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
   try {
     const { collection, doc, getDoc, getDocs } = await loadFirestore()
     const db = await database()
@@ -2176,7 +2176,7 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
     return { ...summarizeDirectory(accounts, salonNames), pro }
   } catch (error) {
     if (error instanceof AppError) throw error
-    throw new AppError('Connessione assente', 'auth_offline')
+    throw erroreApp('auth_offline')
   }
 }
 
@@ -2412,7 +2412,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     try {
       existing = await readDoc(['accounts', user.uid], true)
     } catch {
-      throw new AppError('Salvataggio non riuscito', 'storage_write')
+      throw erroreApp('storage_write')
     }
     if (existing) {
       openExistingSalon(user, existing)
@@ -2457,7 +2457,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
   } catch {
     if (accountWritten) await dropAccountDoc(user.uid).catch(() => undefined)
     forgetAccount()
-    throw new AppError('Salvataggio non riuscito', 'storage_write')
+    throw erroreApp('storage_write')
   }
   accountDoc = { uid: user.uid, data: { ...account, lingua } }
   accountDaRileggere = false
@@ -2490,7 +2490,7 @@ export async function registerOwner(input: OwnerProfile & { email: string; passw
 
 async function currentUser(): Promise<User> {
   const user = (await auth()).currentUser
-  if (!user) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!user) throw erroreApp('auth_invalid')
   return user
 }
 
@@ -2504,8 +2504,8 @@ export async function repairOwnerSalon(input: OwnerProfile): Promise<void> {
   } catch {
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false
     throw offline
-      ? new AppError('Connessione assente', 'auth_offline')
-      : new AppError('Salvataggio non riuscito', 'storage_write')
+      ? erroreApp('auth_offline')
+      : erroreApp('storage_write')
   }
   if (existing && docText(existing, 'salonId')) {
     openExistingSalon(user, existing)
@@ -2540,14 +2540,14 @@ export async function verificaPassword(attuale: string): Promise<void> {
     const { getAccount } = await import('../local/auth')
     const { verifyPassword } = await import('../../lib/password')
     const account = getAccount()
-    if (!account) throw new AppError('Email o password non corretti', 'auth_invalid')
+    if (!account) throw erroreApp('auth_invalid')
     const ok = await verifyPassword(attuale, account.salt, account.passwordHash, account.iterations)
-    if (!ok) throw new AppError('Email o password non corretti', 'auth_invalid')
+    if (!ok) throw erroreApp('auth_invalid')
     return
   }
   const user = await currentUser()
   const { EmailAuthProvider, reauthenticateWithCredential } = await import('firebase/auth')
-  if (!user.email) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!user.email) throw erroreApp('auth_invalid')
   await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, attuale))
 }
 
@@ -2559,7 +2559,7 @@ export async function cambiaPassword(attuale: string, nuova: string): Promise<vo
   }
   const user = await currentUser()
   const { EmailAuthProvider, reauthenticateWithCredential, updatePassword } = await import('firebase/auth')
-  if (!user.email) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!user.email) throw erroreApp('auth_invalid')
   const cred = EmailAuthProvider.credential(user.email, attuale)
   await reauthenticateWithCredential(user, cred)
   await updatePassword(user, nuova)
@@ -2587,7 +2587,7 @@ export async function cambiaEmailAccesso(attuale: string, email: string): Promis
   }
   const user = await currentUser()
   const { EmailAuthProvider, reauthenticateWithCredential, verifyBeforeUpdateEmail } = await import('firebase/auth')
-  if (!user.email) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!user.email) throw erroreApp('auth_invalid')
   const cred = EmailAuthProvider.credential(user.email, attuale)
   await reauthenticateWithCredential(user, cred)
   await verifyBeforeUpdateEmail(user, email.trim().toLowerCase())
@@ -2671,14 +2671,14 @@ export async function signInEmail(email: string, password: string): Promise<Loca
       throw mapAuthError(error)
     }
     if (!await localPasswordOk(local, password)) {
-      throw new AppError('Email o password non corretti', 'auth_invalid')
+      throw erroreApp('auth_invalid')
     }
     try {
       const created = await createUserWithEmailAndPassword(firebaseAuth, normalized, password)
       return finishUser(created.user)
     } catch (createError) {
       if (firebaseCode(createError) === 'auth/email-already-in-use') {
-        throw new AppError('Email o password non corretti', 'auth_invalid')
+        throw erroreApp('auth_invalid')
       }
       throw mapAuthError(createError)
     }
@@ -2831,7 +2831,7 @@ async function preparaLettureRipristino(dogIds: readonly string[], appointmentId
 /** `onAvanzamento(fatti, totale)` conta cani e visite salvati; servizi, impostazioni e pulizia vengono dopo. */
 export async function replaceCloudData(uid: string, bundle: BackupBundle, onAvanzamento?: (fatti: number, totale: number) => void): Promise<void> {
   const accepted = readRestoreBundle(bundle)
-  if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (!accepted) throw erroreApp('storage_write')
   const dogs = withLocalKey(storageKeys.dogs(uid), accepted.dogs, () => listDogs(uid))
   const appointments = withLocalKey(storageKeys.appointments(uid), accepted.appointments, () => listAppointments(uid))
   const services = withLocalKey(storageKeys.services(uid), accepted.services, () => listServices(uid))

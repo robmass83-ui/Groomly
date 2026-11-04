@@ -13,6 +13,8 @@ import { useRuoloSessione, useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
 import { useToast } from '../components/layout/Toast'
 import { useFrasi } from '../i18n/LinguaContext'
+import { codiceErroreServer, fraseErrore } from '../i18n/errori'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 
 export type PianoValore = {
   mostraPiani: boolean
@@ -189,9 +191,8 @@ export function PianoProvider({ children }: { children: ReactNode }) {
           await callAvviaProva()
           setEsitoProva('ok')
         } catch (error) {
-          const testo = error instanceof Error ? error.message.trim() : ''
-          const generico = testo === '' || testo.startsWith('Firebase') || testo === 'internal'
-          setMessaggioProva(generico ? '' : testo)
+          const server = codiceErroreServer(error)
+          setMessaggioProva(server ? fraseErrore(leggiLinguaAttiva(), server.codice, server.valori) : '')
           setEsitoProva('errore')
         }
       },

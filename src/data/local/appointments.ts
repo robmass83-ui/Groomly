@@ -2,7 +2,7 @@ import { appointmentEnd, parseAppointmentStatus, parseCancelReason, sumDuration 
 import { appointmentKind, personalTitleOk } from '../../lib/personal'
 import { migrateStored } from '../../lib/migrate'
 import type { Appointment, AppointmentPhoto, AppointmentService, AppointmentStatus, AppointmentWrite, CancelReason, CycleAnchor, DogExtraNote, PaymentMethod } from '../../types/models'
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
 interface StoredAppointment {
@@ -404,7 +404,7 @@ export function createAppointment(uid: string, input: AppointmentWrite): Appoint
 export function updateAppointment(uid: string, id: string, input: AppointmentWrite): Appointment {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  if (!current) throw erroreApp('appointment_missing')
   const previous = toDomain(current)
   const appointment = appointmentFromWrite(input, id, previous.createdAt, previous.status)
   if (input.assigneeUid === undefined && previous.assigneeUid) appointment.assigneeUid = previous.assigneeUid
@@ -440,7 +440,7 @@ export function updateAppointment(uid: string, id: string, input: AppointmentWri
 export function completeAppointment(uid: string, id: string): Appointment {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  if (!current) throw erroreApp('appointment_missing')
   const previous = toDomain(current)
   const adesso = new Date()
   const appointment = { ...previous, status: 'completato' as const, updatedAt: adesso, chiusoIl: previous.chiusoIl ?? adesso }
@@ -456,7 +456,7 @@ export function saveClose(
 ): Appointment {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  if (!current) throw erroreApp('appointment_missing')
   const appointment: Appointment = { ...toDomain(current), updatedAt: new Date() }
   if (typeof patch.total === 'number') appointment.total = patch.total
   else delete appointment.total
@@ -480,7 +480,7 @@ export function saveClose(
 export function setAppointmentStatus(uid: string, id: string, status: AppointmentStatus, cancelReason?: CancelReason): Appointment {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Appuntamento assente', 'appointment_missing')
+  if (!current) throw erroreApp('appointment_missing')
   const previous = toDomain(current)
   const adesso = new Date()
   const appointment: Appointment = { ...previous, status, updatedAt: adesso }
@@ -501,7 +501,7 @@ export function setAppointmentStatus(uid: string, id: string, status: Appointmen
 
 export function deleteAppointment(uid: string, id: string): void {
   const map = readMap(uid) ?? {}
-  if (!map[id]) throw new AppError('Appuntamento assente', 'appointment_missing')
+  if (!map[id]) throw erroreApp('appointment_missing')
   const next = { ...map }
   delete next[id]
   writeMap(uid, next)

@@ -1,4 +1,6 @@
 import { RELEASE_REPO } from './appVersion'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 
 export const HOSTING_RELEASE_URL = 'https://groomlyapp.it/release.json'
 export const FIREBASE_RELEASE_URL = 'https://groomly-3128b.web.app/release.json'
@@ -20,8 +22,35 @@ function cleanReleaseNotes(value: unknown): string[] {
   return notes
 }
 
+const SEGNO_LINGUA = /^\[(en|es|fr|de)\]$/
+
+function sezioniNote(righe: string[]): Partial<Record<Lingua, string[]>> {
+  const sezioni: Partial<Record<Lingua, string[]>> = { it: [] }
+  let attuale: Lingua = 'it'
+  for (const riga of righe) {
+    const segno = SEGNO_LINGUA.exec(riga)?.[1] as Lingua | undefined
+    if (segno) {
+      attuale = segno
+      sezioni[attuale] = []
+    } else sezioni[attuale]?.push(riga)
+  }
+  return sezioni
+}
+
+/**
+ * Il testo di una release è in italiano. Le altre lingue stanno sotto una riga `[en]`, `[es]`, `[fr]`, `[de]`.
+ * Una lingua senza sezione legge una frase generica: mai l'italiano.
+ */
+export function noteInLingua(righe: string[], lingua: Lingua): string[] {
+  const sezioni = sezioniNote(righe)
+  const note = sezioni[lingua] ?? []
+  if (note.length > 0 || lingua === 'it' || (sezioni.it ?? []).length === 0) return note
+  return [t(lingua, 'relNoteGeneriche')]
+}
+
 export function notesFromRelease(value: unknown): string[] {
-  return cleanReleaseNotes(value).slice(0, 6)
+  const sezioni = sezioniNote(cleanReleaseNotes(value))
+  return Object.entries(sezioni).flatMap(([lingua, note]) => (lingua === 'it' ? note.slice(0, 6) : [`[${lingua}]`, ...note.slice(0, 6)]))
 }
 
 export function notesFromHistory(value: unknown): string[] {

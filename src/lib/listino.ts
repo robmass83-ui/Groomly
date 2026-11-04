@@ -1,6 +1,7 @@
 import type { Service } from '../types/models'
 import { formatEuro } from './format'
 import { summarizeDuration, summarizePrice } from './serviceSummary'
+import { frase } from '../i18n/frase'
 
 export type ListinoPrice =
   | { kind: 'sizes'; piccola: string; media: string; grande: string }
@@ -27,7 +28,7 @@ function rowFor(service: Service): ListinoRow {
   const price: ListinoPrice = service.kind !== 'principale'
     ? { kind: 'single', text: summarizePrice(service) }
     : piccola === media && media === grande
-      ? { kind: 'all', text: `${formatEuro(piccola)} · tutte le taglie` }
+      ? { kind: 'all', text: `${formatEuro(piccola)} · ${frase('lisTutteTaglie')}` }
       : { kind: 'sizes', piccola: formatEuro(piccola), media: formatEuro(media), grande: formatEuro(grande) }
   return { id: service.id, name: service.name, duration: summarizeDuration(service), price }
 }

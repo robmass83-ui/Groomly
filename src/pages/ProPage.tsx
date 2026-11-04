@@ -20,6 +20,8 @@ import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
+import { codiceDaMessaggio, fraseErrore } from '../i18n/errori'
+import type { Lingua } from '../i18n/lingua'
 
 type InviteRole = 'socio' | 'collaboratore'
 type PendingInvite = { id: string; email: string; ruolo: InviteRole; scade: string }
@@ -36,12 +38,13 @@ const chip: CSSProperties = {
   whiteSpace: 'nowrap',
 }
 
-function personRole(role: AccountRole, titolare: string): string {
-  if (role === 'socio' || role === 'collaboratore') return roleLabel(role)
+function personRole(role: AccountRole, titolare: string, lingua: Lingua): string {
+  if (role === 'socio' || role === 'collaboratore') return roleLabel(role, lingua)
   return titolare
 }
 
 function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: InviteRole) => void }) {
+  const { lingua } = useLingua()
   const frasi = useFrasi()
   return (
     <div role="group" aria-label={frasi.proRuolo} style={{ display: 'inline-flex', alignSelf: 'flex-start', border: '1px solid var(--line2)', borderRadius: 8, overflow: 'hidden' }}>
@@ -64,7 +67,7 @@ function RoleChoice({ value, onChange }: { value: InviteRole; onChange: (role: I
             whiteSpace: 'nowrap',
           }}
         >
-          {roleLabel(role)}
+          {roleLabel(role, lingua)}
         </button>
       ))}
     </div>
@@ -189,7 +192,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
       seatLimit: access.seats ?? PRO_SEAT_LIMIT,
     })
     if (!decision.ok) {
-      setError(decision.message)
+      setError(fraseErrore(lingua, codiceDaMessaggio(decision.message) ?? 'generico'))
       return
     }
     setError('')
@@ -197,7 +200,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
     try {
       const mod = await import('../data/firebase/client')
       await mod.callCreateInvite(decision.email, decision.role)
-      setNotice(`Invito spedito a ${decision.email}`)
+      setNotice(frasi.teamInvitoSpedito.replace('{{email}}', decision.email))
       setEmail('')
       void loadPending()
     } catch (caught) {
@@ -262,7 +265,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                     <div key={member.uid} style={{ padding: '8px 12px 9px', borderTop: index === 0 ? 'none' : '1px solid var(--line)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 8, rowGap: 2, minHeight: 28 }}>
                         <span style={{ fontWeight: 700, whiteSpace: 'nowrap', ...USER_TEXT }}>{label}</span>
-                        {staff ? <span style={chip}>{personRole(member.role, frasi.impTitolare)}</span> : null}
+                        {staff ? <span style={chip}>{personRole(member.role, frasi.impTitolare, lingua)}</span> : null}
                         {staff && member.uid !== account?.uid ? (
                           <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
                             {canManage ? (
@@ -321,7 +324,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere', ...USER_TEXT }}>{invite.email}</span>
                       <span style={{ display: 'block', color: 'var(--tx2)', fontSize: 13 }}>
-                        {frasi.teamInvitoScade.replace('{{ruolo}}', roleLabel(invite.ruolo)).replace('{{data}}', new Date(invite.scade).toLocaleDateString(lingua))}
+                        {frasi.teamInvitoScade.replace('{{ruolo}}', roleLabel(invite.ruolo, lingua)).replace('{{data}}', new Date(invite.scade).toLocaleDateString(lingua))}
                       </span>
                     </span>
                     <button type="button" className="tocco" aria-label={t(lingua, 'teamAnnullaInvitoA', { email: invite.email })} onClick={() => { setCancelError(''); setToCancel(invite) }} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>

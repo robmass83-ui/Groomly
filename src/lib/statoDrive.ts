@@ -1,6 +1,7 @@
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { backupStatusLabel } from './backupDoc'
+import { frase } from '../i18n/frase'
 
 export function millisecondiFrequenza(frequenza: string | undefined): number {
   if (frequenza === 'settimana') return 7 * 24 * 60 * 60 * 1000
@@ -75,5 +76,5 @@ export function bannerBackup(input: {
   if (!input.errore) return null
   const then = input.ultimo ? Date.parse(input.ultimo) : Number.NaN
   if (input.ultimo && !Number.isNaN(then) && input.now.getTime() - then < millisecondiFrequenza(input.frequenza) * 2) return null
-  return 'Il backup automatico non funziona. Aprilo in Impostazioni.'
+  return frase('homeBackupRotto')
 }

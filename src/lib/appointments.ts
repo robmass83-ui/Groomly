@@ -6,6 +6,7 @@ import { assigneeOf } from './salonAccess'
 import { appointmentFormSchema, type AppointmentFormValues } from './schemas'
 import { appointmentEnd, sumDuration } from './fineServizi'
 import { formatCompactDuration } from './display'
+import { frase } from '../i18n/frase'
 
 export { appointmentEnd, sumDuration }
 
@@ -177,7 +178,7 @@ export function overlapLabel(
     .sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
     .map((item) => dogName(item.dogId))
   if (names.length === 0) return null
-  return `Si sovrappone a ${names.join(', ')}`
+  return frase('formSovrappone', { elenco: names.join(', ') })
 }
 
 export function onLocalDay(items: Appointment[], day: Date): Appointment[] {
@@ -251,14 +252,14 @@ export function prepareAppointmentWrite(
   }
   const dog = dogs.find((item) => item.id === parsed.data.dogId)
   const kept = existing?.dogId === parsed.data.dogId
-  if (!dog || (dog.status !== 'attivo' && !kept)) return { ok: false, field: 'dogId', message: 'Scegli un cane' }
+  if (!dog || (dog.status !== 'attivo' && !kept)) return { ok: false, field: 'dogId', message: frase('formScegliCane') }
   const ordered = [...parsed.data.serviceIds].sort((a, b) => {
     const left = services.find((service) => service.id === a)?.order ?? 0
     const right = services.find((service) => service.id === b)?.order ?? 0
     return left - right
   })
   const lines = quoteServices(services, ordered, dog.size)
-  if (!lines) return { ok: false, field: 'serviceIds', message: 'Scegli un servizio' }
+  if (!lines) return { ok: false, field: 'serviceIds', message: frase('formScegliServizio') }
   return {
     ok: true,
     write: { dogId: dog.id, start: combineDayTime(parsed.data.day, parsed.data.time), services: lines },

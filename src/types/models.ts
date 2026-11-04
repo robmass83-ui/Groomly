@@ -1,3 +1,5 @@
+import type { Lingua } from '../i18n/lingua'
+
 export type ServiceIconKey =
   | 'bagno'
   | 'taglio'
@@ -117,6 +119,8 @@ export interface DogWrite extends DogDraft {
   removedPhotoIds?: string[]
   daRevisionare?: boolean
   emailBloccata?: boolean
+  /** La lingua del cliente: la scrive il server quando la richiesta diventa cliente. */
+  lingua?: Lingua
 }
 
 export interface Dog extends DogWrite {

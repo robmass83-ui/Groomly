@@ -13,6 +13,7 @@ import { dogHiddenNow, filterDogs, noteSessionDogDeletion, readDeletion, remembe
 import { claimDogUpload, forgetPendingDogs, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
 import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
+import { frase } from '../i18n/frase'
 
 function sortDogs(dogs: Dog[]): Dog[] {
   return [...dogs].sort((a, b) => a.name.localeCompare(b.name, 'it') || a.id.localeCompare(b.id))
@@ -151,7 +152,7 @@ export function useDogs(uid: string) {
       if (cancelled) unsub()
       else stop = unsub
     }).catch(() => {
-      if (!cancelled) setError('Salvataggio non riuscito')
+      if (!cancelled) setError(frase('authSalvataggio'))
     })
     const stopAttesa = attendiServer(rivela)
     return () => {
@@ -193,7 +194,7 @@ export function useDogs(uid: string) {
       return true
     } catch (caught) {
       if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'dog_missing')) {
-        setError('Salvataggio non riuscito')
+        setError(frase('authSalvataggio'))
       }
       return false
     }
@@ -201,7 +202,7 @@ export function useDogs(uid: string) {
 
   function fail(caught: unknown): boolean {
     if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'dog_missing')) {
-      setError('Salvataggio non riuscito')
+      setError(frase('authSalvataggio'))
     }
     return false
   }

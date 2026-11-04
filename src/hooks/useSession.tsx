@@ -1,6 +1,6 @@
 import { paeseDellIva, paeseIndovinato } from '../lib/paese'
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { AppError } from '../data/errors'
+import { AppError, erroreApp } from '../data/errors'
 import { firebaseEnabled, notifySaveFailed } from '../data/firebase/enabled'
 import { createAccount as createAccountRepo, login as loginRepo, logout as logoutRepo, reconcileSession, type LocalAccount, type SessionGate } from '../data/local/auth'
 import { clearPendingSalon, readPendingSalon, writePendingSalon } from '../data/local/pendingSalon'
@@ -68,7 +68,7 @@ function remember(account: LocalAccount): SessionGate {
 }
 
 function offline(): AppError {
-  return new AppError('Connessione assente', 'auth_offline')
+  return erroreApp('auth_offline')
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -328,11 +328,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       },
       async repair(profile) {
         if (!firebaseEnabled()) throw offline()
-        if (gate.kind !== 'in') throw new AppError('Salvataggio non riuscito', 'storage_write')
+        if (gate.kind !== 'in') throw erroreApp('storage_write')
         // Il profilo rimasto sul telefono ha la precedenza; il modulo serve solo a chi non ne ha.
         const saved = readPendingSalon(gate.account.email)
         const input = saved ?? (profile ? { ...profile, vatNumber: '', address: '' } : null)
-        if (!input) throw new AppError('Salvataggio non riuscito', 'storage_write')
+        if (!input) throw erroreApp('storage_write')
         const mod = await import('../data/firebase/client')
         await mod.repairOwnerSalon(input)
         clearPendingSalon(gate.account.email)

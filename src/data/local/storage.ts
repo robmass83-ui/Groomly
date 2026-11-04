@@ -1,4 +1,4 @@
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 
 export const storageKeys = {
   auth: 'groomly.auth',
@@ -35,7 +35,7 @@ export function readJson<T>(key: string): T | null {
   try {
     return JSON.parse(raw) as T
   } catch {
-    throw new AppError('Dati locali illeggibili', 'storage_corrupt')
+    throw erroreApp('storage_corrupt')
   }
 }
 
@@ -44,7 +44,7 @@ export function writeJson(key: string, value: unknown): void {
   try {
     json = JSON.stringify(value)
   } catch {
-    throw new AppError('Salvataggio non riuscito', 'storage_write')
+    throw erroreApp('storage_write')
   }
   if (isolated?.has(key)) {
     isolated.set(key, json)
@@ -53,7 +53,7 @@ export function writeJson(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, json)
   } catch {
-    throw new AppError('Salvataggio non riuscito', 'storage_write')
+    throw erroreApp('storage_write')
   }
 }
 

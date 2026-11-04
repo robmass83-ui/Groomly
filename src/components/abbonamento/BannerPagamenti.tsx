@@ -3,6 +3,8 @@ import { Megaphone, X } from 'lucide-react'
 import { usePiano } from '../../hooks/usePiano'
 import { useSession } from '../../hooks/useSession'
 import { useFrasi } from '../../i18n/LinguaContext'
+import { useLingua } from '../../i18n/LinguaContext'
+import { LOCALE_INTL } from '../../i18n/lingua'
 
 function chiave(data: string): string {
   return `groomly.b4.banner.${data}`
@@ -19,13 +21,14 @@ function chiuso(data: string): boolean {
 // Annuncio dei pagamenti (15 giorni prima): lo vede il titolare finché gli abbonamenti non si accendono.
 export function BannerPagamenti() {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const piano = usePiano()
   const session = useSession()
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
   const data = piano.acquisto?.pagamentiDal ?? null
   const [nascosto, setNascosto] = useState(() => (data ? chiuso(data) : false))
   if (!data || piano.abbonamentiAttivi || ruolo !== 'titolare' || nascosto || chiuso(data)) return null
-  const giorno = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(data))
+  const giorno = new Intl.DateTimeFormat(LOCALE_INTL[lingua], { timeZone: 'Europe/Rome', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(data))
 
   function chiudi() {
     try {

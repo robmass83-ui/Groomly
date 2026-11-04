@@ -4,7 +4,7 @@ import { t } from '../i18n/t'
 import { useEffect, useState } from 'react'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
-import { nextReleasesUrl, publishedReleases, type PublishedRelease } from '../lib/appRelease'
+import { nextReleasesUrl, noteInLingua, publishedReleases, type PublishedRelease } from '../lib/appRelease'
 import { APP_VERSION, RELEASE_REPO } from '../lib/appVersion'
 import { opzioniDate } from '../lib/format'
 import { SIZES } from '../theme/sizes'
@@ -126,6 +126,7 @@ function ReleaseBlock({ release }: { release: PublishedRelease }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const installed = release.version === APP_VERSION
+  const note = noteInLingua(release.notes, lingua)
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 8 }}>
@@ -137,12 +138,12 @@ function ReleaseBlock({ release }: { release: PublishedRelease }) {
           <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, fontWeight: 600 }}>{frasi.relQuesta}</span>
         ) : null}
       </div>
-      {release.notes.length === 0 ? (
+      {note.length === 0 ? (
         <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>{frasi.relNessunaNota}</p>
       ) : (
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {release.notes.map((note) => (
-            <li key={note} style={{ color: 'var(--tx2)', ...USER_TEXT }}>{note}</li>
+          {note.map((nota) => (
+            <li key={nota} style={{ color: 'var(--tx2)', ...USER_TEXT }}>{nota}</li>
           ))}
         </ul>
       )}

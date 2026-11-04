@@ -505,3 +505,20 @@ Spec: `docs/superpowers/specs/2026-11-04-lingue-basi-design.md`.
 - **Età e sesso nella scheda.** `Adult` invece di `Erwachsen` e `Unbekannt` invece di `Keine Angabe`, per stare nei pulsanti affiancati a 320 px.
 - **Pagine per soli operatori.** Le chiavi dell'Admin Manager sono tradotte comunque: il catalogo le chiede tutte.
 - **Testi legati a regole italiane.** `authIvaForma` («11 Ziffern, ohne IT») è tradotto alla lettera.
+
+## Cinque lingue — T4 App (5 novembre)
+
+Spec: `docs/superpowers/specs/2026-11-04-lingue-app-design.md`.
+
+- **`errori.ts` viene dal ramo di T5.** Ho preso il suo file e tradotto le cinque righe che aveva ancora in inglese. Così le due versioni si uniscono senza conflitti.
+- **Nomi su Drive fissi.** `Groomly Backup – …`, `Groomly Backup completo – …` e `Registro Groomly – ULTIMO.xlsx` non si traducono: Android riconosce le copie dal prefisso e il registro si sovrascrive per nome. Dentro lo ZIP il LEGGIMI e il Registro sono tradotti.
+- **Note di rilascio.** Sezioni `[en]`, `[es]`, `[fr]`, `[de]` nel testo della release. Senza sezione si legge una frase generica nella propria lingua, non l'italiano. Le release già uscite restano così.
+- **Avvisi dell'operatore.** Non si traducono: li scrive una persona, e il progetto non traduce ciò che scrivono le persone. Se Roberto scrive agli stranieri, il testo arriva in italiano.
+- **Senza codice dal server, frase generica.** Vale anche per i casi in cui prima si vedeva il testo del server: lo dice il contratto di T5. Le functions vanno pubblicate prima dell'APK, come già previsto.
+- **Admin Manager.** Continua a mostrare il `message` del server, in italiano: è una pagina per soli operatori.
+- **`homeAnnulla` divisa in due, come proponeva T3.** `homeAnnulla` è il pulsante dei dialoghi (`Abbrechen`, `Cancel`, `Cancelar`), `toastAnnulla` il tasto nei toast dopo un'azione fatta (`Rückgängig`, `Undo`, `Deshacer`). In inglese e spagnolo i dialoghi dicevano «Undo» e «Deshacer»: ora sono corretti.
+- **Strumenti proposti in appuntamento.** `Tosatrice`, `Shampoo`, `Profumo` si propongono nella lingua dell'app e si salvano così: sono testo della visita, come quello scritto a mano.
+- **`Premio fedeltà` resta il segno salvato.** `DogPage` lo confronta per riconoscere il premio: tradurlo in scrittura lo romperebbe. Si traduce solo in pagina, con `notaVisibile`.
+- **`formatEuro` e `formatHomeDate` seguono la lingua dell'app.** Erano fissati sull'italiano e comparivano nelle schermate in ogni lingua.
+- **Lingua proposta in `PulsanteMessaggi`.** Scelta manuale per telefono, poi `dog.lingua`, poi `settings.linguaClienti`, poi lingua dell'app.
+- **Registro Excel.** La lista dei servizi di una visita si separa con la virgola: « e » era italiano.

@@ -3,6 +3,8 @@ import { isStartTime, localDayKey, nextAppointment } from './appointments'
 import { nextDueAfter, recurrenceWeeksOf, type UnbookedRow } from './cycle'
 import { formatHomeDate, opzioniDate } from './format'
 import type { Appointment, Dog, Service } from '../types/models'
+import { frase } from '../i18n/frase'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 
 export const FILTRO_FISSATI = 'fissati' as const
 export type FiltroMensile = 'tutti' | 'da_fissare' | typeof FILTRO_FISSATI
@@ -35,10 +37,9 @@ function byNameId(a: Dog, b: Dog): number {
 }
 
 function lastSubtitle(last: Appointment | null): string {
-  if (!last) return 'Nessun appuntamento'
+  if (!last) return frase('homeNessunAppuntamento')
   const formatted = formatHomeDate(last.start)
-  const sentence = formatted.charAt(0).toLocaleLowerCase('it-IT') + formatted.slice(1)
-  return `Ultimo ${sentence}`
+  return frase('mensiliUltimoData', { data: formatted.charAt(0).toLocaleLowerCase() + formatted.slice(1) })
 }
 
 function bookedSubtitle(next: Appointment): string {
@@ -112,9 +113,9 @@ export function monthlyLists(dogs: Dog[], appointments: Appointment[], now: Date
 }
 
 export function unbookedCopy(row: UnbookedRow): string {
-  if (row.kind === 'prossimo') return `Non fissato · ogni ${recurrenceWeeksOf(row.dog)} sett`
-  if (!row.lastCompleted) return 'Nessun appuntamento'
-  return `Non fissato · scade ${format(row.due, 'd MMM', opzioniDate('it'))}`
+  if (row.kind === 'prossimo') return frase('mensiliNonFissatoOgni', { n: recurrenceWeeksOf(row.dog) })
+  if (!row.lastCompleted) return frase('homeNessunAppuntamento')
+  return frase('mensiliNonFissatoScade', { data: format(row.due, 'd MMM', opzioniDate(leggiLinguaAttiva())) })
 }
 
 export function bookFollowUpHref(dogId: string, due: Date, source: Appointment | null): string {
@@ -133,6 +134,6 @@ export function bookFollowUpHref(dogId: string, due: Date, source: Appointment |
 
 export function bannerCopy(toBook: { dog: { name: string } }[]): { title: string; names: string } | null {
   if (toBook.length === 0) return null
-  const title = toBook.length === 1 ? '1 mensile da programmare' : `${toBook.length} mensili da programmare`
+  const title = toBook.length === 1 ? frase('mensiliUno') : frase('mensiliAltri', { n: toBook.length })
   return { title, names: toBook.slice(0, 3).map((row) => row.dog.name).join(', ') }
 }

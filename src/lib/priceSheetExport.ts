@@ -1,8 +1,9 @@
 import { toJpeg } from 'html-to-image'
 import { jsPDF } from 'jspdf'
+import { frase } from '../i18n/frase'
 
 export function sheetFileName(nome: string, format: 'A4' | 'A3', tipo: 'pdf' | 'jpeg', page?: number): string {
-  const stem = `Listino_${nome.replace(/\s+/g, '_')}_${format}`
+  const stem = `${frase('lisVedi')} ${nome} ${format}`.replace(/\s+/g, '_')
   const withPage = page != null ? `${stem}_p${page}` : stem
   return `${withPage}.${tipo === 'pdf' ? 'pdf' : 'jpg'}`
 }
@@ -40,7 +41,7 @@ export async function buildSheetFile(input: {
     if (index > 0) doc.addPage()
     doc.addImage(page, 'JPEG', 0, 0, width, height)
   })
-  doc.setProperties({ title: 'Listino ' + nome })
+  doc.setProperties({ title: `${frase('lisVedi')} ${nome}` })
   return [{
     blob: pdfBlob(doc.output('blob')),
     name: sheetFileName(nome, format, 'pdf'),

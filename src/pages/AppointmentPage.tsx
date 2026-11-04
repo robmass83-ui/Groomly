@@ -34,7 +34,7 @@ import { StrumentiCane } from '../components/piano/StrumentiCane'
 import { dogToWrite } from './DogPage'
 import { usePiano } from '../hooks/usePiano'
 import { puoChiedereRecensione } from '../lib/recensioni'
-import { applicaPremioInChiusura } from '../lib/fedelta'
+import { applicaPremioInChiusura, notaVisibile } from '../lib/fedelta'
 import { haAccesso } from '../lib/piano'
 import { useSettings } from '../hooks/useSettings'
 import { orariCompilati, primaApertura, prossimoGiornoAperto } from '../lib/orari'
@@ -554,6 +554,7 @@ function AppointmentRead({
           <MessaggiPronti
             aspetto="pillola"
             telefono={phone}
+            linguaCliente={dog?.lingua}
             quando={appointment.start}
             valori={{
               nome: dog?.contact.name ?? '',
@@ -609,7 +610,7 @@ function AppointmentRead({
             <span style={{ fontWeight: 600 }}>{frasi.appTempoImpiegato}</span>
             <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{formatSpent(spent)}</span>
           </div>
-          {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{appointment.adjustmentNote}</p> : null}
+          {appointment.adjustmentNote ? <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{notaVisibile(appointment.adjustmentNote, frasi.fedPremioNota)}</p> : null}
           {role === 'collaboratore' ? (
             <p style={{ margin: 0, color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.chiudiChiediTitolare}</p>
           ) : (
@@ -841,7 +842,7 @@ export function AppointmentPage() {
   }
 
   const confirmBox = confirmingClose ? <CloseConfirm onStay={() => showConfirm(false)} onLeave={closeSheet} /> : null
-  const toolChoices = uniqueNames(['Tosatrice', 'Shampoo', 'Profumo', ...appointments.flatMap((item) => item.tools ?? [])])
+  const toolChoices = uniqueNames([frasi.icoTosatrice, frasi.icoShampoo, frasi.icoProfumo, ...appointments.flatMap((item) => item.tools ?? [])])
   const productChoices = uniqueNames(appointments.flatMap((item) => item.products ?? []))
 
   function save(write: AppointmentWrite, plan: SavePlan | null, freshDog: DogWrite | null, bypass = false) {
@@ -914,7 +915,7 @@ export function AppointmentPage() {
       t(lingua, 'appSalvatoPer', { quando: formatBookedWhen(start, lingua) }),
       'ok',
       {
-        label: frasi.homeAnnulla,
+        label: frasi.toastAnnulla,
         onClick: () => {
           let ok = true
           for (const created of createdIds) ok = remove(created) && ok
@@ -1071,7 +1072,7 @@ export function AppointmentPage() {
       return
     }
     toast.show(t(lingua, 'appSpostato', { ora: clock(next) }), 'plain', {
-      label: frasi.homeAnnulla,
+      label: frasi.toastAnnulla,
       onClick: () => {
         const restored = coreWrite(appointment, { start: previous })
         const hits = closedStartHits(closures, [{ start: previous, previousDay: localDayKey(next) }])
@@ -1108,7 +1109,7 @@ export function AppointmentPage() {
       toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    toast.show(frasi.homeAppuntamentoDisdetto, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+    toast.show(frasi.homeAppuntamentoDisdetto, 'plain', { label: frasi.toastAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   function noShow(appointment: Appointment) {
@@ -1116,7 +1117,7 @@ export function AppointmentPage() {
       toast.show(frasi.authSalvataggio, 'plain')
       return
     }
-    toast.show(frasi.homeNonVenuto, 'plain', { label: frasi.homeAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
+    toast.show(frasi.homeNonVenuto, 'plain', { label: frasi.toastAnnulla, onClick: () => restoreScheduled(appointment.id) }, undefined, 5000)
   }
 
   function applyTokens(appointment: Appointment, key: 'tools' | 'products', values: string[]) {

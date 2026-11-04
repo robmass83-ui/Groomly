@@ -44,34 +44,33 @@ const TESTI = {
     daPartire: 'desde ',
     valutazione: 'bajo valoración',
   },
-  // LINGUE: da tradurre
   fr: {
-    tagliaPiccola: 'Small size',
-    tagliaMedia: 'Medium size',
-    tagliaGrande: 'Large size',
-    segue: 'PRICE LIST · continued',
-    bagno: 'BATH AND TRIM',
-    da: 'from ',
-    titolo: 'Price list',
-    prezzi: 'Price list',
+    tagliaPiccola: 'Petite taille',
+    tagliaMedia: 'Taille moyenne',
+    tagliaGrande: 'Grande taille',
+    segue: 'TARIFS · suite',
+    bagno: 'BAIN + TONTE',
+    da: 'dès ',
+    titolo: 'Tarifs',
+    prezzi: 'Tarifs',
     tipo: 'Type ',
-    extra: 'EXTRA SERVICES',
-    daPartire: 'from ',
-    valutazione: 'on assessment',
+    extra: 'PRESTATIONS EN PLUS',
+    daPartire: 'à partir de ',
+    valutazione: 'sur évaluation',
   },
   de: {
-    tagliaPiccola: 'Small size',
-    tagliaMedia: 'Medium size',
-    tagliaGrande: 'Large size',
-    segue: 'PRICE LIST · continued',
-    bagno: 'BATH AND TRIM',
-    da: 'from ',
-    titolo: 'Price list',
-    prezzi: 'Price list',
-    tipo: 'Type ',
-    extra: 'EXTRA SERVICES',
-    daPartire: 'from ',
-    valutazione: 'on assessment',
+    tagliaPiccola: 'Kleine Größe',
+    tagliaMedia: 'Mittlere Größe',
+    tagliaGrande: 'Große Größe',
+    segue: 'PREISLISTE · Fortsetzung',
+    bagno: 'BAD + SCHUR',
+    da: 'ab ',
+    titolo: 'Preisliste',
+    prezzi: 'Preisliste',
+    tipo: 'Typ ',
+    extra: 'ZUSATZLEISTUNGEN',
+    daPartire: 'ab ',
+    valutazione: 'nach Prüfung',
   },
 } as const
 
@@ -86,73 +85,83 @@ export function nomeVoceListino(lingua: Lingua, nome: string): string {
 }
 
 const VOCI: Record<string, Record<Exclude<Lingua, 'it'>, string>> = {
-  'Taglia piccola': { en: 'Small size', es: 'Talla pequeña', fr: 'Small size', de: 'Small size' }, // LINGUE: da tradurre
-  'Taglia media': { en: 'Medium size', es: 'Talla mediana', fr: 'Medium size', de: 'Medium size' }, // LINGUE: da tradurre
-  'Taglia grande': { en: 'Large size', es: 'Talla grande', fr: 'Large size', de: 'Large size' }, // LINGUE: da tradurre
-  'Taglia mini': { en: 'Mini size', es: 'Talla mini', fr: 'Mini size', de: 'Mini size' }, // LINGUE: da tradurre
-  'Taglia piccola/media': { en: 'Small/medium size', es: 'Talla pequeña/mediana', fr: 'Small/medium size', de: 'Small/medium size' }, // LINGUE: da tradurre
-  'Bagno + tosatura': { en: 'Bath and trim', es: 'Baño y corte', fr: 'Bath and trim', de: 'Bath and trim' }, // LINGUE: da tradurre
-  '(indicativo)': { en: '(guide)', es: '(orientativo)', fr: '(guide)', de: '(guide)' }, // LINGUE: da tradurre
-  'Servizi extra': { en: 'Extra services', es: 'Servicios extra', fr: 'Extra services', de: 'Extra services' }, // LINGUE: da tradurre
-  'Taglio unghie': { en: 'Nail trim', es: 'Corte de uñas', fr: 'Nail trim', de: 'Nail trim' }, // LINGUE: da tradurre
-  'Shampoo dermatologico e antiparassitario': { en: 'Medicated and flea shampoo', es: 'Champú dermatológico y antiparasitario', fr: 'Medicated and flea shampoo', de: 'Medicated and flea shampoo' }, // LINGUE: da tradurre
-  'Nel servizio bagno sono compresi:': { en: 'The bath includes:', es: 'El baño incluye:', fr: 'The bath includes:', de: 'The bath includes:' }, // LINGUE: da tradurre
-  'Pulizia orecchie': { en: 'Ear cleaning', es: 'Limpieza de orejas', fr: 'Ear cleaning', de: 'Ear cleaning' }, // LINGUE: da tradurre
-  'Pulizia occhi': { en: 'Eye cleaning', es: 'Limpieza de ojos', fr: 'Eye cleaning', de: 'Eye cleaning' }, // LINGUE: da tradurre
-  'Informazioni importanti': { en: 'Important information', es: 'Información importante', fr: 'Important information', de: 'Important information' }, // LINGUE: da tradurre
+  TOELETTATURA: { en: 'GROOMING', es: 'PELUQUERÍA', fr: 'TOILETTAGE', de: 'FELLPFLEGE' },
+  LISTINO: { en: 'PRICE LIST', es: 'LISTA DE PRECIOS', fr: 'TARIFS', de: 'PREISLISTE' },
+  'Servizio di toelettatura': { en: 'Grooming service', es: 'Servicio de peluquería', fr: 'Service de toilettage', de: 'Fellpflege-Service' },
+  'Bagno + sistemazione': { en: 'Bath and tidy-up', es: 'Baño y arreglo', fr: 'Bain + finition', de: 'Bad + Nacharbeit' },
+  'Pelo corto': { en: 'Short coat', es: 'Pelo corto', fr: 'Poil court', de: 'Kurzhaar' },
+  'Pelo lungo': { en: 'Long coat', es: 'Pelo largo', fr: 'Poil long', de: 'Langhaar' },
+  Tosatura: { en: 'Trim', es: 'Corte', fr: 'Tonte', de: 'Schur' },
+  'Maltese / Shih Tzu / Barboncino / Maltipoo': { en: 'Maltese / Shih Tzu / Poodle / Maltipoo', es: 'Maltés / Shih Tzu / Caniche / Maltipoo', fr: 'Bichon maltais / Shih Tzu / Caniche / Maltipoo', de: 'Malteser / Shih Tzu / Pudel / Maltipoo' },
+  'Volpino / Pomerania': { en: 'Volpino / Pomeranian', es: 'Volpino / Pomerania', fr: 'Volpino / Poméranien', de: 'Volpino / Zwergspitz' },
+  'Bassotto pelo corto': { en: 'Short-haired Dachshund', es: 'Teckel de pelo corto', fr: 'Teckel à poil court', de: 'Kurzhaardackel' },
+  'Bassotto pelo lungo': { en: 'Long-haired Dachshund', es: 'Teckel de pelo largo', fr: 'Teckel à poil long', de: 'Langhaardackel' },
+  'Cocker Inglese': { en: 'English Cocker', es: 'Cocker Inglés', fr: 'Cocker Anglais', de: 'Englischer Cocker' },
+  'Bulldog Francese / Carlino': { en: 'French Bulldog / Pug', es: 'Bulldog Francés / Carlino', fr: 'Bouledogue Français / Carlin', de: 'Französische Bulldogge / Mops' },
+  'Bulldog Inglese': { en: 'English Bulldog', es: 'Bulldog Inglés', fr: 'Bouledogue Anglais', de: 'Englische Bulldogge' },
+  'Pastore Tedesco': { en: 'German Shepherd', es: 'Pastor Alemán', fr: 'Berger Allemand', de: 'Deutscher Schäferhund' },
+  Samoiedo: { en: 'Samoyed', es: 'Samoyedo', fr: 'Samoyède', de: 'Samojede' },
+  Maremmano: { en: 'Maremma Sheepdog', es: 'Pastor Maremmano', fr: 'Berger de Maremme', de: 'Maremmen-Hirtenhund' },
+  'Taglia piccola': { en: 'Small size', es: 'Talla pequeña', fr: 'Petite taille', de: 'Kleine Größe' },
+  'Taglia media': { en: 'Medium size', es: 'Talla mediana', fr: 'Taille moyenne', de: 'Mittlere Größe' },
+  'Taglia grande': { en: 'Large size', es: 'Talla grande', fr: 'Grande taille', de: 'Große Größe' },
+  'Taglia mini': { en: 'Mini size', es: 'Talla mini', fr: 'Taille mini', de: 'Mini-Größe' },
+  'Taglia piccola/media': { en: 'Small/medium size', es: 'Talla pequeña/mediana', fr: 'Petite/moyenne taille', de: 'Kleine/mittlere Größe' },
+  'Bagno + tosatura': { en: 'Bath and trim', es: 'Baño y corte', fr: 'Bain + tonte', de: 'Bad + Schur' },
+  '(indicativo)': { en: '(guide)', es: '(orientativo)', fr: '(indicatif)', de: '(Richtwert)' },
+  'Servizi extra': { en: 'Extra services', es: 'Servicios extra', fr: 'Prestations en plus', de: 'Zusatzleistungen' },
+  'Taglio unghie': { en: 'Nail trim', es: 'Corte de uñas', fr: 'Coupe des griffes', de: 'Krallen schneiden' },
+  'Shampoo dermatologico e antiparassitario': { en: 'Medicated and flea shampoo', es: 'Champú dermatológico y antiparasitario', fr: 'Shampoing dermatologique et antiparasitaire', de: 'Dermatologisches Antiparasiten-Shampoo' },
+  'Nel servizio bagno sono compresi:': { en: 'The bath includes:', es: 'El baño incluye:', fr: 'Le bain comprend :', de: 'Im Bad enthalten:' },
+  'Pulizia orecchie': { en: 'Ear cleaning', es: 'Limpieza de orejas', fr: 'Nettoyage des oreilles', de: 'Ohrenreinigung' },
+  'Pulizia occhi': { en: 'Eye cleaning', es: 'Limpieza de ojos', fr: 'Nettoyage des yeux', de: 'Augenreinigung' },
+  'Informazioni importanti': { en: 'Important information', es: 'Información importante', fr: 'Informations importantes', de: 'Wichtige Hinweise' },
   'I prezzi indicati sono da considerarsi a partire da e possono aumentare in base a:': {
     en: 'The prices shown start from and can rise based on:',
     es: 'Los precios indicados parten de y pueden subir según:',
-    // LINGUE: da tradurre
-    fr: 'The prices shown start from and can rise based on:',
-    de: 'The prices shown start from and can rise based on:',
+    fr: 'Les prix indiqués sont des prix de départ et peuvent augmenter selon :',
+    de: 'Die Preise sind Ab-Preise und können sich erhöhen je nach:',
   },
-  'presenza di nodi o feltri': { en: 'mats or tangles', es: 'nudos o enredos', fr: 'mats or tangles', de: 'mats or tangles' }, // LINGUE: da tradurre
-  'condizioni del mantello che richiede lavorazioni extra (muta)': { en: 'coat that needs extra work (shedding)', es: 'manto que pide trabajo extra (muda)', fr: 'coat that needs extra work (shedding)', de: 'coat that needs extra work (shedding)' }, // LINGUE: da tradurre
-  'comportamento del cane (agitato, difficile da gestire)': { en: 'the dog’s behaviour (restless, hard to handle)', es: 'el comportamiento del perro (inquieto, difícil)', fr: 'the dog’s behaviour (restless, hard to handle)', de: 'the dog’s behaviour (restless, hard to handle)' }, // LINGUE: da tradurre
-  'tempo necessario per completare il servizio': { en: 'time needed to finish the service', es: 'tiempo necesario para terminar el servicio', fr: 'time needed to finish the service', de: 'time needed to finish the service' }, // LINGUE: da tradurre
+  'presenza di nodi o feltri': { en: 'mats or tangles', es: 'nudos o enredos', fr: 'présence de nœuds ou de bourres', de: 'Knoten oder Verfilzungen' },
+  'condizioni del mantello che richiede lavorazioni extra (muta)': { en: 'coat that needs extra work (shedding)', es: 'manto que pide trabajo extra (muda)', fr: 'état du pelage demandant un travail en plus (mue)', de: 'Fellzustand, der Mehrarbeit erfordert (Fellwechsel)' },
+  'comportamento del cane (agitato, difficile da gestire)': { en: 'the dog’s behaviour (restless, hard to handle)', es: 'el comportamiento del perro (inquieto, difícil)', fr: 'comportement du chien (agité, difficile à manipuler)', de: 'Verhalten des Hundes (unruhig, schwer zu handhaben)' },
+  'tempo necessario per completare il servizio': { en: 'time needed to finish the service', es: 'tiempo necesario para terminar el servicio', fr: 'temps nécessaire pour terminer la prestation', de: 'Zeitaufwand für die Leistung' },
   'In questi casi verrà applicato un supplemento proporzionato al lavoro richiesto.': {
     en: 'In these cases a supplement is added in proportion to the work.',
     es: 'En estos casos se añade un suplemento proporcional al trabajo.',
-    // LINGUE: da tradurre
-    fr: 'In these cases a supplement is added in proportion to the work.',
-    de: 'In these cases a supplement is added in proportion to the work.',
+    fr: 'Dans ces cas, un supplément proportionnel au travail demandé sera appliqué.',
+    de: 'In diesen Fällen wird ein Zuschlag je nach Mehraufwand berechnet.',
   },
-  'Non si accettano cani infestati da pulci o zecche': { en: 'Dogs with fleas or ticks are not accepted', es: 'No se aceptan perros con pulgas o garrapatas', fr: 'Dogs with fleas or ticks are not accepted', de: 'Dogs with fleas or ticks are not accepted' }, // LINGUE: da tradurre
+  'Non si accettano cani infestati da pulci o zecche': { en: 'Dogs with fleas or ticks are not accepted', es: 'No se aceptan perros con pulgas o garrapatas', fr: 'Les chiens infestés de puces ou de tiques ne sont pas acceptés', de: 'Hunde mit Floh- oder Zeckenbefall werden nicht angenommen' },
   'Per il benessere di tutti gli animali presenti in toelettatura:': {
     en: 'For the wellbeing of every animal in the salon:',
     es: 'Por el bienestar de todos los animales de la peluquería:',
-    // LINGUE: da tradurre
-    fr: 'For the wellbeing of every animal in the salon:',
-    de: 'For the wellbeing of every animal in the salon:',
+    fr: 'Pour le bien-être de tous les animaux présents au salon :',
+    de: 'Zum Wohl aller Tiere im Salon:',
   },
   'non vengono accettati cani con infestazioni in corso di pulci o zecche': {
     en: 'dogs with an active flea or tick infestation are not accepted',
     es: 'no se aceptan perros con pulgas o garrapatas en curso',
-    // LINGUE: da tradurre
-    fr: 'dogs with an active flea or tick infestation are not accepted',
-    de: 'dogs with an active flea or tick infestation are not accepted',
+    fr: 'les chiens avec une infestation en cours de puces ou de tiques ne sont pas acceptés',
+    de: 'Hunde mit akutem Floh- oder Zeckenbefall werden nicht angenommen',
   },
   'è consigliato effettuare preventivamente un trattamento antiparassitario a casa': {
     en: 'a flea treatment at home beforehand is recommended',
     es: 'se aconseja un tratamiento antiparasitario en casa antes',
-    // LINGUE: da tradurre
-    fr: 'a flea treatment at home beforehand is recommended',
-    de: 'a flea treatment at home beforehand is recommended',
+    fr: 'il est conseillé de faire d’abord un traitement antiparasitaire à la maison',
+    de: 'wir empfehlen vorab eine Antiparasiten-Behandlung zu Hause',
   },
   'il servizio di toelettatura potrà essere eseguito successivamente': {
     en: 'the grooming can be done afterwards',
     es: 'el servicio de peluquería podrá hacerse después',
-    // LINGUE: da tradurre
-    fr: 'the grooming can be done afterwards',
-    de: 'the grooming can be done afterwards',
+    fr: 'le toilettage pourra être réalisé ensuite',
+    de: 'die Fellpflege kann danach erfolgen',
   },
-  'Grazie per la fiducia!': { en: 'Thank you for your trust!', es: '¡Gracias por la confianza!', fr: 'Thank you for your trust!', de: 'Thank you for your trust!' }, // LINGUE: da tradurre
+  'Grazie per la fiducia!': { en: 'Thank you for your trust!', es: '¡Gracias por la confianza!', fr: 'Merci de votre confiance !', de: 'Danke für Ihr Vertrauen!' },
   'Tosatura a partire da 55 €\nma su valutazione del tipo di cane, mantello e problematiche.': {
     en: 'Trim from €55\nbased on the dog, the coat and any problems.',
     es: 'Corte desde 55 €\nsegún el perro, el manto y los problemas.',
-    // LINGUE: da tradurre
-    fr: 'Trim from €55\nbased on the dog, the coat and any problems.',
-    de: 'Trim from €55\nbased on the dog, the coat and any problems.',
+    fr: 'Tonte à partir de 55 €\nsur évaluation du chien, du pelage et des difficultés.',
+    de: 'Schur ab 55 €\nnach Prüfung von Hund, Fell und Problemen.',
   },
 }

@@ -1,5 +1,11 @@
 export const TIMBRI_PER_PREMIO = 10
+/** Valore salvato sulla visita, che segna il premio: resta in italiano. In pagina si mostra `notaVisibile`. */
 export const NOTA_PREMIO = 'Premio fedeltà'
+
+/** La nota di una visita come si legge: il segno del premio si traduce, il resto l'ha scritto il salone. */
+export function notaVisibile(nota: string, premio: string): string {
+  return nota === NOTA_PREMIO ? premio : nota
+}
 
 export type VisitaFedelta = {
   id: string

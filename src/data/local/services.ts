@@ -1,5 +1,5 @@
 import type { Service, ServiceInput, ServicePatch } from '../../types/models'
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { permuteOrders } from '../../lib/serviceOrder'
 import { readJson, storageKeys, writeJson } from './storage'
@@ -69,7 +69,7 @@ export function createService(uid: string, input: ServiceInput): Service {
 export function updateService(uid: string, id: string, patch: ServicePatch): Service {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Servizio assente', 'service_missing')
+  if (!current) throw erroreApp('service_missing')
   const next = toDomain({ ...current, ...patch, id, kind: current.kind, iconKey: current.iconKey, updatedAt: new Date().toISOString() })
   map[id] = toStored(next)
   writeMap(uid, map)
@@ -78,7 +78,7 @@ export function updateService(uid: string, id: string, patch: ServicePatch): Ser
 
 export function removeService(uid: string, id: string): Service[] {
   const map = readMap(uid) ?? {}
-  if (!map[id]) throw new AppError('Servizio assente', 'service_missing')
+  if (!map[id]) throw erroreApp('service_missing')
   delete map[id]
   return writeMap(uid, map)
 }
@@ -87,9 +87,9 @@ export function moveService(uid: string, id: string, direction: 'up' | 'down'): 
   const map = readMap(uid) ?? {}
   const ordered = Object.values(map).sort((a, b) => a.order - b.order)
   const index = ordered.findIndex((service) => service.id === id)
-  if (index < 0) throw new AppError('Servizio assente', 'service_missing')
+  if (index < 0) throw erroreApp('service_missing')
   const target = direction === 'up' ? index - 1 : index + 1
-  if (target < 0 || target >= ordered.length) throw new AppError('Estremo della lista', 'service_boundary')
+  if (target < 0 || target >= ordered.length) throw erroreApp('service_boundary')
   const currentOrder = ordered[index].order
   ordered[index].order = ordered[target].order
   ordered[target].order = currentOrder
@@ -101,7 +101,7 @@ export function moveService(uid: string, id: string, direction: 'up' | 'down'): 
 export function reorderKind(uid: string, id: string, toIndex: number): Service[] {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Servizio assente', 'service_missing')
+  if (!current) throw erroreApp('service_missing')
   const group = Object.values(map)
     .filter((service) => service.kind === current.kind)
     .sort((a, b) => a.order - b.order)

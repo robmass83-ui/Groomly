@@ -14,10 +14,12 @@ import { fiscalNoticeVisible } from '../../lib/profile'
 import { haAccesso } from '../../lib/piano'
 import { pubblicabile } from '../../lib/catalogoPrenotazione'
 import { linkPrenotazione, puoAccenderePrenotazioni, SPECIE_PRENOTABILI, specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
-import { MESSAGGIO_SLUG_PRESO, slugAttuale } from '../../lib/slug'
+import { slugAttuale } from '../../lib/slug'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Toggle } from '../ui/Toggle'
+import { codiceErroreServer, fraseErrore } from '../../i18n/errori'
+import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 
 /** L’interruttore delle prenotazioni online: cosa manca per accenderle, e accendere pubblica prima il link del salone. */
 export function usePrenotazioniOnline() {
@@ -74,8 +76,7 @@ export function usePrenotazioniOnline() {
     void pubblica().then((slug) => {
       save({ ...settings, prenotazioniOnline: true, ...(slug ? { slugPubblico: slug } : {}) })
     }).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : ''
-      setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
+      setErrore(fraseNomePreso(error) ?? frasi.authSalvataggio)
     })
   }
 
@@ -88,6 +89,10 @@ export function usePrenotazioniOnline() {
     errore,
     setErrore,
   }
+}
+
+function fraseNomePreso(error: unknown): string | null {
+  return codiceErroreServer(error)?.codice === 'nome_preso' ? fraseErrore(leggiLinguaAttiva(), 'nome_preso') : null
 }
 
 const ETICHETTA_PASSO = {
@@ -154,8 +159,8 @@ export function LinkCondivisione() {
     void pubblica().then((slug) => {
       if (vivo) ricordaSlug(slug)
     }).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : ''
-      if (vivo && message.includes(MESSAGGIO_SLUG_PRESO)) setErrore(message)
+      const preso = fraseNomePreso(error)
+      if (vivo && preso) setErrore(preso)
     })
     return () => {
       vivo = false
@@ -174,8 +179,7 @@ export function LinkCondivisione() {
       setCopiato(true)
       window.setTimeout(() => setCopiato(false), 2000)
     } catch (error) {
-      const message = error instanceof Error ? error.message : ''
-      setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
+      setErrore(fraseNomePreso(error) ?? frasi.authSalvataggio)
     }
   }
 
@@ -187,8 +191,7 @@ export function LinkCondivisione() {
       ricordaSlug(slug)
       condiviso = linkPrenotazione(slug) || link
     } catch (error) {
-      const message = error instanceof Error ? error.message : ''
-      setErrore(message.includes(MESSAGGIO_SLUG_PRESO) ? message : frasi.authSalvataggio)
+      setErrore(fraseNomePreso(error) ?? frasi.authSalvataggio)
       return
     }
     try {

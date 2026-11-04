@@ -3,27 +3,27 @@ import { hrefVoce, vociMenuPiani } from './vociMenu'
 
 describe('voci del menu piani', () => {
   it('con il flag spento restano strumenti, privacy e elimina account', () => {
-    expect(vociMenuPiani(false)).toEqual(['Strumenti', 'Privacy e termini', 'Elimina account'])
-    expect(vociMenuPiani(false)).not.toContain('Il tuo piano')
-    expect(vociMenuPiani(false)).not.toContain('Team')
-    expect(vociMenuPiani(false)).not.toContain('Messaggi ai clienti')
+    expect(vociMenuPiani(false)).toEqual(['formStrumenti', 'privacy', 'eliminaAccount'])
+    expect(vociMenuPiani(false)).not.toContain('abbIlTuoPiano')
+    expect(vociMenuPiani(false)).not.toContain('team')
+    expect(vociMenuPiani(false)).not.toContain('messaggi')
   })
 
   it('con il flag acceso compaiono le sezioni', () => {
     expect(vociMenuPiani(true)).toEqual([
-      'Il tuo piano',
-      'Team',
-      'Messaggi ai clienti',
-      'Strumenti',
-      'Privacy e termini',
-      'Elimina account',
+      'abbIlTuoPiano',
+      'team',
+      'messaggi',
+      'formStrumenti',
+      'privacy',
+      'eliminaAccount',
     ])
   })
 
   it('ogni voce ha una route', () => {
-    expect(hrefVoce('Privacy e termini')).toBe('/impostazioni/privacy')
-    expect(hrefVoce('Elimina account')).toBe('/impostazioni/account/elimina')
-    expect(hrefVoce('Team')).toBe('/impostazioni/team')
-    expect(hrefVoce('Strumenti')).toBe('/impostazioni/abbonamento')
+    expect(hrefVoce('privacy')).toBe('/impostazioni/privacy')
+    expect(hrefVoce('eliminaAccount')).toBe('/impostazioni/account/elimina')
+    expect(hrefVoce('team')).toBe('/impostazioni/team')
+    expect(hrefVoce('formStrumenti')).toBe('/impostazioni/abbonamento')
   })
 })

@@ -1,5 +1,3 @@
-import { it } from '../i18n/it'
-
 const ANNO_MS = 365 * 24 * 60 * 60 * 1000
 
 export type PropostaRecensione = { dogId: string; at: string }
@@ -24,4 +22,3 @@ export function puoChiedereRecensione(input: {
   return true
 }
 
-export const TESTO_RECENSIONE = it.testoRecensione

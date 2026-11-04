@@ -52,6 +52,14 @@ export const FILE_AMMESSI = new Set([
   'src/lib/messaggiManuali.ts', 'src/lib/avvisoPiano.ts', 'src/components/beta/testi.ts',
   'functions/src/beta/emailBeta.ts', 'functions/src/abbonamenti/emailAnnuncio.ts', 'functions/src/piano/emailEliminazione.ts',
   'src/pages/DevKitPage.tsx', 'src/pages/DevBetaPage.tsx',
+  // Il testo iniziale del listino è un dato: si traduce alla visualizzazione con `nomeVoceListino`.
+  'src/data/seed/priceSheet.ts', 'src/i18n/frasiAmmesse.ts',
+  // I nomi dei servizi iniziali sono dati, in pagina passano da `nomeServizioVisibile`. Il formato francese ha un à, non è italiano.
+  'src/data/seed/services.ts', 'src/i18n/format.ts',
+  // Decisioni condivise col server: la frase italiana diventa un codice con `codiceDaMessaggio`.
+  'src/lib/salonAccess.ts', 'src/lib/prenotazione.ts', 'src/lib/disponibilita.ts', 'src/lib/funzioniPiano.ts', 'src/lib/slug.ts',
+  // Esportazione per soli operatori.
+  'src/lib/esportaSuggerimenti.ts',
 ])
 
 /** Tutti i sorgenti `.ts` e `.tsx`, salvo i test. */

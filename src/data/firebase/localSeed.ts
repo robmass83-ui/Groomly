@@ -57,6 +57,7 @@ function dogToLocal(dog: Dog): Record<string, unknown> {
     }))
   }
   if (dog.daRevisionare === true) stored.daRevisionare = true
+  if (dog.lingua) stored.lingua = dog.lingua
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   if (dog.emailBloccata === true) stored.emailBloccata = true

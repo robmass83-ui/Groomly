@@ -3,7 +3,7 @@ import { leggiConfigPiani, type ConfigPiani } from '../../lib/configPiani'
 import { contatoriDi, estensioniDi, feedbackBetaDi, type ContatoriAdmin, type FeedbackLetto, type InvitoAdmin } from '../../lib/adminManager'
 import { callCallableData, database, loadFirestore } from './client'
 import { firebaseEnabled } from './enabled'
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 
 // Callable e letture riservate agli operatori (Admin Manager). Firme: «Contratti» di 2026-11-04-beta-fondamenta-design.md.
 
@@ -69,7 +69,7 @@ function invitoAdminDi(salonId: string, data: Record<string, unknown>): InvitoAd
 }
 
 export async function elencoInvitiBeta(): Promise<InvitoAdmin[]> {
-  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
   const db = await database()
   const { collection, getDocs } = await loadFirestore()
   const snap = await getDocs(collection(db, 'betaInviti'))
@@ -81,7 +81,7 @@ export async function elencoInvitiBeta(): Promise<InvitoAdmin[]> {
 
 /** Inviti passati di un salone, dal più recente. */
 export async function storicoInvitoBeta(salonId: string): Promise<InvitoAdmin[]> {
-  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
   const db = await database()
   const { collection, getDocs } = await loadFirestore()
   const snap = await getDocs(collection(db, 'betaInviti', salonId, 'storico'))
@@ -94,7 +94,7 @@ export async function storicoInvitoBeta(salonId: string): Promise<InvitoAdmin[]>
 }
 
 export async function elencoFeedbackBeta(): Promise<FeedbackLetto[]> {
-  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
   const db = await database()
   const { collection, getDocs, limit, orderBy, query } = await loadFirestore()
   const snap = await getDocs(query(collection(db, 'betaFeedback'), orderBy('creatoIl', 'desc'), limit(LIMITE_FEEDBACK_ADMIN)))

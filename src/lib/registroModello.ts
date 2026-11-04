@@ -3,10 +3,19 @@ import { APP_VERSION } from './appVersion'
 import { sumDuration } from './appointments'
 import { buildManifest, type GroomlyDati } from './backupBundle'
 import { appointmentAmount, classify } from './earnings'
-import { SEX_LABEL, SIZE_LABEL, TEMPERAMENT_LABEL } from './dogList'
 import { romeIso } from './romeTime'
+import { frase } from '../i18n/frase'
+import { LOCALE_INTL } from '../i18n/lingua'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
+import type { Chiave } from '../i18n/t'
 
-const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
+const TAGLIE: Record<DogSize, Chiave> = { piccola: 'regPiccola', media: 'regMediaTaglia', grande: 'regGrande' }
+const CARATTERI: Record<Temperament, Chiave> = { bravo: 'regBravo', agitato: 'regAgitato', mordace: 'regMordace' }
+
+function meseCorto(mese: number, anno: number): string {
+  const nome = new Intl.DateTimeFormat(LOCALE_INTL[leggiLinguaAttiva()], { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(anno, mese, 1)))
+  return `${nome.replace(/\.$/, '')} ${anno}`
+}
 const STATI = new Set<AppointmentStatus>(['programmato', 'completato', 'disdetto', 'non_venuto'])
 
 export type RigaCane = {
@@ -279,9 +288,9 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
     const minutes = done.flatMap((item) => typeof item.actualDurationMin === 'number' ? [item.actualDurationMin] : [])
     const gallery = Array.isArray(dog.gallery) ? dog.gallery.length : 0
     const photo = text(dog.photo)
-    const size = dog.size === 'piccola' || dog.size === 'media' || dog.size === 'grande' ? SIZE_LABEL[dog.size as DogSize] : ''
-    const sex = dog.sex === 'M' || dog.sex === 'F' ? SEX_LABEL[dog.sex] : ''
-    const temperament = dog.temperament === 'bravo' || dog.temperament === 'agitato' || dog.temperament === 'mordace' ? TEMPERAMENT_LABEL[dog.temperament as Temperament] : ''
+    const size = dog.size === 'piccola' || dog.size === 'media' || dog.size === 'grande' ? frase(TAGLIE[dog.size as DogSize]) : ''
+    const sex = dog.sex === 'M' ? frase('regMaschio') : dog.sex === 'F' ? frase('regFemmina') : ''
+    const temperament = dog.temperament === 'bravo' || dog.temperament === 'agitato' || dog.temperament === 'mordace' ? frase(CARATTERI[dog.temperament as Temperament]) : ''
     const note = [text(dog.criticalNote), text(dog.notes)].filter(Boolean).join('\n')
     const percorso = percorsoDi(files, dog.photo) || (Array.isArray(dog.gallery) ? dog.gallery.map((item) => percorsoDi(files, record(item)?.photo)).find((item) => item) ?? '' : '')
     const row: RigaCane = {
@@ -298,13 +307,13 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
       primo: done[0] ? giornoExcel(done[0].start) : null,
       ultimo: last ? giornoExcel(last.start) : null,
       prossimo: next ? giornoExcel(next.start) : null,
-      ultimoServizio: last ? last.services.map((item) => item.name).filter(Boolean).join(' e ') : '',
+      ultimoServizio: last ? last.services.map((item) => item.name).filter(Boolean).join(', ') : '',
       ultimoPrezzo: last ? appointmentAmount(last) : null,
       totaleSpeso: done.reduce((sum, item) => sum + appointmentAmount(item), 0),
       tempoMedio: minutes.length ? Math.round((minutes.reduce((sum, item) => sum + item, 0) / minutes.length) * 10) / 10 : null,
       note,
       foto: (photo ? 1 : 0) + gallery + own.reduce((sum, item) => sum + (item.photos?.length ?? 0), 0),
-      stato: deleted.has(id) ? 'Nascosto' : dog.status === 'deceduto' ? 'Deceduto' : dog.status === 'non_in_cura' ? 'Non più in cura' : 'Attivo',
+      stato: frase(deleted.has(id) ? 'regNascosto' : dog.status === 'deceduto' ? 'regDeceduto' : dog.status === 'non_in_cura' ? 'regNonInCura' : 'regAttivo'),
       percorso,
     }
     return [{ id, chiave: chiaveCliente(id, dog), row }]
@@ -324,10 +333,10 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
         razza: dog?.razza ?? '',
         padrone: dog?.padrone ?? '',
         telefono: dog?.telefono ?? '',
-        servizio: visit.services.map((item) => item.name).filter(Boolean).join(' e '),
+        servizio: visit.services.map((item) => item.name).filter(Boolean).join(', '),
         prezzo: appointmentAmount(visit),
         durata: typeof visit.actualDurationMin === 'number' ? visit.actualDurationMin : sumDuration(visit.services),
-        stato: visit.status === 'completato' ? 'Completato' : visit.status === 'disdetto' ? 'Disdetto' : visit.status === 'non_venuto' ? 'Non venuto' : 'Programmato',
+        stato: frase(visit.status === 'completato' ? 'regCompletato' : visit.status === 'disdetto' ? 'regDisdetto' : visit.status === 'non_venuto' ? 'regNonVenuto' : 'regProgrammato'),
         note: [...(visit.extraNotes ?? []).map((item) => item.text), text(visit.adjustmentNote)].filter(Boolean).join('\n'),
         foto: visit.photos?.length ?? 0,
         percorso,
@@ -374,7 +383,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
       const y = Math.floor(cursor / 12)
       const m = cursor % 12
       if (year !== 0 && y !== year) {
-        anni.push({ etichetta: `Totale ${year}`, appuntamenti: yearCount, totale: yearTotal, media: mediaEuro(yearTotal, yearCount) })
+        anni.push({ etichetta: frase('regTotaleAnno', { anno: year }), appuntamenti: yearCount, totale: yearTotal, media: mediaEuro(yearTotal, yearCount) })
         yearCount = 0
         yearTotal = 0
       }
@@ -383,9 +392,9 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
       const totale = list.reduce((sum, item) => sum + appointmentAmount(item), 0)
       yearCount += list.length
       yearTotal += totale
-      mesi.push({ mese: `${MESI[m]} ${y}`, anno: y, appuntamenti: list.length, totale, media: mediaEuro(totale, list.length) })
+      mesi.push({ mese: meseCorto(m, y), anno: y, appuntamenti: list.length, totale, media: mediaEuro(totale, list.length) })
     }
-    if (year !== 0) anni.push({ etichetta: `Totale ${year}`, appuntamenti: yearCount, totale: yearTotal, media: mediaEuro(yearTotal, yearCount) })
+    if (year !== 0) anni.push({ etichetta: frase('regTotaleAnno', { anno: year }), appuntamenti: yearCount, totale: yearTotal, media: mediaEuro(yearTotal, yearCount) })
   }
 
   const servizi = Object.values(dati.services).flatMap((raw) => {
@@ -395,14 +404,14 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
     const duration = tripla(row.durationMin)
     return [{
       nome: text(row.name),
-      tipo: row.kind === 'extra' ? 'Extra' : 'Principale',
+      tipo: frase(row.kind === 'extra' ? 'regExtra' : 'regPrincipale'),
       prezzoPiccola: price.piccola,
       prezzoMedia: price.media,
       prezzoGrande: price.grande,
       durataPiccola: duration.piccola,
       durataMedia: duration.media,
       durataGrande: duration.grande,
-      attivo: row.active === true ? 'sì' : 'no',
+      attivo: frase(row.active === true ? 'regSi' : 'regNo'),
       order: typeof row.order === 'number' ? row.order : 0,
     }]
   }).sort((a, b) => a.order - b.order || (a.nome < b.nome ? -1 : 1)).map((row) => ({
@@ -423,13 +432,13 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
   const razze = breeds.flatMap((raw) => {
     const breed = record(raw)
     if (!breed) return []
-    const taglia = breed.taglia === 'piccola' || breed.taglia === 'media' || breed.taglia === 'grande' ? SIZE_LABEL[breed.taglia] : text(breed.taglia)
+    const taglia = breed.taglia === 'piccola' || breed.taglia === 'media' || breed.taglia === 'grande' ? frase(TAGLIE[breed.taglia]) : text(breed.taglia)
     const voci = Array.isArray(breed.voci) ? breed.voci : []
     return voci.flatMap((item) => {
       const voce = record(item)
       if (!voce) return []
-      const tipo = voce.tipo === 'da' ? 'Da' : voce.tipo === 'fisso' ? 'Fisso' : voce.tipo === 'valutazione' ? 'Valutazione' : text(voce.tipo)
-      return [{ razza: text(breed.nome), taglia, voce: text(voce.nome), tipo, prezzo: tipo === 'Valutazione' ? null : numero(voce.prezzo) }]
+      const tipo = voce.tipo === 'da' ? frase('regTipoDa') : voce.tipo === 'fisso' ? frase('regTipoFisso') : voce.tipo === 'valutazione' ? frase('regTipoValutazione') : text(voce.tipo)
+      return [{ razza: text(breed.nome), taglia, voce: text(voce.nome), tipo, prezzo: voce.tipo === 'valutazione' ? null : numero(voce.prezzo) }]
     })
   })
 

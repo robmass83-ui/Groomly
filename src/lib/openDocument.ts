@@ -2,10 +2,15 @@ import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
 import { FileViewer } from '@capacitor/file-viewer'
 import { Directory, Filesystem } from '@capacitor/filesystem'
+import { frase } from '../i18n/frase'
+
+function nessunaApp(): Error {
+  return new Error(frase('lisNessunaApp'))
+}
 
 function openWindow(url: string) {
   const opened = window.open(url, '_blank')
-  if (opened == null) throw new Error('Nessuna app per aprire il PDF')
+  if (opened == null) throw nessunaApp()
   opened.opener = null
 }
 
@@ -18,7 +23,7 @@ export async function apriEsterno(url: string): Promise<void> {
 }
 
 export async function openPdf(url: string): Promise<void> {
-  if (!url.startsWith('https://')) throw new Error('File non apribile')
+  if (!url.startsWith('https://')) throw new Error(frase('lisFileChiuso'))
   try {
     if (Capacitor.isNativePlatform()) {
       await Browser.open({ url })
@@ -26,8 +31,7 @@ export async function openPdf(url: string): Promise<void> {
     }
     openWindow(url)
   } catch (error) {
-    if (error instanceof Error && error.message === 'Nessuna app per aprire il PDF') throw error
-    throw new Error('Nessuna app per aprire il PDF')
+    throw error instanceof Error && error.message === frase('lisNessunaApp') ? error : nessunaApp()
   }
 }
 
@@ -52,6 +56,6 @@ export async function openPdfBlob(blob: Blob, name: string): Promise<void> {
     setTimeout(() => URL.revokeObjectURL(url), 60_000)
     openWindow(url)
   } catch {
-    throw new Error('Nessuna app per aprire il PDF')
+    throw nessunaApp()
   }
 }

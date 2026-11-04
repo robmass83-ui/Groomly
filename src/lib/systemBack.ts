@@ -1,3 +1,4 @@
+import { frase } from '../i18n/frase'
 export type SystemBackChoice = 'dismiss' | 'account' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'history' | 'exit'
 
 const LISTINO_SHEET_PATHS = ['/listino/prezzi', '/listino/gestione', '/listino/stampa']
@@ -39,7 +40,7 @@ export function dismissTopOverlay(): boolean {
     backdrop.click()
     return true
   }
-  const close = dialog.querySelector('button[aria-label="Chiudi"]')
+  const close = dialog.querySelector(`button[aria-label="${frase('chiudi')}"]`)
   if (close instanceof HTMLButtonElement) {
     close.click()
     return true

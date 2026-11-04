@@ -1,6 +1,7 @@
 import { USER_TEXT } from '../../theme/text'
 import { SIZES } from '../../theme/sizes'
 import { TYPE } from '../../theme/theme'
+import { frase } from '../../i18n/frase'
 
 type Option<T extends string> = { value: T; label: string; badge?: number }
 
@@ -22,7 +23,7 @@ export function Segmented<T extends string>({ label, value, onChange, options, f
             type="button"
             role="radio"
             aria-checked={selected}
-            aria-label={option.badge ? `${option.label}, ${option.badge} da fissare` : undefined}
+            aria-label={option.badge ? `${option.label}, ${frase('mensiliDaFissareConto', { n: option.badge })}` : undefined}
             onClick={() => onChange(option.value)}
             style={{
               flex: fill ? 1 : undefined,

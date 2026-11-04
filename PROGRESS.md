@@ -374,3 +374,20 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Da T1: `linguaClienti` e `linguaClientiDettaglio` in fondo con `// Lingue T1`, nuovo `linguaMessaggiDettaglio`. Le due chiavi nuove arrivano in `it.ts` con T1: su questo ramo da solo `tsc` le segnala come in più, unito a T1 no.
 - Da fare per T4: `homeAnnulla` copre sia «Annulla» sia l'annullamento nei toast, conviene dividerla.
 - `npm test` non eseguito: il worktree non ha `node_modules` e il file non è ancora importato da nessuno.
+
+## Cinque lingue — T4 App (5 novembre, ramo `claude/great-hamilton-2bc8bc`, non unito)
+- Spec `docs/superpowers/specs/2026-11-04-lingue-app-design.md`, piano `docs/superpowers/plans/2026-11-04-lingue-app.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md`.
+- Fatto:
+  - frasi fisse di `src/` nel catalogo: blocco `// Lingue T4` nei cinque file, `frase()` ed `erroreApp()` per il codice fuori dalle schermate;
+  - tabelle in cinque lingue: `report`, `listino`, `servizioVisibile`, `errori`, `avvisoPiano`, `paginaPubblica` (con i testi di T6), `messaggiManuali`;
+  - errori del server tradotti da `details.codice`, sul contratto di T5;
+  - Registro Excel, LEGGIMI, PDF ed Excel degli incassi, notifiche locali, `UpdateNotice`, note di rilascio per lingua;
+  - listino iniziale tradotto alla visualizzazione, con le voci che mancavano;
+  - `dog.lingua` letto, conservato al salvataggio e proposto in `PulsanteMessaggi`;
+  - debito di `src/` a zero: `debitoFrasi.json` ha solo `functions/`, `DEBITO_CATENE` solo i file di T5. I `// LINGUE: da tradurre` rimasti sono in file di T5.
+- Per la chiusura:
+  - `errori.ts` viene dal ramo di T5: va unito dopo T5, le differenze sono cinque righe;
+  - `SEGNAPOSTO_AMMESSI` è ancora `true`: va a `false` quando T5 è unito;
+  - `frasiFisse.test.ts`, `debitoFrasi.json` e `debitoLingue.ts` li tocca anche T5: conviene controllarli all'unione;
+  - le note della prossima release possono avere le sezioni `[en]`, `[es]`, `[fr]`, `[de]`: senza, chi non è italiano legge la frase generica.
+- Verifiche: vedi la riga finale di questa sezione.

@@ -13,7 +13,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { SceltaSalonePersonale } from '../lib/pausaSalone'
-import { MESSAGGIO_EMAIL_NON_CONFERMATA, roleLabel, type StatoInvito } from '../lib/salonAccess'
+import { roleLabel, type StatoInvito } from '../lib/salonAccess'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 
@@ -21,8 +21,7 @@ type Lettura = { stato: StatoInvito; salone: string; ruolo: 'socio' | 'collabora
 
 function callableMessage(error: unknown, lingua: Lingua): string {
   const generico = t(lingua, 'invitoInvio')
-  const message = messaggioCallable(error, generico, generico)
-  return message === MESSAGGIO_EMAIL_NON_CONFERMATA ? t(lingua, 'invitoConfermaEmail') : message
+  return messaggioCallable(error, generico, generico)
 }
 
 export function InvitePage() {
@@ -209,8 +208,8 @@ export function InvitePage() {
             <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
               <h2 style={{ margin: 0, fontSize: TYPE.base, fontWeight: 700 }}>
                 {lettura.salone.trim()
-                  ? t(lingua, 'invitoEntra', { nome: lettura.salone.trim(), ruolo: roleLabel(lettura.ruolo ?? 'collaboratore') })
-                  : t(lingua, 'invitoEntraSenzaNome', { ruolo: roleLabel(lettura.ruolo ?? 'collaboratore') })}
+                  ? t(lingua, 'invitoEntra', { nome: lettura.salone.trim(), ruolo: roleLabel(lettura.ruolo ?? 'collaboratore', lingua) })
+                  : t(lingua, 'invitoEntraSenzaNome', { ruolo: roleLabel(lettura.ruolo ?? 'collaboratore', lingua) })}
               </h2>
               <Button type="button" disabled={invio} aria-busy={invio || undefined} onClick={() => { void tocca() }}>
                 {frasi.invitoAccetta}

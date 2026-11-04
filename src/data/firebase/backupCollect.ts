@@ -1,4 +1,4 @@
-import { AppError } from '../errors'
+import { AppError, erroreApp } from '../errors'
 import {
   buildManifest,
   canonicalJson,
@@ -33,7 +33,6 @@ export type BackupSink = (meta: BackupFileMeta, bytes: Uint8Array, percorsoBacku
 type Data = Record<string, unknown>
 type Missing = GroomlyDati['fotoMancanti'][number]
 
-const OFFLINE_MESSAGE = 'Serve la connessione per creare il backup'
 const CLOSURE_DAY = /^\d{4}-\d{2}-\d{2}$/
 
 function cmp(a: string, b: string): number {
@@ -53,14 +52,14 @@ function instant(date: Date | undefined): string {
 }
 
 function offline(): AppError {
-  return new AppError(OFFLINE_MESSAGE, 'backup_offline')
+  return erroreApp('backup_offline')
 }
 
 function classify(error: unknown): AppError {
   if (error instanceof AppError) return error
   const code = isRecord(error) && typeof error.code === 'string' ? error.code : ''
   if (code.includes('unavailable') || code.includes('deadline-exceeded') || code.includes('network')) return offline()
-  return new AppError('Salvataggio non riuscito', 'storage_write')
+  return erroreApp('storage_write')
 }
 
 async function dalFirestore<T>(run: () => Promise<T>): Promise<T> {

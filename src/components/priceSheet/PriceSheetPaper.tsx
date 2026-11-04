@@ -290,10 +290,10 @@ function Fly({
             )}
           </div>
           <div className="f-title">
-            <div className="t1">{h.titolo}</div>
+            <div className="t1">{nomeVoceListino(lingua, h.titolo)}</div>
             <div className="t2">
               <Paw color={h.colore} size={40 * scale} />
-              {h.sottotitolo}
+              {nomeVoceListino(lingua, h.sottotitolo)}
               <Paw color={h.colore} size={40 * scale} />
             </div>
             <div className="rule">
@@ -304,7 +304,7 @@ function Fly({
           </div>
           <div className="f-info">
             <div className="n">{h.nome.toUpperCase()}</div>
-            <div className="d">{h.descrizione}</div>
+            <div className="d">{nomeVoceListino(lingua, h.descrizione)}</div>
             <div className="a">
               <Pin size={17 * scale} />
               {h.indirizzo}
@@ -395,7 +395,7 @@ function Column({
           <div className="f-br" key={breed.id}>
             <div className="bn">
               <Paw color="#1D1A1B" size={13 * scale} />
-              <span>{etichette.tipo}{breed.nome}</span>
+              <span>{etichette.tipo}{nomeVoceListino(lingua, breed.nome)}</span>
             </div>
             {breed.voci.map((voce) => (
               <div className="f-sv" key={voce.id}>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { puoChiedereRecensione, TESTO_RECENSIONE } from './recensioni'
+import { it as frasi } from '../i18n/it'
+import { puoChiedereRecensione } from './recensioni'
 
 const ora = new Date('2026-10-25T12:00:00.000Z')
 const link = 'https://g.page/salone'
@@ -26,6 +27,6 @@ describe('recensioni', () => {
     expect(puoChiedereRecensione({ link, proposte: [], dogId: 'rex', adesso: ora, noteProblemaOggi: true, richiesteOggi: 0 })).toBe(false)
     expect(puoChiedereRecensione({ link, proposte: [], dogId: 'rex', adesso: ora, noteProblemaOggi: false, richiesteOggi: 5 })).toBe(false)
     expect(puoChiedereRecensione({ link: '  ', proposte: [], dogId: 'rex', adesso: ora, noteProblemaOggi: false, richiesteOggi: 0 })).toBe(false)
-    expect(TESTO_RECENSIONE.toLowerCase()).not.toContain('sconto')
+    expect(frasi.testoRecensione.toLowerCase()).not.toContain('sconto')
   })
 })

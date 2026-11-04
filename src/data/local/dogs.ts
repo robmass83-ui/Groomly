@@ -1,8 +1,9 @@
+import type { Lingua } from '../../i18n/lingua'
 import { storedSearchKey } from '../../lib/dogList'
 import { ruoloDelProprietario } from '../../lib/ruoloProprietario'
 import { migrateStored } from '../../lib/migrate'
 import type { CustomField, Dog, DogContact, DogExtraNote, DogServicePrice, DogWrite, GalleryPhoto } from '../../types/models'
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 import { readJson, storageKeys, writeJson } from './storage'
 
 interface StoredGalleryPhoto {
@@ -46,6 +47,7 @@ interface StoredDog {
   removedPhotoIds?: string[]
   recurrenceWeeks?: number
   emailBloccata?: boolean
+  lingua?: Lingua
   status: Dog['status']
   daRevisionare?: boolean
   archivedAt?: string
@@ -159,6 +161,7 @@ function toDomain(stored: StoredDog): Dog {
   const extraNotes = extraNotesFromStored(stored.extraNotes)
   if (extraNotes) dog.extraNotes = extraNotes
   if (stored.daRevisionare === true) dog.daRevisionare = true
+  if (stored.lingua) dog.lingua = stored.lingua
   if (stored.archivedAt) dog.archivedAt = new Date(stored.archivedAt)
   if (stored.removedPhotoIds?.length) dog.removedPhotoIds = [...stored.removedPhotoIds]
   if (stored.emailBloccata === true) dog.emailBloccata = true
@@ -205,6 +208,7 @@ function toStored(dog: Dog): StoredDog {
     }))
   }
   if (dog.daRevisionare === true) stored.daRevisionare = true
+  if (dog.lingua) stored.lingua = dog.lingua
   if (dog.archivedAt) stored.archivedAt = dog.archivedAt.toISOString()
   if (dog.removedPhotoIds?.length) stored.removedPhotoIds = [...dog.removedPhotoIds]
   if (dog.emailBloccata === true) stored.emailBloccata = true
@@ -280,7 +284,7 @@ export function createDog(uid: string, input: DogWrite): Dog {
 export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Cane assente', 'dog_missing')
+  if (!current) throw erroreApp('dog_missing')
   const previous = toDomain(current)
   const removedPhotoIds = [...new Set([...(previous.removedPhotoIds ?? []), ...(input.removedPhotoIds ?? [])])]
   const write = input.extraNotes === undefined
@@ -290,6 +294,8 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
   if (write.daRevisionare === false) delete dog.daRevisionare
   else if (write.daRevisionare !== true && previous.daRevisionare === true) dog.daRevisionare = true
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
+  const lingua = input.lingua ?? previous.lingua
+  if (lingua) dog.lingua = lingua
   if (input.emailBloccata === true || (input.emailBloccata !== false && previous.emailBloccata === true)) {
     dog.emailBloccata = true
   }
@@ -301,7 +307,7 @@ export function updateDog(uid: string, id: string, input: DogWrite): Dog {
 export function archiveDog(uid: string, id: string, status: 'non_in_cura' | 'deceduto'): Dog {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Cane assente', 'dog_missing')
+  if (!current) throw erroreApp('dog_missing')
   const dog = toDomain(current)
   dog.status = status
   dog.archivedAt = new Date()
@@ -313,7 +319,7 @@ export function archiveDog(uid: string, id: string, status: 'non_in_cura' | 'dec
 
 export function deleteDog(uid: string, id: string): void {
   const map = readMap(uid) ?? {}
-  if (!map[id]) throw new AppError('Cane assente', 'dog_missing')
+  if (!map[id]) throw erroreApp('dog_missing')
   const next = { ...map }
   delete next[id]
   writeMap(uid, next)
@@ -343,7 +349,7 @@ export function forgetLocalDog(id: string): void {
 export function restoreDog(uid: string, id: string): Dog {
   const map = readMap(uid) ?? {}
   const current = map[id]
-  if (!current) throw new AppError('Cane assente', 'dog_missing')
+  if (!current) throw erroreApp('dog_missing')
   const dog = toDomain(current)
   dog.status = 'attivo'
   delete dog.archivedAt

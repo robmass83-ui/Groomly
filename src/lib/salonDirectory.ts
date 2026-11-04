@@ -1,4 +1,5 @@
 import type { TracciaBeta } from './piano'
+import { frase } from '../i18n/frase'
 
 export type DirectoryAccount = {
   uid: string
@@ -30,7 +31,7 @@ export function businessName(data: Record<string, unknown> | null): string {
 
 function ownerLabel(account: DirectoryAccount): string {
   const name = `${account.firstName} ${account.lastName}`.replace(/\s+/g, ' ').trim()
-  return name || account.email.trim() || 'Senza nome'
+  return name || account.email.trim() || frase('uteSenzaNome')
 }
 
 export function summarizeDirectory(accounts: DirectoryAccount[], salonNames: ReadonlyMap<string, string>): SalonDirectory {
@@ -38,7 +39,7 @@ export function summarizeDirectory(accounts: DirectoryAccount[], salonNames: Rea
   const entries = accounts.flatMap((account) => {
     const salonId = account.salonId.trim()
     if (!salonId) return []
-    const salonName = (salonNames.get(salonId) ?? '').trim() || 'Senza nome'
+    const salonName = (salonNames.get(salonId) ?? '').trim() || frase('uteSenzaNome')
     return [{ uid: account.uid, ownerName: ownerLabel(account), salonName }]
   })
   entries.sort((left, right) => left.salonName.localeCompare(right.salonName, 'it')

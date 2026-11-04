@@ -1,4 +1,4 @@
-import { AppError } from '../data/errors'
+import { erroreApp } from '../data/errors'
 
 export const PASSWORD_ITERATIONS = 100_000
 
@@ -23,7 +23,7 @@ function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
 }
 
 async function derive(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
-  if (!globalThis.crypto?.subtle) throw new AppError('Web Crypto assente', 'auth_crypto')
+  if (!globalThis.crypto?.subtle) throw erroreApp('auth_crypto')
   const material = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
@@ -41,7 +41,7 @@ async function derive(password: string, salt: Uint8Array, iterations: number): P
 
 export async function hashPassword(password: string, iterations = PASSWORD_ITERATIONS) {
   if (!globalThis.crypto?.subtle || !globalThis.crypto.getRandomValues) {
-    throw new AppError('Web Crypto assente', 'auth_crypto')
+    throw erroreApp('auth_crypto')
   }
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const key = await derive(password, salt, iterations)

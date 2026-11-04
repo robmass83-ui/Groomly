@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_DOG_PHOTOS, TOO_MANY_PHOTOS, dogPhotoCount } from './photoLimit'
+import { MAX_DOG_PHOTOS, dogPhotoCount } from './photoLimit'
 
 describe('photoLimit', () => {
   it('conta profilo e galleria senza doppioni', () => {
@@ -9,6 +9,5 @@ describe('photoLimit', () => {
 
   it('tetto e messaggio', () => {
     expect(MAX_DOG_PHOTOS).toBe(20)
-    expect(TOO_MANY_PHOTOS).toBe('Puoi caricare al massimo 20 foto per cane.')
   })
 })

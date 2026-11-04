@@ -6,6 +6,7 @@ import { createService, listServices, moveService, removeService, reorderKind, u
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { Service, ServiceInput, ServicePatch } from '../types/models'
 import { useLocalData } from './useLocalData'
+import { frase } from '../i18n/frase'
 
 function sortServices(services: Service[]): Service[] {
   return [...services].sort((a, b) => a.order - b.order)
@@ -41,7 +42,7 @@ export function useServices(uid: string) {
       if (cancelled) unsub()
       else stop = unsub
     }).catch(() => {
-      if (!cancelled) setError('Salvataggio non riuscito')
+      if (!cancelled) setError(frase('authSalvataggio'))
     })
     return () => {
       cancelled = true
@@ -57,7 +58,7 @@ export function useServices(uid: string) {
       return true
     } catch (caught) {
       if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'service_missing')) {
-        setError('Salvataggio non riuscito')
+        setError(frase('authSalvataggio'))
       }
       return false
     }
@@ -65,7 +66,7 @@ export function useServices(uid: string) {
 
   function fail(caught: unknown): boolean {
     if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'service_missing')) {
-      setError('Salvataggio non riuscito')
+      setError(frase('authSalvataggio'))
     }
     return false
   }

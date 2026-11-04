@@ -86,7 +86,7 @@ describe('earningsExport', () => {
       },
       servizi: [],
       gruppi: [],
-      gruppoTitolo: 'Settimana',
+      gruppoTitolo: 'settimana',
       rows: [{
         date: '02/09/2026',
         time: '09:30',

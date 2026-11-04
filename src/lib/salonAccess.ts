@@ -1,6 +1,8 @@
 import type { SceltaSalonePersonale } from './pausaSalone'
 import { haAccesso, postiTotali, type StatoPiano } from './piano'
 import { isSharedEmail, normalizeEmail, SHARED_SALON_ID, type AccountRole } from './salonPath'
+import type { Lingua } from '../i18n/lingua'
+import { t } from '../i18n/t'
 
 export const PRO_SEAT_LIMIT = 3
 
@@ -194,8 +196,8 @@ export function changeRoleDecision(input: {
   return { ok: true, role }
 }
 
-export function roleLabel(role: StaffRole): string {
-  return role === 'socio' ? 'Socio' : 'Collaboratore'
+export function roleLabel(role: StaffRole, lingua: Lingua): string {
+  return t(lingua, role === 'socio' ? 'ruoloSocio' : 'ruoloCollaboratore')
 }
 
 export function inviteLink(token: string): string {
