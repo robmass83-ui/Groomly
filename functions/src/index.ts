@@ -46,6 +46,17 @@ import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaTourPer } from './config/impostaTour'
 import { impostaConfigPianiPer } from './config/impostaConfigPiani'
+import { impostaMostraPianiPer } from './config/impostaMostraPiani'
+import { invitaBetaPer } from './beta/invitaBeta'
+import { rispondiInvitoBetaPer } from './beta/rispondiInvitoBeta'
+import { revocaBetaPer } from './beta/revocaBeta'
+import { estendiBetaPer } from './beta/estendiBeta'
+import { segnaEarlyAdopterPer } from './beta/segnaEarlyAdopter'
+import { inviaFeedbackBetaPer } from './beta/inviaFeedbackBeta'
+import { contatoriAdminPer } from './beta/contatoriAdmin'
+import { segnaAvvisoBetaPer } from './beta/segnaAvvisoBeta'
+import { scadiInvitiBetaScaduti } from './beta/scadiInvitiBeta'
+import { mandaAvvisiFineBeta } from './beta/avvisiFineBeta'
 import { decisioneLimite, dettaglioDa, dettaglioPossibile, suggerimentiDa, suggerimentoPossibile } from './indirizzi/places'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
@@ -909,6 +920,101 @@ export const impostaConfigPiani = onCall(pianoCall, async (request) => {
     ...tokenOperatore(request.auth),
     modifiche: request.data,
   })
+})
+
+export const impostaMostraPiani = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return impostaMostraPianiPer({ token: tokenOperatore(request.auth), valore: field(request.data, 'valore') })
+})
+
+// Beta su invito (B1): firme nei Contratti di docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md.
+export const invitaBeta = onCall({ ...pianoCall, secrets: [brevoApiKey], timeoutSeconds: 120 }, async (request) => {
+  requireUid(request.auth)
+  return invitaBetaPer({
+    token: tokenOperatore(request.auth),
+    salonIds: field(request.data, 'salonIds'),
+    piano: field(request.data, 'piano'),
+    giorni: field(request.data, 'giorni'),
+    messaggio: field(request.data, 'messaggio'),
+    apiKey: chiaveBrevo(),
+  })
+})
+
+export const rispondiInvitoBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  return rispondiInvitoBetaPer({ uid: requireUid(request.auth), dati: request.data, apiKey: chiaveBrevo() })
+})
+
+export const revocaBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  requireUid(request.auth)
+  return revocaBetaPer({
+    token: tokenOperatore(request.auth),
+    salonId: field(request.data, 'salonId'),
+    testo: field(request.data, 'testo'),
+    apiKey: chiaveBrevo(),
+  })
+})
+
+export const estendiBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  requireUid(request.auth)
+  return estendiBetaPer({
+    token: tokenOperatore(request.auth),
+    salonId: field(request.data, 'salonId'),
+    giorni: field(request.data, 'giorni'),
+    apiKey: chiaveBrevo(),
+  })
+})
+
+export const segnaEarlyAdopter = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return segnaEarlyAdopterPer({
+    token: tokenOperatore(request.auth),
+    salonId: field(request.data, 'salonId'),
+    valore: field(request.data, 'valore'),
+  })
+})
+
+export const inviaFeedbackBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  return inviaFeedbackBetaPer({ uid: requireUid(request.auth), dati: request.data, apiKey: chiaveBrevo() })
+})
+
+export const segnaAvvisoBeta = onCall(pianoCall, async (request) => {
+  return segnaAvvisoBetaPer(requireUid(request.auth))
+})
+
+// Ultimo uso dell'app per ogni persona: il rinnovo del token, se manca l'ultimo accesso.
+async function ultimiAccessiAuth(uids: string[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>()
+  for (let i = 0; i < uids.length; i += 100) {
+    const { users } = await getAuth().getUsers(uids.slice(i, i + 100).map((uid) => ({ uid })))
+    for (const user of users) {
+      const quando = user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime ?? null
+      out.set(user.uid, quando ? new Date(quando).toISOString() : null)
+    }
+  }
+  return out
+}
+
+export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
+  requireUid(request.auth)
+  return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
+})
+
+export const scadiInvitiBeta = onSchedule({
+  schedule: 'every 60 minutes',
+  region: 'europe-west1',
+}, async () => {
+  const scaduti = await scadiInvitiBetaScaduti()
+  logger.info('Inviti beta scaduti', { scaduti })
+})
+
+export const avvisiFineBeta = onSchedule({
+  schedule: '0 9 * * *',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+  secrets: [brevoApiKey],
+}, async () => {
+  const mandati = await mandaAvvisiFineBeta({ apiKey: chiaveBrevo() })
+  logger.info('Avvisi fine beta', { mandati })
 })
 
 export const chiudiProve = onSchedule({
