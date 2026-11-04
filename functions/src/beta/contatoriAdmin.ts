@@ -13,6 +13,7 @@ export type ContatoriAdmin = {
   perFonte: Record<FontePiano | 'nessuna', number>
   inviti: Record<StatoInvitoBeta, number>
   avvisami: Record<string, number>
+  interesse: Record<string, string[]>
   feedback: { totali: number; pagheresti: Record<Pagheresti, number> }
   inBeta: number
   ultimoAccesso: Record<string, string | null>
@@ -73,9 +74,12 @@ export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?:
   }
 
   const avvisami: Record<string, number> = {}
+  const interesse: Record<string, string[]> = {}
   for (const doc of (await db.collectionGroup('interesse').get()).docs) {
-    if (!doc.ref.path.startsWith('salons/')) continue
+    const [radice, salonId] = doc.ref.path.split('/')
+    if (radice !== 'salons' || !salonIdValido(salonId)) continue
     avvisami[doc.id] = (avvisami[doc.id] ?? 0) + 1
+    interesse[salonId] = [...(interesse[salonId] ?? []), doc.id]
   }
 
   const pagheresti = zeri<Pagheresti>(PAGHERESTI)
@@ -92,6 +96,7 @@ export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?:
     perFonte,
     inviti,
     avvisami,
+    interesse,
     feedback: { totali: feedback.length, pagheresti },
     inBeta,
     ultimoAccesso: ordinato,

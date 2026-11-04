@@ -16,6 +16,7 @@ import {
   soddisfaAttivita,
   type FiltroAttivita,
   type Filtri,
+  type PianoAvvisami,
   type RigaLista,
   type StatoBeta,
 } from '../../lib/adminManager'
@@ -30,6 +31,8 @@ export type FiltroInvito = 'tutti' | StatoInvitoBeta
 
 const PIANI: LivelloElenco[] = ['base', 'pro', 'salone', 'vip']
 const NOMI_PIANO: Record<LivelloElenco, string> = { base: 'Go', pro: 'Plus', salone: 'Salon', vip: 'VIP' }
+const PIANI_AVVISAMI: PianoAvvisami[] = ['plus', 'salone']
+const NOMI_AVVISAMI: Record<PianoAvvisami, string> = { plus: 'Plus', salone: 'Salon' }
 const PRESSIONE_MS = 500
 
 function alterna<T>(lista: readonly T[], valore: T): T[] {
@@ -95,7 +98,7 @@ export function ListaSaloni({
 
   const visibili = modo === 'saloni'
     ? filtraSaloni(righe, filtri, adesso)
-    : filtraSaloni(righe, { ...filtri, piani: [], beta: [], attivita: [] }, adesso).filter((r) => corrispondeInvito(r, inviti.get(r.row.salonId), filtroInvito))
+    : filtraSaloni(righe, { ...filtri, piani: [], beta: [], attivita: [], avvisami: [] }, adesso).filter((r) => corrispondeInvito(r, inviti.get(r.row.salonId), filtroInvito))
 
   function conta(prova: (riga: RigaLista) => boolean): number {
     return righe.filter(prova).length
@@ -110,7 +113,8 @@ export function ListaSaloni({
     if (riga.beta === 'invitato' && invito) {
       return frasi.amSottoInvitato.replace('{{piano}}', invito.piano === 'pro' ? 'Plus' : 'Salon').replace('{{n}}', String(giorniA(invito.scadeInvitoIl, adesso)))
     }
-    return [riga.row.ownerName, riga.info.citta].filter(Boolean).join(' · ')
+    const avvisami = riga.info.avvisami?.map((p) => NOMI_AVVISAMI[p]).join(', ')
+    return [avvisami ? `${frasi.amAvvisami} ${avvisami}` : '', riga.row.ownerName, riga.info.citta].filter(Boolean).join(' · ')
   }
 
   function alternaSelezione(salonId: string) {
@@ -161,6 +165,13 @@ export function ListaSaloni({
       <div role="group" aria-label={frasi.amFiltri} style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', margin: `0 -${SIZES.pagePadX}px`, padding: `2px ${SIZES.pagePadX}px 4px` }}>
         {modo === 'saloni' ? (
           <>
+            {conAttivita ? PIANI_AVVISAMI.map((p) => (
+              <span key={`avvisami-${p}`} style={{ flex: 'none' }}>
+                <FilterChip pressed={filtri.avvisami.includes(p)} onClick={() => onFiltri({ ...filtri, avvisami: alterna(filtri.avvisami, p) })}>
+                  {`${frasi.amAvvisami} ${NOMI_AVVISAMI[p]} ${conta((r) => r.info.avvisami?.includes(p) === true)}`}
+                </FilterChip>
+              </span>
+            )) : null}
             {PIANI.map((p) => (
               <span key={p} style={{ flex: 'none' }}>
                 <FilterChip pressed={filtri.piani.includes(p)} onClick={() => onFiltri({ ...filtri, piani: alterna(filtri.piani, p) })}>

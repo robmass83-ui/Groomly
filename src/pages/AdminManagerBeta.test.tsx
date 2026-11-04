@@ -166,6 +166,18 @@ describe('Admin Manager: beta', () => {
     expect(await screen.findByRole('button', { name: 'Invitati: 0' })).toBeInTheDocument()
   })
 
+  it('Saloni: filtra chi ha toccato Avvisami e lo seleziona per la beta', async () => {
+    admin.contatori.mockResolvedValue({ ultimoAccesso: { ada: null, leo: null, eva: null }, interesse: { ada: ['piano-plus'], eva: ['piano-salone'] } })
+    const user = userEvent.setup()
+    await apri('/impostazioni/admin-manager?tab=saloni')
+    await screen.findByRole('button', { name: 'Bauci, Ada Neri' })
+    await user.click(await screen.findByRole('button', { name: /^Avvisami Plus 1/ }))
+    expect(screen.getByRole('button', { name: 'Bauci, Ada Neri' })).toHaveTextContent('Avvisami Plus')
+    expect(screen.queryByRole('button', { name: 'Zampa, Eva Blu' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Seleziona tutti' }))
+    expect(screen.getByRole('checkbox', { name: 'Bauci' })).toHaveAttribute('aria-checked', 'true')
+  })
+
   it('Saloni: filtra, seleziona più saloni e invita insieme con i saltati spiegati', async () => {
     admin.invita.mockResolvedValue({ invitati: ['ada'], saltati: [{ salonId: 'leo', motivo: 'vip' }] })
     const user = userEvent.setup()

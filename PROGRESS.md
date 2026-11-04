@@ -339,3 +339,7 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Con B1:
   - i messaggi `failed-precondition` noti di `rispondiInvitoBeta`/`inviaFeedbackBeta` si traducono in it/en/es (`messaggioErroreBeta`); gli altri passano così come sono;
   - B1 scrive anche `salons/{id}/avvisi/beta` (con `segnaAvvisoBeta`), ma l'app non lo legge: gli avvisi li calcola da sola. Per la chiusura: valutare se mostrare gli avvisi che solo il server conosce (revoca con testo dell'operatore, estensione, invito ritirato) leggendo quel documento.
+
+## 1.1.190 — filtro Avvisami nell'Admin Manager (5 novembre)
+- Tab Saloni: filtri «Avvisami Plus» e «Avvisami Salon», con la scritta nella riga del salone. `contatoriAdmin` ora manda `interesse` per salone. I numeri si caricano anche aprendo il tab Saloni.
+- Pubblicata dal ramo `claude/rel-1-1-190`, partito da `origin/main`: il lavoro delle cinque lingue, ancora solo sulla `main` locale, non è in questa versione.

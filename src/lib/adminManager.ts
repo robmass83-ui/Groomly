@@ -133,12 +133,14 @@ export function statoBetaDi(invito: InvitoBeta | undefined, row: SalonRow | unde
   return 'chiuso'
 }
 
-export type InfoSalone = { ultimaAttivita?: string; citta?: string }
+export type PianoAvvisami = 'plus' | 'salone'
+const PIANI_AVVISAMI: readonly PianoAvvisami[] = ['plus', 'salone']
+export type InfoSalone = { ultimaAttivita?: string; citta?: string; avvisami?: PianoAvvisami[] }
 export type FiltroAttivita = 'attivi7' | 'inattivi'
-export type Filtri = { testo: string; piani: LivelloElenco[]; beta: StatoBeta[]; attivita: FiltroAttivita[] }
+export type Filtri = { testo: string; piani: LivelloElenco[]; beta: StatoBeta[]; attivita: FiltroAttivita[]; avvisami: PianoAvvisami[] }
 export type RigaLista = { row: SalonRow; livello: LivelloElenco; beta: StatoBeta; info: InfoSalone }
 
-export const FILTRI_VUOTI: Filtri = { testo: '', piani: [], beta: [], attivita: [] }
+export const FILTRI_VUOTI: Filtri = { testo: '', piani: [], beta: [], attivita: [], avvisami: [] }
 
 function piano(testo: string): string {
   return testo.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
@@ -168,6 +170,7 @@ export function filtraSaloni(righe: readonly RigaLista[], filtri: Filtri, adesso
     if (filtri.piani.length > 0 && !filtri.piani.includes(riga.livello)) return false
     if (filtri.beta.length > 0 && !filtri.beta.includes(riga.beta)) return false
     if (filtri.attivita.length > 0 && !filtri.attivita.some((f) => soddisfaAttivita(riga, f, adesso))) return false
+    if (filtri.avvisami.length > 0 && !filtri.avvisami.some((p) => riga.info.avvisami?.includes(p))) return false
     return true
   })
 }
@@ -374,6 +377,11 @@ export function contatoriDi(data: unknown): ContatoriAdmin {
       perSalone[id] = { ...perSalone[id], ...letta }
     }
   }
+  for (const [id, chiavi] of Object.entries(oggetto(d.interesse))) {
+    if (!Array.isArray(chiavi)) continue
+    const piani = PIANI_AVVISAMI.filter((p) => chiavi.some((c) => typeof c === 'string' && pianoDellaChiave(c) === p))
+    if (piani.length > 0) perSalone = { ...perSalone, [id]: { ...perSalone?.[id], avvisami: piani } }
+  }
   return {
     saloni: { totali: numero(saloni.totali), attivi7: numero(saloni.attivi7), attivi30: numero(saloni.attivi30) },
     perPiano: conteggi(LIVELLI, d.perPiano),
@@ -386,9 +394,9 @@ export function contatoriDi(data: unknown): ContatoriAdmin {
   }
 }
 
-export type VoceAvvisami = { chiave: string; n: number; piano: 'plus' | 'salone' }
+export type VoceAvvisami = { chiave: string; n: number; piano: PianoAvvisami }
 
-export function pianoDellaChiave(chiave: string): 'plus' | 'salone' {
+export function pianoDellaChiave(chiave: string): PianoAvvisami {
   if (chiave === 'piano-salone') return 'salone'
   if (chiave === 'piano-plus') return 'plus'
   return eFeature(chiave) && livelloMinimo(chiave) === 'salone' ? 'salone' : 'plus'

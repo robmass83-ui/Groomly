@@ -32,6 +32,7 @@ describe('contatoriAdminPer', () => {
     archivio.set('salons/b/interesse/team', { at: 'x' })
     archivio.set('salons/b/interesse/piano-plus', { at: 'x' })
     archivio.set('salon/shared/interesse/team', { at: 'x' })
+    archivio.set('salons/shared/interesse/export', { at: 'x' })
     archivio.set('betaFeedback/f1', { salonId: 'a', pagheresti: 'si' })
     archivio.set('betaFeedback/f2', { salonId: 'a', pagheresti: 'forse' })
     archivio.set('betaFeedback/f3', { salonId: 'b', pagheresti: 'si' })
@@ -48,6 +49,7 @@ describe('contatoriAdminPer', () => {
       perFonte: { play: 0, prova: 0, omaggio: 1, manuale: 0, beta: 1, nessuna: 2 },
       inviti: { invitato: 1, accettato: 1, rifiutato: 0, scaduto: 1, revocato: 0 },
       avvisami: { team: 2, 'piano-plus': 1 },
+      interesse: { a: ['team'], b: ['team', 'piano-plus'] },
       feedback: { totali: 3, pagheresti: { si: 2, forse: 1, no: 0 } },
       inBeta: 1,
       ultimoAccesso: { a: giorniFa(1), b: giorniFa(10), c: null, d: null },
