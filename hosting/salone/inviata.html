@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-titolo-en="Request sent — Groomly" data-titolo-es="Solicitud enviada — Groomly" data-titolo-fr="Demande envoyée — Groomly" data-titolo-de="Anfrage gesendet — Groomly">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
 </head>
 <body>
   <main>
-    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a> · <a href="?lang=fr">Français</a> · <a href="?lang=de">Deutsch</a></nav>
     <div data-lang="it">
       <h1>Richiesta inviata</h1>
       <p><span data-apertura>Grazie, richiesta inviata al salone.</span> <span data-mezzo>Non è ancora una prenotazione.</span> Se il salone conferma il giorno e l’ora che hai chiesto, quella email vale come conferma. Se propone un altro orario, troverai i pulsanti per accettare o rifiutare e il tempo per rispondere: senza risposta, il posto verrà liberato.</p>
@@ -20,6 +20,14 @@
     <div data-lang="es" hidden>
       <h1>Solicitud enviada</h1>
       <p><span data-apertura>Gracias, tu solicitud se ha enviado a la peluquería.</span> <span data-mezzo>Todavía no es una reserva.</span> Si la peluquería confirma el día y la hora que pediste, ese correo es la confirmación. Si propone otro horario, encontrarás los botones para aceptar o rechazar y el plazo para responder: si no respondes, el hueco quedará libre.</p>
+    </div>
+    <div data-lang="fr" hidden>
+      <h1>Demande envoyée</h1>
+      <p><span data-apertura>Merci, votre demande a été envoyée au salon.</span> <span data-mezzo>Ce n’est pas encore une réservation.</span> Si le salon confirme le jour et l’heure demandés, cet e-mail vaut confirmation. S’il propose un autre horaire, vous y trouverez les boutons pour accepter ou refuser et le délai pour répondre : sans réponse, le créneau sera libéré.</p>
+    </div>
+    <div data-lang="de" hidden>
+      <h1>Anfrage gesendet</h1>
+      <p><span data-apertura>Vielen Dank, Ihre Anfrage wurde an den Salon gesendet.</span> <span data-mezzo>Das ist noch keine Buchung.</span> Bestätigt der Salon den gewünschten Tag und die Uhrzeit, gilt diese E-Mail als Bestätigung. Schlägt er eine andere Uhrzeit vor, finden Sie dort die Schaltflächen zum Annehmen oder Ablehnen und die Antwortfrist: Ohne Antwort wird der Platz wieder frei.</p>
     </div>
   </main>
   <script src="/lingua-pagina.js"></script>
@@ -40,11 +48,15 @@
     function aperturaDi(lang, nome) {
       if (lang === 'en') return 'Thank you, your request has been sent to ' + nome + '.'
       if (lang === 'es') return 'Gracias, tu solicitud se ha enviado a ' + nome + '.'
+      if (lang === 'fr') return 'Merci, votre demande a été envoyée à ' + nome + '.'
+      if (lang === 'de') return 'Vielen Dank, Ihre Anfrage wurde an ' + nome + ' gesendet.'
       return 'Grazie, richiesta inviata a ' + nome + '.'
     }
     function mezzoDi(lang, email) {
       if (lang === 'en') return "This isn't a booking yet: the reply will arrive at " + email + ' (please check your spam folder too).'
       if (lang === 'es') return 'Todavía no es una reserva: la respuesta llegará a ' + email + ' (revisa también la carpeta de spam).'
+      if (lang === 'fr') return 'Ce n\u2019est pas encore une réservation\u00a0: la réponse arrivera à ' + email + ' (pensez à vérifier vos spams).'
+      if (lang === 'de') return 'Das ist noch keine Buchung: Die Antwort kommt an ' + email + ' (sehen Sie bitte auch im Spam-Ordner nach).'
       return 'Non è ancora una prenotazione: la risposta arriverà a ' + email + ' (dai un\u2019occhiata anche allo spam).'
     }
   })()

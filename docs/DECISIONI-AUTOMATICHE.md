@@ -505,3 +505,19 @@ Spec: `docs/superpowers/specs/2026-11-04-lingue-basi-design.md`.
 - **Età e sesso nella scheda.** `Adult` invece di `Erwachsen` e `Unbekannt` invece di `Keine Angabe`, per stare nei pulsanti affiancati a 320 px.
 - **Pagine per soli operatori.** Le chiavi dell'Admin Manager sono tradotte comunque: il catalogo le chiede tutte.
 - **Testi legati a regole italiane.** `authIvaForma` («11 Ziffern, ohne IT») è tradotto alla lettera.
+
+## Cinque lingue — T6 Pagine e negozio (5 novembre)
+
+Spec: `docs/superpowers/specs/2026-11-04-lingue-pagine-design.md`.
+
+- **`pagina.js`:** l'ordine è `?lang=`, `dati.lang`, browser, inglese. La lingua del server sta prima del browser così testata e modulo non si contraddicono.
+- **Riga delle lingue della pagina del salone:** `pagina.js` riscrive i link per tenere `attesa`, `giorno` e `ora`. Prima, cambiando lingua da un link di lista d'attesa, il token si perdeva.
+- **Errori di `inviaRichiesta`:** tre frasi nuove anche in it, en, es (`orarioKo`, `servizioKo`, `animaleKo`), un po' più utili del `message` del server. `richiesta_non_valida` usa `t.ko`.
+- **Link interni delle policy:** `/termini.html`, `/dpa.html`, `/elimina-account.html` davano errore 404 perché esistono solo le cartelle. Ora puntano a `/termini/`, `/dpa/`, `/elimina-account/`, `/privacy/`. È l'unica modifica alle pagine italiane.
+- **`hosting/privacy.html`:** era ferma al 23 ottobre. Ora è copia esatta di `hosting/privacy/index.html`. L'indirizzo vecchio resta valido.
+- **`docs/legal/*.html`:** copia esatta delle pagine di `hosting`, tenuta da un test. Prima avevano solo l'italiano.
+- **Riga del testo italiano in en ed es:** le vecchie note («This notice has no street address») sono sostituite dalla stessa frase delle altre lingue. Prima mancava in «elimina account».
+- **Garante:** nell'informativa di Groomly resta il Garante italiano, spiegato in francese e tedesco come autorità italiana, perché Groomly è italiano. Nel modello per i clienti del salone il francese e il tedesco dicono «l'autorità competente»: un salone francese o tedesco non risponde al Garante.
+- **Nomi dei piani nei termini:** «Base, Pro, Salone» restano come nell'italiano in vigore. In francese e tedesco *Base*, *Pro*, *Salon*. Il testo italiano non è stato cambiato: vedi la nota in `PROGRESS.md`.
+- **Parole di legge:** art. 59 del Codice del consumo citato come legge italiana. Il tedesco dice `Base` per il piano, non una traduzione.
+- **Titolo della scheda del browser:** attributi `data-titolo-<lingua>` su `<html>`, letti da `lingua-pagina.js`. `meta description` resta in italiano: la leggono i motori di ricerca, non chi usa la pagina.

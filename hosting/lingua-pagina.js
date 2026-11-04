@@ -1,12 +1,14 @@
 (function () {
+  var LINGUE = ['it', 'en', 'es', 'fr', 'de']
   var params = new URLSearchParams(location.search)
   var chiesta = params.get('lang')
-  var browser = (navigator.language || '').toLowerCase()
-  var nota = chiesta === 'it' || chiesta === 'en' || chiesta === 'es'
-  var lang = nota ? chiesta : browser.indexOf('it') === 0 ? 'it' : browser.indexOf('es') === 0 ? 'es' : 'en'
+  var browser = (navigator.language || '').toLowerCase().split('-')[0]
+  var lang = LINGUE.indexOf(chiesta) !== -1 ? chiesta : LINGUE.indexOf(browser) !== -1 ? browser : 'en'
   document.documentElement.lang = lang
+  var titolo = document.documentElement.getAttribute('data-titolo-' + lang)
+  if (titolo) document.title = titolo
   var stile = document.createElement('style')
-  stile.textContent = 'nav.lingue{font-size:14px;margin:0 0 16px}nav.lingue a{color:#2E7FB0}[hidden]{display:none!important}'
+  stile.textContent = 'nav.lingue{font-size:14px;margin:0 0 16px}nav.lingue a{color:#2E7FB0}[hidden]{display:none!important}body{overflow-wrap:break-word}'
   document.head.appendChild(stile)
   var blocchi = document.querySelectorAll('[data-lang]')
   for (var i = 0; i < blocchi.length; i++) blocchi[i].hidden = blocchi[i].getAttribute('data-lang') !== lang

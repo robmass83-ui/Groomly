@@ -33,7 +33,7 @@ Datos del salón
 Copia en el teléfono y, si conectas la cuenta, copia en Google Drive. Archivo de los animales que ya no están en cuidado. Avisos para los habituales, para las visitas por cerrar y para una nueva versión de la app.
 
 Idioma
-La interfaz sigue el idioma de la persona: italiano, inglés o español. La hoja de precios para los clientes puede quedarse en el idioma del salón.
+La interfaz sigue el idioma de la persona: italiano, inglés, español, francés o alemán. La hoja de precios para los clientes puede quedarse en el idioma del salón.
 
 Cuenta
 Se entra con el email. Los datos de los clientes siguen siendo del salón.

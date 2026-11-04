@@ -46,7 +46,7 @@ interface Pagina {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
-async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: 'it' | 'en' | 'es', token?: string, risposte?: Risposte, contatti?: { telefono?: string, email?: string } } = {}): Promise<Pagina> {
+async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: string, query?: string, token?: string, risposte?: Risposte, contatti?: { telefono?: string, email?: string } } = {}): Promise<Pagina> {
   const pagina: Pagina = { chiamate: [] }
   const risposte = opzioni.risposte ?? {}
   vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
@@ -56,9 +56,9 @@ async function apri(opzioni: { attesa?: boolean, prenotabile?: boolean, lang?: '
     const risposta = risposte[funzione]
     return { ok: true, json: async () => ({ result: risposta ? risposta(corpo) : { ok: false, errore: 'token' } }) }
   }))
-  history.replaceState(null, '', opzioni.token ? `/?attesa=${opzioni.token}` : '/')
+  history.replaceState(null, '', opzioni.query ?? (opzioni.token ? `/?attesa=${opzioni.token}` : '/'))
   const profilo = { lang: opzioni.lang ?? 'it', nome: 'I Pelosetti', prenotabile: opzioni.prenotabile ?? true, attesa: opzioni.attesa ?? true, salonId: 's1', specie: ['cane', 'gatto', 'altro'], ...opzioni.contatti }
-  document.body.innerHTML = '<main><section id="prenota"></section></main>'
+  document.body.innerHTML = '<header><nav class="lingue"><a href="?lang=fr">Français</a></nav></header><main><section id="prenota"></section></main>'
   const dati = document.createElement('script')
   dati.type = 'application/json'
   dati.id = 'profilo'
@@ -210,6 +210,7 @@ describe('la pagina pubblica con la lista d’attesa', () => {
       servizioIds: ['bagno'],
       esca: '',
       consenso: true,
+      lingua: 'it',
     })
     expect(testoPagina()).toContain('Sei in lista. Se si libera un posto ti arriva una mail.')
   })
@@ -307,7 +308,7 @@ describe('la pagina del link ?attesa=', () => {
       token: TOKEN,
       risposte: { confermaAttesa: (corpo) => (corpo.azione === 'leggi' ? visto('libero') : { ok: true, esito: 'confermato', appointmentId: 'a', dogId: 'd' }) },
     })
-    expect(pagina.chiamate[0]).toEqual({ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'leggi' } })
+    expect(pagina.chiamate[0]).toEqual({ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'leggi', lingua: 'it' } })
     const blocco = document.getElementById('attesa-link')!
     expect(blocco.textContent).toContain('Il posto è ancora libero. Vuoi confermare?')
     expect(Array.from(blocco.querySelectorAll('button')).map((nodo) => nodo.textContent)).toEqual(['Conferma', 'Rifiuta'])
@@ -407,7 +408,7 @@ describe('la pagina del link ?attesa=', () => {
       token: TOKEN,
       risposte: { confermaAttesa: () => visto('libero') },
     })
-    expect(pagina.chiamate).toEqual([{ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'leggi' } }])
+    expect(pagina.chiamate).toEqual([{ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'leggi', lingua: 'it' } }])
     const blocco = document.getElementById('attesa-link')!
     expect(blocco.textContent).toContain('Il posto è ancora libero. Vuoi confermare?')
     expect(Array.from(blocco.querySelectorAll('button')).map((nodo) => nodo.textContent)).toEqual(['Conferma', 'Rifiuta'])
@@ -464,7 +465,7 @@ describe('la pagina del link ?attesa=', () => {
     pulsante.click()
     await flush()
     const chiamate = pagina.chiamate.filter((c) => c.funzione === 'confermaAttesa')
-    expect(chiamate).toEqual([{ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'esci' } }])
+    expect(chiamate).toEqual([{ funzione: 'confermaAttesa', corpo: { salonId: 's1', token: TOKEN, azione: 'esci', lingua: 'it' } }])
     expect(blocco.textContent).toContain('Sei uscito dalla lista.')
     expect(blocco.querySelector('button')).toBeNull()
   })
@@ -545,5 +546,114 @@ describe('la settimana nell’iscrizione', () => {
   it('dal pulsante generale il corpo non ha la settimana', async () => {
     const corpo = await iscrivi({}, 0)
     expect(corpo).not.toHaveProperty('settimana')
+  })
+})
+
+describe('lingua della pagina di prenotazione', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-04T08:00:00.000Z'))
+    ;(window as unknown as { matchMedia: unknown }).matchMedia = () => ({ matches: true })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  const visto = () => ({ ok: true, esito: 'visto', motivo: 'libero', giorno: '2026-11-05', ora: '09:00' })
+  const erroreDi = () => document.querySelector('#dati-richiesta > .errore')?.textContent
+
+  it('apre in francese e in tedesco', async () => {
+    await apri({ lang: 'fr' })
+    expect(document.querySelector('h2')?.textContent).toBe('Prendre rendez-vous')
+    await apri({ lang: 'de' })
+    expect(document.querySelector('h2')?.textContent).toBe('Termin buchen')
+  })
+
+  it('?lang= vince sulla lingua del server, un valore ignoto no', async () => {
+    await apri({ lang: 'it', query: '/?lang=de' })
+    expect(document.documentElement.lang).toBe('de')
+    await apri({ lang: 'fr', query: '/?lang=pt' })
+    expect(document.documentElement.lang).toBe('fr')
+  })
+
+  it('senza lingua dal server ripiega sul browser e poi sull’inglese, mai sull’italiano', async () => {
+    vi.stubGlobal('navigator', { language: 'de-AT' })
+    await apri({ lang: 'xx' })
+    expect(document.documentElement.lang).toBe('de')
+    vi.stubGlobal('navigator', { language: 'pt-BR' })
+    await apri({ lang: 'xx' })
+    expect(document.documentElement.lang).toBe('en')
+  })
+
+  it('la riga delle lingue tiene il token del link', async () => {
+    await apri({ lang: 'de', query: `/?attesa=${TOKEN}&lang=de`, risposte: { confermaAttesa: visto } })
+    expect(document.querySelector('nav.lingue a')?.getAttribute('href')).toBe(`?attesa=${TOKEN}&lang=fr`)
+  })
+
+  it('confermaAttesa porta la lingua della pagina', async () => {
+    const pagina = await apri({ lang: 'de', token: TOKEN, risposte: { confermaAttesa: visto } })
+    expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'confermaAttesa')?.corpo.lingua).toBe('de')
+  })
+
+  it('iscrivitiAttesa porta la lingua della pagina', async () => {
+    const pagina = await apri({ lang: 'fr', risposte: { postiLiberi: () => ({ giorni: {} }), iscrivitiAttesa: () => ({ ok: true }) } })
+    bottone('Chien').click()
+    bottone('Moyenne').click()
+    const radio = document.querySelector('input[name="principale"]') as HTMLInputElement
+    radio.checked = true
+    radio.dispatchEvent(new Event('change'))
+    await flush()
+    bottone('Liste d’attente').click()
+    scrivi('lista-nome', 'Mario Rossi')
+    scrivi('lista-telefono', '333 1234567')
+    scrivi('lista-email', 'mario@example.com')
+    scrivi('lista-cane', 'Rex')
+    ;(document.getElementById('lista-consenso') as HTMLInputElement).click()
+    invia()
+    await flush()
+    expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'iscrivitiAttesa')?.corpo.lingua).toBe('fr')
+  })
+
+  async function compila(lang: 'it' | 'de', errore: unknown): Promise<Pagina> {
+    const pagina = await apri({ lang })
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
+      const funzione = String(url).split('/').pop() as string
+      pagina.chiamate.push({ funzione, corpo: (JSON.parse(init.body) as { data: Corpo }).data })
+      if (funzione === 'inviaRichiesta') return { ok: false, json: async () => errore }
+      return { ok: true, json: async () => ({ result: { giorni: { '2026-11-05': ['09:00'] } } }) }
+    }))
+    bottone(lang === 'de' ? 'Hund' : 'Cane').click()
+    bottone(lang === 'de' ? 'Mittel' : 'Media').click()
+    const radio = document.querySelector('input[name="principale"]') as HTMLInputElement
+    radio.checked = true
+    radio.dispatchEvent(new Event('change'))
+    await flush()
+    await flush()
+    ;(document.querySelector('.giorno.aperto') as HTMLButtonElement).click()
+    ;(document.querySelector('.ora') as HTMLButtonElement).click()
+    scrivi('nome', 'Mario Rossi')
+    scrivi('telefono', '333 1234567')
+    scrivi('email', 'mario@example.com')
+    scrivi('cane', 'Rex')
+    scrivi('razza', 'Barboncino')
+    ;(document.getElementById('consenso') as HTMLInputElement).click()
+    ;(document.getElementById('dati-richiesta') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    await flush()
+    return pagina
+  }
+
+  it('la richiesta porta la lingua e l’errore si legge dal codice, non dal messaggio italiano', async () => {
+    const pagina = await compila('de', { error: { status: 'FAILED_PRECONDITION', message: 'Orario non disponibile', details: { codice: 'orario_non_disponibile' } } })
+    expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'inviaRichiesta')?.corpo.lingua).toBe('de')
+    expect(erroreDi()).toBe('Diese Uhrzeit ist nicht mehr frei. Wählen Sie eine andere.')
+  })
+
+  it('un codice ignoto dà la frase generica, mai il messaggio del server', async () => {
+    await compila('de', { error: { status: 'INVALID_ARGUMENT', message: 'Campo strano', details: { codice: 'mai_visto' } } })
+    expect(erroreDi()).toBe('Senden fehlgeschlagen. Bitte versuchen Sie es erneut.')
+    await compila('it', { error: { status: 'INVALID_ARGUMENT', message: 'Campo strano' } })
+    expect(erroreDi()).toBe('Invio non riuscito. Riprova.')
   })
 })

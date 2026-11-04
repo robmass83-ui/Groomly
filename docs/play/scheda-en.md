@@ -33,7 +33,7 @@ Salon data
 Backup on the phone and, if you connect the account, a copy on Google Drive. An archive for animals no longer in care. Reminders for regulars, for visits still to close, and for a new version of the app.
 
 Language
-The interface follows the person’s language: Italian, English or Spanish. The price sheet for customers can stay in the salon’s language.
+The interface follows the person’s language: Italian, English, Spanish, French or German. The price sheet for customers can stay in the salon’s language.
 
 Account
 You sign in with email. Client data stays with the salon.

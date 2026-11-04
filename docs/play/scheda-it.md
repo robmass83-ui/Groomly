@@ -33,7 +33,7 @@ Dati del salone
 Backup sul telefono e, se colleghi l’account, copia su Google Drive. Archivio degli animali che non sono più in cura. Promemoria per i mensili, per le visite da chiudere e per una nuova versione dell’app.
 
 Lingua
-L’interfaccia segue la lingua della persona: italiano, inglese o spagnolo. Il foglio del listino rivolto ai clienti può restare nella lingua del salone.
+L’interfaccia segue la lingua della persona: italiano, inglese, spagnolo, francese o tedesco. Il foglio del listino rivolto ai clienti può restare nella lingua del salone.
 
 Account
 Si entra con l’email. I dati dei clienti restano del salone.

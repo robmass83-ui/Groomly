@@ -90,19 +90,20 @@
     <header>
       <img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120">
     </header>
-    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a> · <a href="?lang=fr">Français</a> · <a href="?lang=de">Deutsch</a></nav>
     <section class="card" id="card" aria-live="polite" aria-busy="true">
       <h1 data-lang="it">Controllo del link…</h1>
       <h1 data-lang="en" hidden>Checking the link…</h1>
       <h1 data-lang="es" hidden>Comprobando el enlace…</h1>
+      <h1 data-lang="fr" hidden>Vérification du lien…</h1>
+      <h1 data-lang="de" hidden>Link wird geprüft…</h1>
     </section>
   </main>
   <script type="module">
+    const LINGUE = ['it', 'en', 'es', 'fr', 'de']
     const chiesta = new URLSearchParams(location.search).get('lang')
-    const browser = (navigator.language || '').toLowerCase()
-    const LANG = chiesta === 'it' || chiesta === 'en' || chiesta === 'es'
-      ? chiesta
-      : browser.startsWith('it') ? 'it' : browser.startsWith('es') ? 'es' : 'en'
+    const browser = (navigator.language || '').toLowerCase().split('-')[0]
+    const LANG = LINGUE.includes(chiesta) ? chiesta : LINGUE.includes(browser) ? browser : 'en'
     const COPY = {
       it: {
         checking: 'Controllo del link…', expired: 'Il link è scaduto o è già stato usato. Richiedine uno nuovo dall’app.',
@@ -136,6 +137,28 @@
         reminderBody: 'Puedes confirmar, moverla o dejar de recibir este correo.', choices: ['Confirmo', 'Tengo que moverla', 'No me escribáis más'], chosen: 'Elección registrada',
         silenceTitle: 'No me escribáis más', silenceBody: 'Los correos de este perro se apagan. Los que aún no han salido se detienen.',
         silenceDone: 'Correos apagados', silenceDoneBody: 'No llegarán más correos de este perro.', silencing: 'Apagando…',
+      },
+      fr: {
+        checking: 'Vérification du lien…', expired: 'Le lien a expiré ou a déjà été utilisé. Demandez-en un nouveau depuis l’application.',
+        resetOk: 'Mot de passe mis à jour ! Vous pouvez maintenant vous connecter à l’application Groomly.', verifyOk: 'E-mail confirmé ! Vous pouvez maintenant revenir à l’application Groomly.',
+        show: 'Afficher ', hide: 'Masquer ', newPassword: 'Nouveau mot de passe', confirm: 'Confirmer le mot de passe', update: 'Mettre à jour le mot de passe',
+        updating: 'Mise à jour…', short: 'Le mot de passe doit contenir au moins 8 caractères.', mismatch: 'Les mots de passe ne correspondent pas.',
+        offline: 'Pas de connexion. Vérifiez le réseau et réessayez.', offlineTitle: 'Pas de connexion', reload: 'Vérifiez le réseau et rechargez la page.',
+        bad: 'Lien non valide', updated: 'Mot de passe mis à jour', verified: 'E-mail confirmé', reminder: 'Rappel',
+        reminderBody: 'Vous pouvez confirmer, déplacer le rendez-vous ou ne plus recevoir cet e-mail.', choices: ['Je confirme', 'Je dois déplacer', 'Ne plus m’écrire'], chosen: 'Choix enregistré',
+        silenceTitle: 'Ne plus m’écrire', silenceBody: 'Les e-mails pour ce chien s’arrêtent. Ceux qui ne sont pas encore partis sont annulés.',
+        silenceDone: 'E-mails désactivés', silenceDoneBody: 'Vous ne recevrez plus d’e-mails pour ce chien.', silencing: 'Désactivation…',
+      },
+      de: {
+        checking: 'Link wird geprüft…', expired: 'Der Link ist abgelaufen oder wurde schon benutzt. Fordern Sie in der App einen neuen an.',
+        resetOk: 'Passwort aktualisiert! Sie können sich jetzt in der Groomly-App anmelden.', verifyOk: 'E-Mail bestätigt! Sie können jetzt zur Groomly-App zurückkehren.',
+        show: 'Anzeigen: ', hide: 'Verbergen: ', newPassword: 'Neues Passwort', confirm: 'Passwort bestätigen', update: 'Passwort aktualisieren',
+        updating: 'Wird aktualisiert…', short: 'Das Passwort muss mindestens 8 Zeichen haben.', mismatch: 'Die Passwörter stimmen nicht überein.',
+        offline: 'Keine Verbindung. Prüfen Sie das Netz und versuchen Sie es erneut.', offlineTitle: 'Keine Verbindung', reload: 'Prüfen Sie das Netz und laden Sie die Seite neu.',
+        bad: 'Link ungültig', updated: 'Passwort aktualisiert', verified: 'E-Mail bestätigt', reminder: 'Erinnerung',
+        reminderBody: 'Sie können bestätigen, den Termin verschieben oder diese E-Mail nicht mehr erhalten.', choices: ['Ich bestätige', 'Ich muss verschieben', 'Nicht mehr schreiben'], chosen: 'Auswahl gespeichert',
+        silenceTitle: 'Nicht mehr schreiben', silenceBody: 'Die E-Mails für diesen Hund werden abgestellt. Noch nicht versendete werden gestoppt.',
+        silenceDone: 'E-Mails abgestellt', silenceDoneBody: 'Für diesen Hund kommen keine E-Mails mehr.', silencing: 'Wird abgestellt…',
       },
     }[LANG]
     const EXPIRED = COPY.expired

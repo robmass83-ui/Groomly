@@ -28,6 +28,7 @@ In attesa. Non fanno parte dell’aggiornamento corrente. Si riprendono quando s
 - Repository GitHub privato, dopo aver visto che l’aggiornamento arriva dal sito. Oggi il repository resta pubblico.
 - App Check in console. I tre flag nel codice restano spenti. I passi sono più sotto. Non imporre l’enforcement prima.
 - Test chiuso: 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`.
+- **Scheda in francese e tedesco (T6 del 5/11/2026).** In Play Console, sotto «Scheda dello Store principale», aggiungi le traduzioni `fr-FR` e `de-DE` e incolla titolo, descrizione breve e descrizione lunga da `docs/play/scheda-fr.md` e `docs/play/scheda-de.md`. Nelle schede it, en, es cambia la riga «Lingua»: ora dice cinque lingue. Da fare dopo la release con le cinque lingue.
 - Pagamenti, solo quando si accendono gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. Lista in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. `abbonamentiAttivi` resta false.
 - **Beta Plus/Salon (pubblicata con la 1.1.189).** Guida all’uso in `docs/GUIDA-ADMIN-MANAGER.md`.
 - **Abbonamenti (codice pronto e spento, B4 del 4/11/2026).** I due segreti e l’ID progetto ci sono già. Resta il webhook in RevenueCat: URL `https://rcwebhook-nyt2jddsxa-ew.a.run.app`, Authorization header uguale al segreto `REVENUECAT_WEBHOOK_AUTH`. Per cambiare un segreto:

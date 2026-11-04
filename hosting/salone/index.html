@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-titolo-en="Salon — Groomly" data-titolo-es="Salón — Groomly" data-titolo-fr="Salon — Groomly" data-titolo-de="Salon — Groomly">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +14,7 @@
 </head>
 <body>
   <main>
-    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a> · <a href="?lang=fr">Français</a> · <a href="?lang=de">Deutsch</a></nav>
     <div class="card" data-lang="it">
       <h1>Pagina del salone</h1>
       <p>Il titolo che i social leggono arriva dalla funzione <code>saloneInfo</code>, con il nome del salone e senza partita IVA né codice fiscale se il salone non li mostra.</p>
@@ -26,6 +26,14 @@
     <div class="card" data-lang="es" hidden>
       <h1>Página del salón</h1>
       <p>El título que leen las redes llega de la función <code>saloneInfo</code>, con el nombre del salón y sin NIF ni código fiscal si el salón no los muestra.</p>
+    </div>
+    <div class="card" data-lang="fr" hidden>
+      <h1>Page du salon</h1>
+      <p>Le titre lu par les réseaux sociaux vient de la fonction <code>saloneInfo</code>, avec le nom du salon et sans numéro de TVA ni numéro fiscal si le salon ne les affiche pas.</p>
+    </div>
+    <div class="card" data-lang="de" hidden>
+      <h1>Salonseite</h1>
+      <p>Den Titel, den soziale Netzwerke lesen, liefert die Funktion <code>saloneInfo</code>, mit dem Salonnamen und ohne USt-IdNr. oder Steuernummer, wenn der Salon sie nicht zeigt.</p>
     </div>
   </main>
   <script src="/app-check.js"></script>
