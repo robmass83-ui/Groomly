@@ -17,6 +17,24 @@ vi.mock('../hooks/usePiano', async () => {
   }
 })
 
+const admin = vi.hoisted(() => ({
+  contatori: vi.fn(async (): Promise<unknown> => ({})),
+}))
+vi.mock('../data/firebase/adminClient', async () => {
+  const actual = await vi.importActual<typeof import('../data/firebase/adminClient')>('../data/firebase/adminClient')
+  return {
+    ...actual,
+    callContatoriAdmin: async () => (await import('../lib/adminManager')).contatoriDi(await admin.contatori()),
+    elencoInvitiBeta: async () => [],
+    elencoFeedbackBeta: async () => [],
+    storicoInvitoBeta: async () => [],
+    listenConfigGlobale: async (onData: (c: ReturnType<typeof actual.configGlobaleDi>) => void) => {
+      onData(actual.configGlobaleDi(null))
+      return () => undefined
+    },
+  }
+})
+
 const directory = vi.hoisted(() => ({
   load: vi.fn(),
   setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
@@ -50,9 +68,11 @@ function pianoAttivo(): string {
   return document.querySelector('[aria-current="true"]')?.textContent ?? ''
 }
 
-describe('utenti', () => {
+describe('Admin Manager: funzioni di Utenti Groomly', () => {
   beforeEach(() => {
     localStorage.clear()
+    admin.contatori.mockReset()
+    admin.contatori.mockResolvedValue({})
     tourMock.acceso = false
     tourMock.imposta.mockReset()
     tourMock.imposta.mockResolvedValue(undefined)
@@ -67,11 +87,11 @@ describe('utenti', () => {
     directory.elimina.mockResolvedValue(undefined)
   })
 
-  it('nasconde Utenti e rimanda un non operatore alle impostazioni senza caricare la directory', async () => {
+  it('nasconde l’Admin Manager e rimanda un non operatore alle impostazioni senza caricare la directory', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     const view = render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    expect(screen.queryByRole('link', { name: 'Utenti Groomly' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Admin Manager/ })).not.toBeInTheDocument()
 
     view.unmount()
     render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
@@ -79,11 +99,11 @@ describe('utenti', () => {
     expect(directory.load).not.toHaveBeenCalled()
   })
 
-  it('mostra Utenti Groomly a Roberto senza il campione delle email', async () => {
+  it('mostra l’Admin Manager a Roberto senza il campione delle email', async () => {
     await createAccount('masala.roberto@hotmail.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    expect(screen.getByRole('link', { name: 'Utenti Groomly' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Admin Manager/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Spedisci il campione delle email' })).not.toBeInTheDocument()
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
   })
@@ -96,8 +116,9 @@ describe('utenti', () => {
     await screen.findByRole('heading', { name: 'Impostazioni' })
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
-    expect(await screen.findByRole('heading', { name: 'Utenti Groomly' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    expect(await screen.findByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(await screen.findByText('Elenco non disponibile')).toBeInTheDocument()
     expect(screen.queryByText('Connessione assente')).not.toBeInTheDocument()
   })
@@ -114,13 +135,12 @@ describe('utenti', () => {
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
 
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     expect(await screen.findByText('2 account creati · 1 toelettatura creata')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.getByText('Ada Neri')).toBeInTheDocument()
     expect(screen.getByText('Pelo Lungo Quattro Parole')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Ada Neri/ })).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Cerca')).not.toBeInTheDocument()
     const salon = screen.getByText('Pelo Lungo Quattro Parole')
     expect(salon.getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
     expect(salon.getAttribute('style') ?? '').not.toContain('ellipsis')
@@ -147,9 +167,9 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.queryByText('Shared')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Attiva Salon per Laura Masala' })).not.toBeInTheDocument()
 
@@ -215,9 +235,9 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
     await user.click(screen.getByRole('button', { name: 'Conferma' }))
@@ -243,9 +263,9 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     await screen.findByRole('button', { name: 'Attiva Salon per Ada Neri' })
     expect(screen.queryByRole('button', { name: 'Attiva Salon per Leo Verdi' })).not.toBeInTheDocument()
@@ -287,12 +307,11 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     expect(await screen.findByText('4 account creati · 2 toelettature create')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.getByText('Laura')).toBeInTheDocument()
 
-    expect(screen.queryByLabelText('Cerca')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Servizio Plus' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('button', { name: 'I Pelosetti, Laura' })).getByText('SALON')).toBeInTheDocument()
     expect(within(screen.getByRole('button', { name: 'Troddioni, Troddioni' })).getByText('G')).toBeInTheDocument()
@@ -333,9 +352,9 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.queryByText('Senza nome')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'I Pelosetti, Laura' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Troddioni, Troddioni' })).toBeInTheDocument()
@@ -361,9 +380,9 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     expect(pianoAttivo()).toContain('Salon · VIP')
     await user.click(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' }))
@@ -392,9 +411,9 @@ describe('utenti', () => {
     })
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('button', { name: /Toelettature/ }))
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: pulsante }))
   }
 
@@ -589,9 +608,9 @@ describe('utenti', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni" />)
     await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: 'Utenti Groomly' }))
+    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    await user.click(await screen.findByRole('tab', { name: /Suggerimenti/ }))
     expect(await screen.findByText('3 arrivati')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /Suggerimenti/ }))
     const agenda = screen.getByRole('button', { name: 'Agenda, orari o appuntamenti, 2' })
     expect(agenda).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument()

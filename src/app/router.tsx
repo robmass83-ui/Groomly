@@ -58,7 +58,8 @@ import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { isOperator } from '../lib/salonPath'
 import { useFrasi } from '../i18n/LinguaContext'
-import { UsersPage } from '../pages/UsersPage'
+import { AdminManagerPage } from '../pages/AdminManagerPage'
+import { percorsoAdminDaUtenti } from '../lib/percorsoAdmin'
 import { TourPage } from '../pages/TourPage'
 
 function Guard({ children }: { children: ReactElement }) {
@@ -146,6 +147,12 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
   )
 }
 
+// «Utenti Groomly» è diventato l'Admin Manager: i link vecchi restano validi.
+function VecchiUtenti() {
+  const { search } = useLocation()
+  return <Navigate to={percorsoAdminDaUtenti(search)} replace />
+}
+
 function StoricoAggiornamenti() {
   if (!aggiornamentiApkAttivi()) return <Navigate to="/impostazioni" replace />
   return <ReleaseHistoryPage />
@@ -188,7 +195,8 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
-    { path: '/impostazioni/utenti', element: <Guard><UsersPage /></Guard> },
+    { path: '/impostazioni/admin-manager', element: <Guard><AdminManagerPage /></Guard> },
+    { path: '/impostazioni/utenti', element: <VecchiUtenti /> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
     { path: '/benvenuto', element: <Guard><StaffSettings><TourPage /></StaffSettings></Guard> },
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },

@@ -2,6 +2,8 @@ import { invitoBetaDi, type InvitoBeta } from '../../lib/betaInvito'
 import { leggiConfigPiani, type ConfigPiani } from '../../lib/configPiani'
 import { contatoriDi, feedbackBetaDi, type ContatoriAdmin, type FeedbackLetto } from '../../lib/adminManager'
 import { callCallableData, database, loadFirestore } from './client'
+import { firebaseEnabled } from './enabled'
+import { AppError } from '../errors'
 
 // Callable e letture riservate agli operatori (Admin Manager). Firme: «Contratti» di 2026-11-04-beta-fondamenta-design.md.
 
@@ -53,9 +55,16 @@ export async function callImpostaMostraPiani(valore: boolean): Promise<void> {
   await callCallableData('impostaMostraPiani', { valore })
 }
 
+/** Fase 4 (B4 implementa la function): annuncio dei pagamenti a tutti. */
+export async function callAnnunciaPagamenti(data: string): Promise<{ ok: true; email: number }> {
+  const esito = oggetto(await callCallableData('annunciaPagamenti', { data }))
+  return { ok: true, email: typeof esito.email === 'number' ? esito.email : 0 }
+}
+
 export const LIMITE_FEEDBACK_ADMIN = 400
 
 export async function elencoInvitiBeta(): Promise<InvitoBeta[]> {
+  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
   const db = await database()
   const { collection, getDocs } = await loadFirestore()
   const snap = await getDocs(collection(db, 'betaInviti'))
@@ -67,6 +76,7 @@ export async function elencoInvitiBeta(): Promise<InvitoBeta[]> {
 
 /** Inviti passati di un salone, dal più recente. */
 export async function storicoInvitoBeta(salonId: string): Promise<InvitoBeta[]> {
+  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
   const db = await database()
   const { collection, getDocs } = await loadFirestore()
   const snap = await getDocs(collection(db, 'betaInviti', salonId, 'storico'))
@@ -79,6 +89,7 @@ export async function storicoInvitoBeta(salonId: string): Promise<InvitoBeta[]> 
 }
 
 export async function elencoFeedbackBeta(): Promise<FeedbackLetto[]> {
+  if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
   const db = await database()
   const { collection, getDocs, limit, orderBy, query } = await loadFirestore()
   const snap = await getDocs(query(collection(db, 'betaFeedback'), orderBy('creatoIl', 'desc'), limit(LIMITE_FEEDBACK_ADMIN)))
@@ -96,6 +107,10 @@ export function configGlobaleDi(data: unknown): ConfigGlobale {
 }
 
 export async function listenConfigGlobale(onData: (config: ConfigGlobale) => void): Promise<() => void> {
+  if (!firebaseEnabled()) {
+    onData(configGlobaleDi(null))
+    return () => undefined
+  }
   const db = await database()
   const { doc, onSnapshot } = await loadFirestore()
   return onSnapshot(doc(db, 'config', 'globale'), (snap) => {

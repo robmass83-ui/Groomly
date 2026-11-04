@@ -78,3 +78,18 @@ export async function xlsxSuggerimenti(intestazioni: readonly string[], righe: r
   const buffer = await book.xlsx.writeBuffer()
   return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
+
+/** Foglio semplice con intestazioni e righe già pronte (feedback beta). */
+export async function xlsxTabella(foglio: string, intestazioni: readonly string[], righe: readonly (readonly (string | number)[])[]): Promise<Blob> {
+  const book = new Workbook()
+  const sheet = book.addWorksheet(foglio)
+  sheet.addRow([...intestazioni])
+  sheet.getRow(1).font = { bold: true }
+  for (const riga of righe) sheet.addRow([...riga])
+  const buffer = await book.xlsx.writeBuffer()
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+}
+
+export function nomeFileFeedback(quando: Date, estensione: 'pdf' | 'xlsx'): string {
+  return nomeFileSuggerimenti(quando, estensione).replace('Groomly_Suggerimenti_', 'Groomly_FeedbackBeta_')
+}
