@@ -404,3 +404,16 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
   - `frasiFisse.test.ts`, `debitoFrasi.json` e `debitoLingue.ts` li tocca anche T5: conviene controllarli all'unione;
   - le note della prossima release possono avere le sezioni `[en]`, `[es]`, `[fr]`, `[de]`: senza, chi non è italiano legge la frase generica.
 - Verifiche sul ramo: `npm run build` e `tsc` di app e functions verdi. I file di test toccati passano. La suite completa con tutte le correzioni va confermata sul risultato unito: sotto carico `ExportSheet` e `useAttesa` sono andati in timeout, da soli passano. Controllati font e output PDF. Non provato su emulatore o telefono: lunghezze a 320 px e schermate reali sono di T7.
+
+## Cinque lingue — T6 Pagine e negozio (5 novembre, ramo `claude/quizzical-elbakyan-5a60e1`, non unito)
+- Spec `docs/superpowers/specs/2026-11-04-lingue-pagine-design.md`, piano `docs/superpowers/plans/2026-11-04-lingue-pagine.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md`, termini nel glossario.
+- Pagine: home, `c`, `salone/*`, `azione`, `s/pagina.js` e `lingua-pagina.js` in cinque lingue, con la regola `?lang=`, browser, inglese. I link già inviati restano validi. La riga delle lingue tiene `attesa`, `giorno` e `ora`.
+- Server: `pagina.js` manda `lingua` a `inviaRichiesta`, `iscrivitiAttesa`, `confermaAttesa` e legge `details.codice`. Il `message` italiano non si mostra più.
+- Policy: privacy, termini, DPA, eliminazione account in fr e de, con la riga «fa fede il testo italiano» anche in en ed es. Traduzioni di Claude, senza revisione legale. `docs/legal/*.html` e `hosting/privacy.html` sono copie esatte, tenute da un test.
+- Link rotti sistemati: `/termini.html`, `/dpa.html`, `/elimina-account.html` davano 404.
+- Android `values-fr`, `values-de`. Schede `docs/play/scheda-fr.md` e `scheda-de.md`; le schede it, en, es dicono cinque lingue. Azione su Play Console in `docs/DA-FARE-ROBERTO.md`.
+- Verifiche: suite senza functions verde (nel worktree le functions non hanno `node_modules`, e non le ho toccate). `firebaseConfig.test` cita ora `/privacy/`. Nel browser a 320 px: 18 pagine e stati in 5 lingue, 90 aperture senza sbordi, lingua giusta. Percorso di prenotazione fino agli errori del modulo provato in fr e de con `?demo=1`, su server locale.
+- Non provato: invio vero al server (`inviaRichiesta` con T5), emulatori, telefono. La pagina del salone è stata provata con la riga a cinque lingue simulata.
+- **Aspetta T5:** sulla pagina `/s/` restano in inglese testata, piede, giorni e pagina assente finché T5 non applica `D:/Groomly/.claude/lingue-note/richieste-t6.md`. Senza quella modifica il server ripiega ancora sull'italiano e la riga mostra tre lingue.
+- Da decidere più avanti: i termini italiani parlano ancora di piani Base, Pro e Salone, mentre l'app dice Go, Plus e Salon. Il testo in vigore non è stato cambiato: va aggiornato in tutte le lingue insieme, con nuova versione. Le traduzioni seguono l'italiano.
+

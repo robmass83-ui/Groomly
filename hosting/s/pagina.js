@@ -3,7 +3,13 @@
   var dati = nodo ? JSON.parse(nodo.textContent || '{}') : {}
   var root = document.getElementById('prenota')
   if (!root) return
-  var lang = dati.lang === 'en' || dati.lang === 'es' ? dati.lang : 'it'
+  var queryPosto = new URLSearchParams(location.search)
+  // ?lang= nel link, poi quello che ha deciso il server, poi il browser, poi inglese.
+  function linguaNota(valore) {
+    return ['it', 'en', 'es', 'fr', 'de'].indexOf(valore) !== -1 ? valore : ''
+  }
+  var lang = linguaNota(queryPosto.get('lang')) || linguaNota(dati.lang) || linguaNota(String(navigator.language || '').toLowerCase().split('-')[0]) || 'en'
+  document.documentElement.lang = lang
   var t = {
     it: {
       titolo: 'Prenota un appuntamento',
@@ -72,6 +78,9 @@
       listaSpenta: 'La lista d’attesa non è attiva.',
       offertaFinita: 'Questa offerta non è più disponibile. Per prenotare contatta il salone.',
       tante: 'Ci sono già troppe richieste. Riprova più tardi.',
+      orarioKo: 'Questo orario non è più disponibile. Scegline un altro.',
+      servizioKo: 'Questo servizio non è disponibile. Scegline un altro.',
+      animaleKo: 'Questo salone non accetta questo animale.',
     },
     en: {
       titolo: 'Book an appointment',
@@ -140,6 +149,9 @@
       listaSpenta: 'The waiting list is not on.',
       offertaFinita: 'This offer is no longer available. To book, please contact the salon.',
       tante: 'There are already too many requests. Try again later.',
+      orarioKo: 'This time is no longer available. Choose another one.',
+      servizioKo: 'This service is not available. Choose another one.',
+      animaleKo: 'This salon does not accept this animal.',
     },
     es: {
       titolo: 'Reserva una cita',
@@ -208,9 +220,185 @@
       listaSpenta: 'La lista de espera no está activa.',
       offertaFinita: 'Esta oferta ya no está disponible. Para reservar, contacta con el salón.',
       tante: 'Ya hay demasiadas solicitudes. Inténtalo más tarde.',
+      orarioKo: 'Este horario ya no está disponible. Elige otro.',
+      servizioKo: 'Este servicio no está disponible. Elige otro.',
+      animaleKo: 'Este salón no acepta este animal.',
+    },
+    fr: {
+      titolo: 'Prendre rendez-vous',
+      passi: ['Animal', 'Jour', 'Heure', 'Coordonnées'],
+      animale: 'Type d’animal',
+      cane: 'Chien', gatto: 'Chat', altro: 'Autre',
+      taglia: 'Taille', piccola: 'Petite', media: 'Moyenne', grande: 'Grande',
+      poi: 'Choisissez le type d’animal : vous verrez ensuite les jours où le salon a de la place.',
+      tagliaManca: 'Choisissez la taille pour afficher les horaires.',
+      servizio: 'Prestation',
+      prezzi: 'Les prix sont indicatifs. Ils peuvent changer une fois l’animal vu, en cas de nœuds ou de problèmes qui demandent plus de temps.',
+      totale: 'Total indicatif {{n}} €',
+      giorno: 'Jour',
+      carico: 'Recherche des jours libres du salon…',
+      vuoto: 'Aucun horaire libre ces prochaines semaines.',
+      errore: 'Impossible de charger les horaires.',
+      riprova: 'Réessayer',
+      prima: 'Mois précédent', dopo: 'Mois suivant',
+      libero: 'horaires disponibles', chiuso: 'aucun horaire',
+      orariDi: 'Horaires',
+      dati: 'Vos coordonnées',
+      nome: 'Votre nom', telefono: 'Portable', email: 'E-mail', caneNome: 'Nom de l’animal', razza: 'Race',
+      foto: 'Photo de l’animal',
+      fotoAiuto: 'Vous pouvez en ajouter jusqu’à 3.',
+      fotoAggiungi: 'Ajouter une photo',
+      fotoTogli: 'Retirer la photo {{n}}',
+      fotoAlt: 'Photo {{n}} de l’animal',
+      fotoPreparo: 'Préparation des photos…',
+      consenso: 'J’ai lu la politique de confidentialité et j’accepte que le salon reçoive ces données.',
+      privacy: 'Confidentialité',
+      torna: 'Retour à la réservation',
+      invia: 'Envoyer la demande',
+      nota: 'Ceci est une demande, pas encore une réservation : le salon l’examinera et vous répondra par e-mail.',
+      fotoNota: { cane: 'La photo du chien', gatto: 'La photo du chat', altro: 'La photo de l’animal' },
+      ok: 'Merci, votre demande a été envoyée à {{nome}}. Ce n’est pas encore une réservation : la réponse arrivera à {{email}} (pensez à vérifier vos spams). Si le salon confirme le jour et l’heure demandés, cet e-mail vaut confirmation. S’il propose un autre horaire, vous y trouverez les boutons pour accepter ou refuser et le délai pour répondre : sans réponse, le créneau sera libéré.',
+      okSenza: 'Demande envoyée à {{nome}}. Ce n’est pas encore une réservation.',
+      ko: 'L’envoi a échoué. Réessayez.',
+      spente: 'Désolés, les réservations en ligne ne sont pas acceptées pour le moment',
+      contattaTel: 'Veuillez contacter {{nome}} au {{tel}}.',
+      chiama: 'Appeler', piuAvanti: 'Veuillez réessayer plus tard.',
+      problemi: 'Vérifiez ces champs',
+      nomeKo: 'Saisissez votre nom (80 caractères maximum).',
+      telKo: 'Saisissez un numéro de portable valide (6 à 15 chiffres).',
+      emailKo: 'Saisissez un e-mail valide.',
+      caneKo: 'Saisissez le nom de l’animal (80 caractères maximum).',
+      razzaKo: 'Saisissez la race.',
+      fotoKo: 'Cette photo ne peut pas être utilisée. Choisissez-en une autre.',
+      fotoTroppe: 'Vous pouvez joindre 3 photos au maximum.',
+      consensoKo: 'Votre consentement est nécessaire pour envoyer la demande.',
+      specie: { cane: 'Chien', gatto: 'Chat', altro: 'Autre' },
+      taglie: { piccola: 'petite taille', media: 'taille moyenne', grande: 'grande taille' },
+      lista: 'Liste d’attente',
+      liberoDomanda: 'La place est toujours libre. Voulez-vous confirmer ?',
+      conferma: 'Confirmer',
+      rifiuta: 'Refuser',
+      occupato: 'La place a déjà été prise.',
+      restaDomanda: 'Voulez-vous rester sur la liste d’attente pour une prochaine place ?',
+      resto: 'Oui, je reste',
+      esco: 'Non',
+      esciLista: 'Quitter la liste',
+      inAgenda: 'C’est réservé. Le salon vous attend.',
+      inLista: 'Vous restez sur la liste.',
+      uscito: 'Vous avez quitté la liste.',
+      iscritto: 'Vous êtes sur la liste. Si une place se libère, vous recevrez un e-mail.',
+      linkKo: 'Ce lien n’est plus valide.',
+      listaSpenta: 'La liste d’attente n’est pas active.',
+      offertaFinita: 'Cette offre n’est plus disponible. Pour réserver, contactez le salon.',
+      tante: 'Il y a déjà trop de demandes. Réessayez plus tard.',
+      orarioKo: 'Cet horaire n’est plus disponible. Choisissez-en un autre.',
+      servizioKo: 'Cette prestation n’est pas disponible. Choisissez-en une autre.',
+      animaleKo: 'Ce salon n’accepte pas cet animal.',
+    },
+    de: {
+      titolo: 'Termin buchen',
+      passi: ['Tier', 'Tag', 'Uhrzeit', 'Daten'],
+      animale: 'Tierart',
+      cane: 'Hund', gatto: 'Katze', altro: 'Andere',
+      taglia: 'Größe', piccola: 'Klein', media: 'Mittel', grande: 'Groß',
+      poi: 'Wählen Sie die Tierart: Danach sehen Sie die Tage, an denen der Salon Platz hat.',
+      tagliaManca: 'Wählen Sie die Größe, um die Uhrzeiten zu sehen.',
+      servizio: 'Leistung',
+      prezzi: 'Die Preise sind Richtwerte. Sie können sich ändern, wenn wir das Tier gesehen haben, zum Beispiel bei Knoten oder Problemen, die mehr Zeit brauchen.',
+      totale: 'Richtpreis gesamt {{n}} €',
+      giorno: 'Tag',
+      carico: 'Die freien Tage des Salons werden geprüft…',
+      vuoto: 'In diesen Wochen gibt es keine freien Uhrzeiten.',
+      errore: 'Die Uhrzeiten konnten nicht geladen werden.',
+      riprova: 'Erneut versuchen',
+      prima: 'Voriger Monat', dopo: 'Nächster Monat',
+      libero: 'Uhrzeiten verfügbar', chiuso: 'keine Uhrzeit',
+      orariDi: 'Uhrzeiten',
+      dati: 'Ihre Daten',
+      nome: 'Ihr Name', telefono: 'Mobilnummer', email: 'E-Mail', caneNome: 'Name des Tieres', razza: 'Rasse',
+      foto: 'Foto des Tieres',
+      fotoAiuto: 'Sie können bis zu 3 hinzufügen.',
+      fotoAggiungi: 'Foto hinzufügen',
+      fotoTogli: 'Foto {{n}} entfernen',
+      fotoAlt: 'Foto {{n}} des Tieres',
+      fotoPreparo: 'Die Fotos werden vorbereitet…',
+      consenso: 'Ich habe die Datenschutzerklärung gelesen und bin einverstanden, dass der Salon diese Daten erhält.',
+      privacy: 'Datenschutz',
+      torna: 'Zurück zur Buchung',
+      invia: 'Anfrage senden',
+      nota: 'Dies ist eine Anfrage, noch keine Buchung: Der Salon prüft sie und antwortet Ihnen per E-Mail.',
+      fotoNota: { cane: 'Das Foto des Hundes', gatto: 'Das Foto der Katze', altro: 'Das Foto des Tieres' },
+      ok: 'Vielen Dank, Ihre Anfrage wurde an {{nome}} gesendet. Das ist noch keine Buchung: Die Antwort kommt an {{email}} (sehen Sie bitte auch im Spam-Ordner nach). Bestätigt der Salon den gewünschten Tag und die Uhrzeit, gilt diese E-Mail als Bestätigung. Schlägt er eine andere Uhrzeit vor, finden Sie dort die Schaltflächen zum Annehmen oder Ablehnen und die Antwortfrist: Ohne Antwort wird der Platz wieder frei.',
+      okSenza: 'Anfrage an {{nome}} gesendet. Das ist noch keine Buchung.',
+      ko: 'Senden fehlgeschlagen. Bitte versuchen Sie es erneut.',
+      spente: 'Leider werden derzeit keine Online-Buchungen angenommen',
+      contattaTel: 'Bitte wenden Sie sich an {{nome}} unter {{tel}}.',
+      chiama: 'Anrufen', piuAvanti: 'Bitte versuchen Sie es später noch einmal.',
+      problemi: 'Bitte prüfen Sie diese Felder',
+      nomeKo: 'Geben Sie Ihren Namen ein (höchstens 80 Zeichen).',
+      telKo: 'Geben Sie eine gültige Mobilnummer ein (6 bis 15 Ziffern).',
+      emailKo: 'Geben Sie eine gültige E-Mail-Adresse ein.',
+      caneKo: 'Geben Sie den Namen des Tieres ein (höchstens 80 Zeichen).',
+      razzaKo: 'Geben Sie die Rasse ein.',
+      fotoKo: 'Dieses Foto kann nicht verwendet werden. Wählen Sie ein anderes.',
+      fotoTroppe: 'Sie können höchstens 3 Fotos anhängen.',
+      consensoKo: 'Ohne Ihre Einwilligung kann die Anfrage nicht gesendet werden.',
+      specie: { cane: 'Hund', gatto: 'Katze', altro: 'Andere' },
+      taglie: { piccola: 'klein', media: 'mittelgroß', grande: 'groß' },
+      lista: 'Warteliste',
+      liberoDomanda: 'Der Platz ist noch frei. Möchten Sie bestätigen?',
+      conferma: 'Bestätigen',
+      rifiuta: 'Ablehnen',
+      occupato: 'Der Platz ist bereits vergeben.',
+      restaDomanda: 'Möchten Sie für einen möglichen nächsten freien Platz auf der Warteliste bleiben?',
+      resto: 'Ja, ich bleibe',
+      esco: 'Nein',
+      esciLista: 'Liste verlassen',
+      inAgenda: 'Ihr Termin steht. Der Salon erwartet Sie.',
+      inLista: 'Sie bleiben auf der Liste.',
+      uscito: 'Sie haben die Liste verlassen.',
+      iscritto: 'Sie stehen auf der Liste. Wird ein Platz frei, bekommen Sie eine E-Mail.',
+      linkKo: 'Dieser Link ist nicht mehr gültig.',
+      listaSpenta: 'Die Warteliste ist nicht aktiv.',
+      offertaFinita: 'Dieses Angebot ist nicht mehr verfügbar. Für eine Buchung wenden Sie sich bitte an den Salon.',
+      tante: 'Es gibt bereits zu viele Anfragen. Versuchen Sie es später noch einmal.',
+      orarioKo: 'Diese Uhrzeit ist nicht mehr frei. Wählen Sie eine andere.',
+      servizioKo: 'Diese Leistung ist nicht verfügbar. Wählen Sie eine andere.',
+      animaleKo: 'Dieser Salon nimmt dieses Tier nicht an.',
     },
   }[lang]
-  var locale = lang === 'en' ? 'en' : lang === 'es' ? 'es' : 'it'
+  var locale = lang
+  // A 320 px «Andere» con l’icona riempie tutto il pulsante.
+  var stile = document.createElement('style')
+  stile.textContent = '@media (max-width:340px){.specie .scelta{padding:4px 2px;gap:4px}.specie .scelta svg{width:20px;height:20px}}'
+  document.head.appendChild(stile)
+  // I codici di details.codice che arrivano da inviaRichiesta, con la frase della tabella qui sopra. Il message del server resta italiano: non si mostra.
+  var ERRORI = {
+    prenotazioni_spente: 'spente',
+    orario_non_disponibile: 'orarioKo',
+    servizio_non_valido: 'servizioKo',
+    foto_non_valida: 'fotoKo',
+    razza_obbligatoria: 'razzaKo',
+    animale_non_accettato: 'animaleKo',
+    consenso_mancante: 'consensoKo',
+    nome_non_valido: 'nomeKo',
+    telefono_non_valido: 'telKo',
+    email_obbligatoria: 'emailKo',
+    richiesta_non_valida: 'ko',
+    troppe_richieste: 'tante',
+  }
+  function fraseErrore(corpo) {
+    var codice = corpo && corpo.error && corpo.error.details && corpo.error.details.codice
+    return t[ERRORI[codice]] || t.ko
+  }
+  // La riga delle lingue arriva dal server con il solo ?lang=: i link delle email portano anche token e orario.
+  document.querySelectorAll('nav.lingue a').forEach(function (link) {
+    var scelta = new URLSearchParams((link.getAttribute('href') || '').replace(/^\?/, '')).get('lang')
+    if (!linguaNota(scelta)) return
+    var query = new URLSearchParams(location.search)
+    query.set('lang', scelta)
+    link.setAttribute('href', '?' + query.toString())
+  })
   function specieAmmesse() {
     var base = ['cane', 'gatto', 'altro']
     if (!Array.isArray(dati.specie)) return base
@@ -223,7 +411,6 @@
     if (typeof ora !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(ora)) return null
     return { giorno: giorno, ora: ora }
   }
-  var queryPosto = new URLSearchParams(location.search)
   var posto = parametriPosto(queryPosto.get('giorno'), queryPosto.get('ora'))
   var stato = {
     specie: '', taglia: '', principale: '', extra: [], giorno: posto ? posto.giorno : '', ora: posto ? posto.ora : '',
@@ -899,6 +1086,7 @@
         fine: stato.giorno + 'T' + stato.ora + ':00',
         esca: esca.value,
         consenso: true,
+        lingua: lang,
       } }),
     }).then(function (risposta) {
       return risposta.json().then(function (corpo) { return { ok: risposta.ok, corpo: corpo } })
@@ -912,8 +1100,7 @@
         root.append(fatto)
         return
       }
-      var messaggio = esito.corpo && esito.corpo.error && esito.corpo.error.message
-      var avviso = el('p', 'errore', messaggio && messaggio !== 'INTERNAL' ? messaggio : t.ko)
+      var avviso = el('p', 'errore', fraseErrore(esito.corpo))
       avviso.setAttribute('role', 'alert')
       form.append(avviso)
       if (bottone) bottone.disabled = false
@@ -1151,6 +1338,7 @@
       servizioIds: serviziScelti(),
       esca: esca.value,
       consenso: true,
+      lingua: lang,
     }
     // La settimana della riga da cui si è partiti; dal pulsante generale non c'è e l'iscritto riceve ogni giorno.
     if (stato.lista.settimana) corpoIscrizione.settimana = stato.lista.settimana
@@ -1191,7 +1379,7 @@
     return fetch(URL_FUNZIONI + 'confermaAttesa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: { salonId: dati.salonId, token: tokenAttesa, azione: azione } }),
+      body: JSON.stringify({ data: { salonId: dati.salonId, token: tokenAttesa, azione: azione, lingua: lang } }),
     }).then(function (risposta) { return risposta.json() }).then(function (corpo) {
       return corpo && corpo.result ? corpo.result : null
     }).catch(function () { return null })

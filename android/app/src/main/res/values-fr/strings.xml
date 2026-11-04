@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Groomly</string>
+    <string name="canale_backup">Sauvegarde</string>
+    <string name="canale_promemoria">Rappels mensuels</string>
+    <string name="permesso_notifiche">Groomly envoie des rappels pour les rendez-vous et les clients mensuels.</string>
+</resources>

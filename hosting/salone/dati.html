@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-titolo-en="Your details — Groomly" data-titolo-es="Tus datos — Groomly" data-titolo-fr="Vos coordonnées — Groomly" data-titolo-de="Ihre Daten — Groomly">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
 </head>
 <body>
   <main>
-    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a></nav>
+    <nav class="lingue"><a href="?lang=it">Italiano</a> · <a href="?lang=en">English</a> · <a href="?lang=es">Español</a> · <a href="?lang=fr">Français</a> · <a href="?lang=de">Deutsch</a></nav>
     <div data-lang="it">
       <h1>I tuoi dati</h1>
       <form>
@@ -37,6 +37,26 @@
         <label>Email <input name="email" type="email" autocomplete="email" required></label>
         <label style="position:absolute;left:-9999px">Sitio <input name="esca" tabindex="-1" autocomplete="off"></label>
         <button type="submit">Enviar la solicitud</button>
+      </form>
+    </div>
+    <div data-lang="fr" hidden>
+      <h1>Vos coordonnées</h1>
+      <form>
+        <label>Nom <input name="nome" autocomplete="name"></label>
+        <label>Portable <input name="phone" autocomplete="tel"></label>
+        <label>E-mail <input name="email" type="email" autocomplete="email" required></label>
+        <label style="position:absolute;left:-9999px">Site <input name="esca" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">Envoyer la demande</button>
+      </form>
+    </div>
+    <div data-lang="de" hidden>
+      <h1>Ihre Daten</h1>
+      <form>
+        <label>Name <input name="nome" autocomplete="name"></label>
+        <label>Mobilnummer <input name="phone" autocomplete="tel"></label>
+        <label>E-Mail <input name="email" type="email" autocomplete="email" required></label>
+        <label style="position:absolute;left:-9999px">Website <input name="esca" tabindex="-1" autocomplete="off"></label>
+        <button type="submit">Anfrage senden</button>
       </form>
     </div>
   </main>

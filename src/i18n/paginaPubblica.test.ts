@@ -15,7 +15,7 @@ describe('lingua delle pagine pubbliche', () => {
     expect(linguaPagina('', 'sv')).toBe('en')
   })
 
-  it('ogni pagina pubblica ha la riga delle tre lingue', () => {
+  it('ogni pagina pubblica ha la riga delle lingue', () => {
     const utili = htmlIn('hosting').filter((file) => !file.includes('_frammenti'))
     expect(utili.length).toBeGreaterThan(8)
     for (const file of utili) {
@@ -23,8 +23,12 @@ describe('lingua delle pagine pubbliche', () => {
       expect(html, file).toContain('Italiano')
       expect(html, file).toContain('English')
       expect(html, file).toContain('Español')
+      expect(html, file).toContain('Français')
+      expect(html, file).toContain('Deutsch')
       expect(html, file).toContain('data-lang="en"')
       expect(html, file).toContain('data-lang="es"')
+      expect(html, file).toContain('data-lang="fr"')
+      expect(html, file).toContain('data-lang="de"')
       expect(html, file).toContain('lingua-pagina.js')
     }
   })

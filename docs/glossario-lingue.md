@@ -152,3 +152,18 @@ Parole del Registro Excel e degli strumenti.
 | Tosatrice | Clippers | Máquina de corte | Tondeuse | Schermaschine |
 | Annulla (dialogo) | Cancel | Cancelar | Annuler | Abbrechen |
 | Annulla (dopo un'azione) | Undo | Deshacer | Annuler | Rückgängig |
+## Policy: termini aggiunti da T6
+
+Usati nelle pagine legali di `hosting`. Il nome della legge resta quello ufficiale di ogni lingua: GDPR, RGPD, DSGVO.
+
+| Italiano | Inglese | Spagnolo | Francese | Tedesco |
+|---|---|---|---|---|
+| Informativa privacy | Privacy notice | Información de privacidad | Politique de confidentialité | Datenschutzerklärung |
+| Termini di servizio | Terms of service | Términos del servicio | Conditions d’utilisation | AGB |
+| Accordo sul trattamento dei dati | Data-processing agreement | Acuerdo de tratamiento de datos | Accord de traitement des données | Vertrag zur Auftragsverarbeitung (AVV) |
+| Titolare del trattamento | Controller | Responsable del tratamiento | Responsable du traitement | Verantwortlicher |
+| Responsabile del trattamento | Processor | Encargado del tratamiento | Sous-traitant | Auftragsverarbeiter |
+| Sub-responsabile | Sub-processor | Subencargado | Sous-traitant ultérieur | Unterauftragsverarbeiter |
+| Interessato | Data subject | Interesado | Personne concernée | Betroffene Person |
+
+*Titolare del trattamento* non è il *Titolare* del salone: in francese e tedesco sono parole diverse.
