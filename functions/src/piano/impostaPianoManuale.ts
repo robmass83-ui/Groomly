@@ -8,7 +8,7 @@ import { operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { postBrevoHtml } from '../brevoMail'
 import { membroTitolareMancante } from './titolareMembro'
 import { campiAzione, campiBypass, conTraccia, scriviPiano, tracciaProva, type AzionePiano, type CampiPiano } from './scriviPiano'
-import type { ProMain } from '../../../src/lib/piano'
+import { fonteDi, type ProMain } from '../../../src/lib/piano'
 
 const AZIONI = new Set<AzionePiano>(['prova', 'pro', 'salone', 'base'])
 
@@ -56,7 +56,7 @@ export async function impostaPianoManualePer(input: {
     const attuale: ProMain | undefined = snap.exists ? {
       piano: snap.get('piano') === 'pro' || snap.get('piano') === 'salone' || snap.get('piano') === 'base' ? snap.get('piano') : undefined,
       stato: snap.get('stato') === 'attivo' || snap.get('stato') === 'prova' || snap.get('stato') === 'grazia' || snap.get('stato') === 'sospeso' || snap.get('stato') === 'disdetto' || snap.get('stato') === 'scaduto' ? snap.get('stato') : undefined,
-      fonte: snap.get('fonte') === 'play' || snap.get('fonte') === 'prova' || snap.get('fonte') === 'omaggio' || snap.get('fonte') === 'manuale' ? snap.get('fonte') : null,
+      fonte: fonteDi(snap.get('fonte')),
       scadeIl: typeof snap.get('scadeIl') === 'string' || snap.get('scadeIl') === null ? snap.get('scadeIl') : undefined,
     } : undefined
     const traccia = tracciaProva(attuale, provaUsata, adesso)

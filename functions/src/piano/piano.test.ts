@@ -7,6 +7,7 @@ import {
   type StatoPiano,
   campiAzione,
   campiBase,
+  campiBeta,
   campiBypass,
   campiOmaggio,
   campiProva,
@@ -15,6 +16,7 @@ import {
   decisioneProva,
   pianoScaduto,
   scriviPiano,
+  tracciaBeta,
   tracciaProva,
 } from './scriviPiano'
 
@@ -130,5 +132,43 @@ describe('pianoScaduto', () => {
     expect(pianoScaduto(salone('attivo', null, 'manuale'), ora)).toBeNull()
     expect(pianoScaduto(salone('attivo', 'mah'), ora)).toBeNull()
     expect(pianoScaduto(salone('scaduto', passata), ora)).toBeNull()
+  })
+})
+
+describe('beta', () => {
+  const ora = new Date('2026-11-04T10:00:00.000Z')
+  const fra30 = '2026-12-04T10:00:00.000Z'
+
+  it('campiBeta Salone: 3 posti, attivo, scade dopo i giorni, ricorda Plus', () => {
+    expect(scriviPiano(campiBeta('salone', 30, ora), ora)).toEqual({
+      piano: 'salone', stato: 'attivo', fonte: 'beta', scadeIl: fra30,
+      seatsIncluded: 3, seatsExtra: 0, seats: 3, enabled: true, provaUsata: true, rinnovoAutomatico: false,
+    })
+    expect(scriviPiano(campiBeta('pro', 30, ora), ora)).toMatchObject({ piano: 'pro', fonte: 'beta', seats: 0, enabled: false })
+  })
+
+  it('campiBeta rifiuta durate fuori da 1-365 o non intere', () => {
+    expect(() => campiBeta('pro', 0, ora)).toThrow(RangeError)
+    expect(() => campiBeta('pro', 366, ora)).toThrow(RangeError)
+    expect(() => campiBeta('pro', 1.5, ora)).toThrow(RangeError)
+    expect(() => campiBeta('pro', Number.NaN, ora)).toThrow(RangeError)
+  })
+
+  it('tracciaBeta segna ex beta ed early adopter', () => {
+    expect(tracciaBeta('salone', ora, fra30)).toEqual({
+      exBeta: true, betaPiano: 'salone', betaDal: ora.toISOString(), betaFinoAl: fra30, earlyAdopter: true,
+    })
+  })
+
+  it('una beta scaduta torna a Go senza toccare la traccia', () => {
+    const chiuso = pianoScaduto({ ...campiBeta('salone', 30, ora), scadeIl: '2026-11-03T10:00:00.000Z' }, ora)
+    expect(chiuso).toMatchObject({ piano: 'base', stato: 'scaduto', enabled: false, provaUsata: true })
+    for (const chiave of ['exBeta', 'betaPiano', 'betaDal', 'betaFinoAl', 'earlyAdopter']) expect(chiuso).not.toHaveProperty(chiave)
+  })
+
+  it('spegnere una beta non chiede il testo come Play', () => {
+    const beta: ProMain = { piano: 'salone', stato: 'attivo', fonte: 'beta', scadeIl: fra30 }
+    expect(decisioneBypass(beta, 'spegni', '', ora)).toMatchObject({ ok: true, avviso: null })
+    expect(decisioneBypass(beta, 'scegli-pro', '', ora)).toMatchObject({ ok: true, avviso: null })
   })
 })

@@ -1,8 +1,8 @@
-import { provaConcessa, statoPiano, type ProMain } from '../../../src/lib/piano'
+import { provaConcessa, statoPiano, type FontePiano as FonteApp, type ProMain, type TracciaBeta } from '../../../src/lib/piano'
 
 export type LivelloPiano = 'base' | 'pro' | 'salone'
 export type StatoPiano = 'attivo' | 'prova' | 'grazia' | 'sospeso' | 'disdetto' | 'scaduto'
-export type FontePiano = 'play' | 'prova' | 'omaggio' | 'manuale' | null
+export type FontePiano = FonteApp | null
 export type AzionePiano = 'prova' | 'pro' | 'salone' | 'base'
 
 export type CampiPiano = {
@@ -91,6 +91,24 @@ export function campiProva(adesso: Date, giorni = 30): CampiPiano {
     provaUsata: true,
     rinnovoAutomatico: false,
   }
+}
+
+// La beta accettata: come un Salone o Plus attivo, ma con la sua fine. Alla scadenza la chiude chiudiProve.
+export function campiBeta(livello: 'pro' | 'salone', giorni: number, adesso: Date): CampiPiano {
+  if (!Number.isInteger(giorni) || giorni < 1 || giorni > 365) throw new RangeError('Durata della beta da 1 a 365 giorni')
+  return {
+    piano: livello,
+    stato: 'attivo',
+    fonte: 'beta',
+    scadeIl: new Date(adesso.getTime() + giorni * GIORNO_MS).toISOString(),
+    seatsIncluded: livello === 'salone' ? POSTI_SALONE : 0,
+    seatsExtra: 0,
+    rinnovoAutomatico: false,
+  }
+}
+
+export function tracciaBeta(livello: 'pro' | 'salone', adesso: Date, fine: string): Required<TracciaBeta> {
+  return { exBeta: true, betaPiano: livello, betaDal: adesso.toISOString(), betaFinoAl: fine, earlyAdopter: true }
 }
 
 export function campiBase(provaUsata: boolean): CampiPiano {

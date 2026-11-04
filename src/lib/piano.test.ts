@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aprePaywall, eFeature, haAccesso, livelloMinimo, mostraSegno, postiTotali, provaConcessa, statoPiano, statoPianoNome, type FeatureKey, type ProMain } from './piano'
+import { aprePaywall, eFeature, FONTI_PIANO, fonteDi, haAccesso, livelloMinimo, mostraSegno, postiTotali, provaConcessa, statoPiano, statoPianoNome, tracciaBetaDi, type FeatureKey, type ProMain } from './piano'
 
 const ora = new Date('2026-10-25T10:00:00.000Z')
 const fra = (giorni: number) => new Date(ora.getTime() + giorni * 24 * 60 * 60 * 1000).toISOString()
@@ -152,5 +152,40 @@ describe('piano', () => {
     ]
     for (const doc of vero) expect(provaConcessa(doc, ora)).toBe(true)
     for (const doc of falso) expect(provaConcessa(doc, ora)).toBe(false)
+  })
+})
+
+describe('fonte beta', () => {
+  const adesso = new Date('2026-11-04T10:00:00.000Z')
+
+  it('fonteDi riconosce solo le fonti note', () => {
+    expect(FONTI_PIANO).toEqual(['play', 'prova', 'omaggio', 'manuale', 'beta'])
+    expect(fonteDi('beta')).toBe('beta')
+    expect(fonteDi('omaggio')).toBe('omaggio')
+    expect(fonteDi('xyz')).toBeNull()
+    expect(fonteDi(3)).toBeNull()
+    expect(fonteDi(null)).toBeNull()
+  })
+
+  it('una beta attiva dà il livello finché non scade', () => {
+    const futura = { piano: 'salone', stato: 'attivo', fonte: 'beta', scadeIl: '2026-12-01T00:00:00.000Z' } as const
+    expect(statoPiano(futura, adesso)).toMatchObject({ livello: 'salone', fonte: 'beta' })
+    expect(statoPiano({ ...futura, scadeIl: '2026-11-01T00:00:00.000Z' }, adesso).livello).toBe('base')
+  })
+
+  it('chi ha fatto la beta non ha la prova self-service', () => {
+    expect(provaConcessa({ piano: 'base', stato: 'scaduto', fonte: 'beta' }, adesso)).toBe(false)
+    expect(provaConcessa({ piano: 'base', stato: 'scaduto', fonte: null, exBeta: true }, adesso)).toBe(false)
+    expect(provaConcessa({ piano: 'base', stato: 'scaduto', fonte: null }, adesso)).toBe(true)
+  })
+
+  it('tracciaBetaDi tiene solo i campi validi', () => {
+    expect(tracciaBetaDi({ exBeta: true, betaPiano: 'x', earlyAdopter: 'si', betaDal: 5 })).toEqual({ exBeta: true })
+    expect(tracciaBetaDi({
+      exBeta: true, betaPiano: 'salone', betaDal: '2026-11-01T00:00:00.000Z', betaFinoAl: '2026-12-01T00:00:00.000Z', earlyAdopter: false,
+    })).toEqual({
+      exBeta: true, betaPiano: 'salone', betaDal: '2026-11-01T00:00:00.000Z', betaFinoAl: '2026-12-01T00:00:00.000Z', earlyAdopter: false,
+    })
+    expect(tracciaBetaDi(null)).toEqual({})
   })
 })
