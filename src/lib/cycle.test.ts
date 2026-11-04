@@ -4,6 +4,7 @@ import {
   dueSoon,
   fissatoVisible,
   monthBoard,
+  monthlyRowsFor,
   monthlyStatus,
   visibleInMonth,
   nextDueAfter,
@@ -458,5 +459,68 @@ describe('monthlyStatus, fissato in ritardo', () => {
     expect(row?.group).toBe('fissato')
     expect(row?.due).toBeNull()
     expect(row?.late).toBe(false)
+  })
+})
+
+describe('monthlyRowsFor', () => {
+  const today = new Date(2026, 10, 3, 10)
+  const nov = new Date(2026, 10, 1)
+  const dic = new Date(2026, 11, 1)
+  const sole = dog('sole', 'Sole')
+  const done = (start: Date) => visit(`c-${start.getTime()}`, sole.id, start, 'completato')
+  const prog = (start: Date) => visit(`p-${start.getTime()}`, sole.id, start)
+
+  it('il mese dopo mostra la visita di quel mese anche se ce n’è una prima', () => {
+    const list = [done(new Date(2026, 8, 22, 10)), prog(new Date(2026, 10, 19, 10)), prog(new Date(2026, 11, 1, 10))]
+    const inNov = monthlyRowsFor([sole], list, today, 7, nov)
+    expect(inNov).toHaveLength(1)
+    expect(inNov[0].group).toBe('fissato')
+    expect(inNov[0].booked?.start).toEqual(new Date(2026, 10, 19, 10))
+    const inDic = monthlyRowsFor([sole], list, today, 7, dic)
+    expect(inDic).toHaveLength(1)
+    expect(inDic[0].group).toBe('fissato')
+    expect(inDic[0].booked?.start).toEqual(new Date(2026, 11, 1, 10))
+    expect(inDic[0].due).toEqual(new Date(2026, 11, 17, 10))
+    expect(inDic[0].late).toBe(false)
+  })
+
+  it('due visite nel mese dopo e nessuna nel corrente: una sola riga, la prima', () => {
+    const list = [prog(new Date(2026, 11, 1, 10)), prog(new Date(2026, 11, 15, 10))]
+    const rows = monthlyRowsFor([sole], list, today, 7, dic)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].booked?.start).toEqual(new Date(2026, 11, 1, 10))
+  })
+
+  it('la visita del mese dopo molto oltre la scadenza è in ritardo', () => {
+    const list = [done(new Date(2026, 8, 22, 10)), prog(new Date(2026, 10, 5, 10)), prog(new Date(2026, 11, 20, 10))]
+    const rows = monthlyRowsFor([sole], list, today, 7, dic)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].booked?.start).toEqual(new Date(2026, 11, 20, 10))
+    expect(rows[0].due).toEqual(new Date(2026, 11, 3, 10))
+    expect(rows[0].late).toBe(true)
+  })
+
+  it('un cane solo in ritardo senza visite resta nel mese corrente', () => {
+    const list = [done(new Date(2026, 8, 1, 10))]
+    expect(monthlyRowsFor([sole], list, today, 7, nov).map((row) => row.group)).toEqual(['in_ritardo'])
+    expect(monthlyRowsFor([sole], list, today, 7, dic)).toEqual([])
+  })
+
+  it('nel mese corrente il risultato è quello di monthlyStatus filtrato', () => {
+    const a = dog('a', 'A')
+    const b = dog('b', 'B')
+    const c = dog('c', 'C')
+    const d = dog('d', 'D')
+    const list = [
+      visit('a1', 'a', new Date(2026, 8, 1, 10), 'completato'),
+      visit('b1', 'b', new Date(2026, 9, 20, 10), 'completato'),
+      visit('b2', 'b', new Date(2026, 10, 18, 10)),
+      visit('c1', 'c', new Date(2026, 11, 2, 10)),
+    ]
+    const dogs = [a, b, c, d]
+    const expected = dogs
+      .map((item) => monthlyStatus(item, list, today, 7))
+      .filter((row) => row !== null && visibleInMonth(row, nov, today))
+    expect(monthlyRowsFor(dogs, list, today, 7, nov)).toEqual(expected)
   })
 })

@@ -42,6 +42,7 @@ import { STATO_COMPLETATO, STATO_DISDETTO, sumDuration, sumPrice } from '../lib/
 import type { ClosePatch } from '../lib/closeVisit'
 import { priceChange } from '../lib/uiStyle'
 import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
+import { rendiPrincipale } from '../lib/contattoPrincipale'
 import { RUOLI_BASE, etichettaRuolo, ruoloDelProprietario } from '../lib/ruoloProprietario'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Lingua } from '../i18n/lingua'
@@ -50,7 +51,7 @@ import { finishDogRemoval } from '../lib/dogRemoval'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeBirthday, completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
-import { ageText, averageDuration, formatCompactDuration, shortOwner, splitCritical } from '../lib/display'
+import { averageDuration, etaScheda, formatCompactDuration, shortOwner, splitCritical } from '../lib/display'
 import { formatEuro, opzioniDate } from '../lib/format'
 import { PhotoTooLargeError } from '../lib/photoCodec'
 import { MAX_DOG_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
@@ -198,6 +199,10 @@ function profilePrices(dog: Dog, services: Service[]): { serviceId: string; name
       const left = byId.get(a.serviceId)?.order ?? Number.POSITIVE_INFINITY
       const right = byId.get(b.serviceId)?.order ?? Number.POSITIVE_INFINITY
       return left - right || a.index - b.index
+    })
+    .filter(({ serviceId }) => {
+      const item = saved.get(serviceId)
+      return item?.price !== undefined || item?.durationMin !== undefined
     })
     .map(({ serviceId }) => {
       const service = byId.get(serviceId)
@@ -520,7 +525,7 @@ function ProfileFacts({ items }: { items: { label: string; value: string }[] }) 
 
 function clientFact(dog: Dog, lingua: Lingua = 'it'): string {
   const etichetta = t(lingua, dog.clientType === 'mensile' ? 'schedaMensile' : 'schedaOccasionale')
-  if (dog.clientType === 'mensile' && dog.recurrenceWeeks) return t(lingua, 'schedaOgni', { etichetta, n: dog.recurrenceWeeks })
+  if (dog.clientType === 'mensile' && dog.recurrenceWeeks) return t(lingua, dog.recurrenceWeeks === 1 ? 'schedaOgniSettimana' : 'schedaOgni', { etichetta, n: dog.recurrenceWeeks })
   return etichetta
 }
 
@@ -1138,6 +1143,7 @@ export function DogPage() {
 
   function save(draft: DogDraft) {
     let prices = dog?.servicePrices ?? []
+    let hiddenToSave = hidden
     if (Object.keys(edits).length > 0) {
       const parsed = collectPrices(services, dog, edits, lingua)
       if (!parsed.ok) {
@@ -1145,9 +1151,11 @@ export function DogPage() {
         return
       }
       prices = parsed.prices
+      // edits[id] === undefined: servizio non toccato in questa modifica, quindi il suo nascosto resta com'è.
+      hiddenToSave = hidden.filter((serviceId) => prices.some((item) => item.serviceId === serviceId) || edits[serviceId] === undefined)
     }
     setQuoteError(null)
-    const write = writeFromScreen(screen, draft, dog, photo, prices, hidden, { contacts, customFields: fields, gallery, extraNotes })
+    const write = writeFromScreen(screen, draft, dog, photo, prices, hiddenToSave, { contacts, customFields: fields, gallery, extraNotes })
     if (dog && removedPhotoIds.length > 0) write.removedPhotoIds = [...removedPhotoIds]
     if (dog?.daRevisionare === true) write.daRevisionare = false
     const ok = dog ? api.saveExisting(dog.id, write) : api.saveNew(write)
@@ -1156,6 +1164,7 @@ export function DogPage() {
       return
     }
     setEdits({})
+    setHidden(hiddenToSave)
     if (!dog && api.lastCreatedId.current) {
       const createdId = api.lastCreatedId.current
       if (arrival.returnTo) {
@@ -1212,10 +1221,6 @@ export function DogPage() {
   function askArchive(status: 'non_in_cura' | 'deceduto') {
     if (!dog) return
     setMenuOpen(false)
-    if (futureScheduled(visits.appointments, dog.id, new Date()).length === 0) {
-      changeStatus(() => api.archive(dog.id, status))
-      return
-    }
     setPendingArchive(status)
   }
 
@@ -1289,6 +1294,7 @@ export function DogPage() {
 
   const prossime = dog ? futureScheduled(visits.appointments, dog.id, new Date()).sort((a, b) => a.start.getTime() - b.start.getTime()) : []
   const futureCount = prossime.length
+  const etaDelCane = dog ? etaScheda(dog.birthYear, dog.ageCategory, t(lingua, dog.ageCategory === 'cucciolo' ? 'etaCucciolo' : dog.ageCategory === 'giovane' ? 'etaGiovane' : dog.ageCategory === 'anziano' ? 'etaAnziano' : 'etaAdulto'), new Date(), lingua) : ''
   const prossimaVisita = prossime[0]
   const tessera = dog
     ? ricalcolaFedelta(visits.appointments.filter((item) => item.dogId === dog.id).map((item) => ({
@@ -1328,6 +1334,13 @@ export function DogPage() {
         ? [{ id: 'legacy', text: notesText }]
         : []
 
+  function rendiContattoPrincipale(contactId: string) {
+    const scambio = rendiPrincipale(contacts, { name: screen.owner, phone: screen.phone }, contactId)
+    if (!scambio) return
+    setContacts(scambio.contacts)
+    setScreen({ ...screen, owner: scambio.owner.name, phone: scambio.owner.phone, email: '' })
+  }
+
   const contattiExtra = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {extraContacts.map((contact) => (
@@ -1343,6 +1356,7 @@ export function DogPage() {
               </span>
             ) : null}
           </span>
+          <button type="button" aria-label={frasi.schedaRendiPrincipaleNome.replace('{{nome}}', contact.name || contact.phone)} onClick={() => rendiContattoPrincipale(contact.id)} style={removeControl}>{frasi.schedaRendiPrincipale}</button>
           <button type="button" aria-label={frasi.schedaTogliNome.replace('{{nome}}', contact.name || contact.phone)} onClick={() => setContacts(contacts.filter((item) => item.id !== contact.id))} style={removeControl}>{frasi.schedaTogli}</button>
         </div>
       ))}
@@ -1443,7 +1457,7 @@ export function DogPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, ...USER_TEXT }}>{dog.name}</div>
                   {dog.breed.trim() ? <div style={{ marginTop: 2, color: 'var(--tx2)', fontSize: 12, lineHeight: 1.3, ...USER_TEXT }}>{dog.breed.trim()}</div> : null}
-                  {ageText(dog.birthYear, t(lingua, dog.ageCategory === 'cucciolo' ? 'etaCucciolo' : dog.ageCategory === 'giovane' ? 'etaGiovane' : dog.ageCategory === 'anziano' ? 'etaAnziano' : 'etaAdulto'), new Date(), lingua) ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12, ...USER_TEXT }}>{ageText(dog.birthYear, t(lingua, dog.ageCategory === 'cucciolo' ? 'etaCucciolo' : dog.ageCategory === 'giovane' ? 'etaGiovane' : dog.ageCategory === 'anziano' ? 'etaAnziano' : 'etaAdulto'), new Date(), lingua)}</div> : null}
+                  {etaDelCane ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12, ...USER_TEXT }}>{etaDelCane}</div> : null}
                   {owner && !phone ? <div style={{ marginTop: 2, color: 'var(--tx3)', fontSize: 12, ...USER_TEXT }}>{owner}</div> : null}
                 </div>
               </div>
@@ -1629,6 +1643,16 @@ export function DogPage() {
         ) : null}
       </Dialog>
       <Dialog open={pendingArchive !== null} title={pendingArchive === 'deceduto' ? frasi.caniDeceduto : frasi.caniNonInCura} onClose={() => setPendingArchive(null)}>
+        {futureCount === 0 ? (
+          <>
+            <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
+              {(pendingArchive === 'deceduto' ? frasi.schedaConfermaDeceduto : frasi.schedaConfermaNonInCura).replace('{{nome}}', dog?.name ?? '')}
+            </p>
+            <Button type="button" onClick={archiveOnly}>{frasi.schedaConferma}</Button>
+            <Button type="button" variant="secondary" onClick={() => setPendingArchive(null)}>{frasi.uteAnnulla}</Button>
+          </>
+        ) : (
+          <>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>
           {pendingArchive === 'deceduto' ? deceasedFutureCopy(futureCount, lingua) : `${futureCountText(futureCount, lingua)}.`}
         </p>
@@ -1659,6 +1683,8 @@ export function DogPage() {
               icon={<HeartOff size={18} strokeWidth={2} />}
               onClick={archiveOnly}
             />
+          </>
+        )}
           </>
         )}
       </Dialog>

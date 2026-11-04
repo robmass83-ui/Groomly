@@ -21,8 +21,9 @@ import { dataCorta, meseAnno, meseCorto } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
-import { monthlyStatus, visibleInMonth, type MonthlyRow } from '../lib/cycle'
+import { monthlyRowsFor, type MonthlyRow } from '../lib/cycle'
 import { dogPortrait } from '../lib/dogPhoto'
+import { dogMark } from '../lib/dogList'
 import { bookHref, FILTRO_FISSATI, type FiltroMensile } from '../lib/monthly'
 import { sheetState } from '../lib/sheetRoute'
 import { SIZES } from '../theme/sizes'
@@ -104,10 +105,13 @@ function StatusMark({ tone }: { tone: 'ok' | 'warn' | 'bad' | 'neutral' }) {
   )
 }
 
+function MarkLine({ text }: { text: string | null }) {
+  if (text === null) return null
+  return <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{text}</span>
+}
+
 function openInMonth(dogs: Dog[], appointments: Appointment[], now: Date, daysBefore: number, month: Date): number {
-  return dogs
-    .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
-    .filter((row): row is MonthlyRow => row !== null && visibleInMonth(row, month, now))
+  return monthlyRowsFor(dogs, appointments, now, daysBefore, month)
     .filter((row) => row.group === 'in_ritardo' || row.group === 'in_scadenza' || row.group === 'da_fissare')
     .length
 }
@@ -131,10 +135,8 @@ export function MonthlyPage() {
   const [segment, setSegment] = useState<MonthSegment>('corrente')
   const [filter, setFilter] = useState<FiltroMensile>('tutti')
   const month = segment === 'corrente' ? current : following
-  const rows = dogs
-    .map((dog) => monthlyStatus(dog, appointments, now, daysBefore))
-    .filter((row): row is MonthlyRow => row !== null)
-    .filter((row) => visibleInMonth(row, month, now))
+  const activeDogs = dogs.filter((item) => item.status === 'attivo')
+  const rows = monthlyRowsFor(dogs, appointments, now, daysBefore, month)
   const byGroup = {
     in_ritardo: rows.filter((row) => row.group === 'in_ritardo').sort(byDueThenName),
     in_scadenza: rows.filter((row) => row.group === 'in_scadenza').sort(byDueThenName),
@@ -221,6 +223,7 @@ export function MonthlyPage() {
                     <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
                     <Link to={`/animali/${row.dog.id}`} style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', flexDirection: 'column', justifyContent: 'center', color: 'inherit', textDecoration: 'none' }}>
                       <span style={{ fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
+                      <MarkLine text={dogMark(row.dog, activeDogs)} />
                       <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{dueCopy(row, lingua, frasi.schedaNessunTrattamento)}</span>
                     </Link>
                     {row.booked ? (
@@ -242,7 +245,10 @@ export function MonthlyPage() {
                 <Link key={row.dog.id} to={`/appuntamenti/${row.booked.id}`} state={sheetState(location)} style={rowStyle(index === 0)}>
                   <StatusMark tone={row.late ? 'warn' : 'ok'} />
                   <DogAvatar alt={row.dog.name} src={dogPortrait(row.dog)} size="sm" species={row.dog.species} />
-                  <span style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', alignItems: 'center', fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
+                  <span style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <span style={{ fontWeight: 700, ...USER_TEXT }}>{row.dog.name}</span>
+                    <MarkLine text={dogMark(row.dog, activeDogs)} />
+                  </span>
                   {row.late ? (
                     <DateChip tone="warn">{t(lingua, 'mensiliFissatoRitardo', { data: dataCorta(lingua, row.booked.start) })}</DateChip>
                   ) : (
