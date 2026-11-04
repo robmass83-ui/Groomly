@@ -22,7 +22,7 @@ describe('closeVisit', () => {
 
   it('accetta importo e tempo nei limiti', () => {
     expect(parseClosePrice('70,5')).toEqual({ ok: true, value: 70.5 })
-    expect(parseClosePrice('abc')).toEqual({ ok: false, message: 'Importo non valido' })
+    expect(parseClosePrice('abc')).toEqual({ ok: false, message: 'importo-non-valido' })
     expect(parseCloseDuration('2', '00')).toEqual({ ok: true, value: 120 })
     expect(parseCloseDuration('24', '0')).toEqual({ ok: true, value: 1440 })
     expect(parseCloseDuration('0', '0').ok).toBe(false)
@@ -76,7 +76,7 @@ describe('closeVisit', () => {
     expect(naBlocks({ priceRaw: '38', payment: 'na' })).toBe(true)
     expect(canSaveClose({ ...same, priceRaw: '38', payment: 'na', allowSame: false })).toBe(false)
     expect(canSkipClose({ ...same, priceRaw: '38', payment: 'na' })).toBe(false)
-    expect(NA_PRICE_MESSAGE).toBe('Con N/A il prezzo deve essere 0')
+    expect(NA_PRICE_MESSAGE).toBe('prezzo-na')
     expect(canSkipClose({ quotedPrice: 0, quotedMinutes: 60, priceRaw: '0', hoursRaw: '1', minutesRaw: '0', payment: 'na' })).toBe(true)
   })
 })

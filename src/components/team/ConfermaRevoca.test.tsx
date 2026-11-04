@@ -38,7 +38,7 @@ describe('ConfermaRevoca', () => {
   })
 
   it('un errore mostra il messaggio senza codici e resta aperto', async () => {
-    client.revoke.mockRejectedValueOnce(new Error('failed-precondition: Accesso negato'))
+    client.revoke.mockRejectedValueOnce(Object.assign(new Error('failed-precondition: Accesso negato'), { code: 'functions/failed-precondition', details: { codice: 'accesso_negato' } }))
     const onChiudi = vi.fn()
     render(<ConfermaRevoca membro={anna} onChiudi={onChiudi} />)
     await userEvent.setup().click(screen.getByRole('button', { name: 'Togli' }))

@@ -12,6 +12,6 @@ describe('PRICE_ICONS', () => {
       expect(PRICE_ICONS[key].label.length).toBeGreaterThan(0)
     }
     expect(PRICE_ICONS.bagno.src).toBe(SERVICE_ICONS.bagno.src)
-    expect(PRICE_ICONS.shampoo.label).toBe('Shampoo')
+    expect(PRICE_ICONS.shampoo.label).toBe('icoShampoo')
   })
 })

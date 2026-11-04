@@ -114,7 +114,7 @@ describe('BetaFeedbackPage', () => {
 
   it("un errore del server si vede e il modulo resta aperto", async () => {
     const user = userEvent.setup()
-    inviaFeedbackBeta.mockRejectedValueOnce(new Error('Hai già mandato 5 feedback oggi'))
+    inviaFeedbackBeta.mockRejectedValueOnce(Object.assign(new Error('Hai già mandato 5 feedback oggi: riprova domani'), { code: 'functions/failed-precondition', details: { codice: 'beta_feedback_limite' } }))
     await monta(inCorso(), '/impostazioni/beta/feedback?pagheresti=no')
     await user.click(await screen.findByRole('radio', { name: '3 stelle su 5' }))
     for (let i = 0; i < 3; i++) await user.click(screen.getByRole('button', { name: 'Avanti' }))

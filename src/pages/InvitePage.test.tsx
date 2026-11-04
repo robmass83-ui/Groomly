@@ -10,6 +10,7 @@ import { createAccount } from '../data/local/auth'
 import { storageKeys } from '../data/local/storage'
 import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import * as cambioSalone from '../data/local/cambioSalone'
+import { codiceDaMessaggio } from '../i18n/errori'
 
 const TOKEN = 'ab'.repeat(32)
 
@@ -167,7 +168,7 @@ describe('pagina d’invito', () => {
   })
 
   it('errore con codice e [400]: toglie prefisso e codice', async () => {
-    accept.mockRejectedValue(new Error('failed-precondition: Invito scaduto [400]'))
+    accept.mockRejectedValue(Object.assign(new Error('failed-precondition: Invito scaduto [400]'), { code: 'functions/failed-precondition', details: { codice: 'invito_scaduto' } }))
     await apriDentro()
     await tocca()
     expect(await screen.findByText('Invito scaduto')).toBeInTheDocument()
@@ -179,7 +180,7 @@ describe('pagina d’invito', () => {
   })
 
   it('email da confermare restituita dal server: mostra il testo per confermarla', async () => {
-    accept.mockRejectedValue(new Error('failed-precondition: Conferma la tua email per accettare l’invito'))
+    accept.mockRejectedValue(Object.assign(new Error('failed-precondition: Conferma la tua email per accettare l’invito'), { code: 'functions/failed-precondition', details: { codice: 'invito_conferma_email' } }))
     await apriDentro()
     await tocca()
     expect(await screen.findByText('Conferma la tua email per accettare l’invito')).toBeInTheDocument()
@@ -194,7 +195,7 @@ describe('pagina d’invito', () => {
   })
 
   it('invito non valido dall’accettazione mostra solo quel messaggio', async () => {
-    accept.mockRejectedValue(new Error('functions/failed-precondition: Invito non valido'))
+    accept.mockRejectedValue(Object.assign(new Error('functions/failed-precondition: Invito non valido'), { code: 'functions/failed-precondition', details: { codice: 'invito_non_valido' } }))
     await apriDentro()
     await tocca()
     expect(await screen.findByText('Invito non valido')).toBeInTheDocument()
@@ -264,7 +265,7 @@ describe('pagina d’invito', () => {
   it('chi lavora già in un altro salone non legge il salone personale: al tocco chiede al server senza scelta', async () => {
     const account = await createAccount('ada@salone.it', 'segretissimo')
     localStorage.setItem(storageKeys.auth, JSON.stringify({ ...account, salonId: 'salone-altro', role: 'collaboratore' }))
-    accept.mockRejectedValue(new Error('functions/failed-precondition: Questo account ha già un salone'))
+    accept.mockRejectedValue(Object.assign(new Error('functions/failed-precondition: Questo account ha già un salone'), { code: 'functions/failed-precondition', details: { codice: 'invito_account_con_salone' } }))
     ricordaInvito(TOKEN)
     apri()
     await tocca()
@@ -301,7 +302,7 @@ describe('pagina d’invito', () => {
   })
 
   it.each(['Invito non valido', 'Invito scaduto', 'Posti esauriti', 'Questo account ha già un salone'])('errore definitivo «%s»: lo mostra, dimentica l’invito, una sola chiamata', async (messaggio) => {
-    accept.mockRejectedValue(new Error(`functions/failed-precondition: ${messaggio}`))
+    accept.mockRejectedValue(Object.assign(new Error(`functions/failed-precondition: ${messaggio}`), { code: 'functions/failed-precondition', details: { codice: codiceDaMessaggio(messaggio) } }))
     await createAccount('ada@salone.it', 'segretissimo')
     ricordaInvito(TOKEN)
     apri()
@@ -331,8 +332,8 @@ describe('pagina d’invito', () => {
     expect(accept).toHaveBeenCalledTimes(1)
   })
 
-  it('failed-precondition con messaggio del server: lo mostra', async () => {
-    accept.mockRejectedValue(Object.assign(new Error('Invito scaduto'), { code: 'functions/failed-precondition' }))
+  it('failed-precondition con il codice del server: mostra la sua frase', async () => {
+    accept.mockRejectedValue(Object.assign(new Error('Invito scaduto'), { code: 'functions/failed-precondition', details: { codice: 'invito_scaduto' } }))
     await createAccount('ada@salone.it', 'segretissimo')
     apri()
     await tocca()

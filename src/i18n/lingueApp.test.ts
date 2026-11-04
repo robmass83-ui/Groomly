@@ -38,7 +38,9 @@ afterEach(() => localStorage.removeItem('groomly.lingua'))
 
 describe('listino iniziale', () => {
   it.each(ALTRE)('ogni testo iniziale ha la traduzione in %s', (lingua) => {
-    expect(testiDelListino().filter((testo) => nomeVoceListino(lingua, testo) === testo)).toEqual([])
+    // In spagnolo questi due si scrivono uguali.
+    const uguali = lingua === 'es' ? ['Pelo corto', 'Volpino / Pomerania'] : []
+    expect(testiDelListino().filter((testo) => nomeVoceListino(lingua, testo) === testo && !uguali.includes(testo))).toEqual([])
   })
 
   it('il testo cambiato dal salone è suo e non si tocca', () => {
@@ -104,7 +106,7 @@ describe('lingua fuori dalle schermate', () => {
     localStorage.setItem('groomly.lingua', 'de')
     const dati = {
       dogs: { a: { name: 'Rex', size: 'grande', sex: 'F', temperament: 'mordace', status: 'deceduto', contact: { name: 'Anna', phone: '1' } } },
-      appointments: {}, services: {}, settings: {}, fotoMancanti: [],
+      appointments: {}, services: {}, settings: {}, closures: {}, files: {}, fotoMancanti: [], deletedDogs: { ids: [], appointmentIds: [], storicoIds: [] }, codiciCane: { byId: {} },
     } as unknown as GroomlyDati
     const riga = costruisciRegistro(dati, new Date('2026-11-05T10:00:00Z')).cani[0]
     expect(riga).toMatchObject({ taglia: 'Groß', sesso: 'Hündin', carattere: 'Bissig', stato: 'Verstorben' })

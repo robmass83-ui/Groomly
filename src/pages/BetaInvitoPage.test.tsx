@@ -86,11 +86,11 @@ describe('BetaInvitoPage', () => {
 
   it('se il server rifiuta si vede il suo messaggio e si può riprovare', async () => {
     const user = userEvent.setup()
-    rispondiInvitoBeta.mockRejectedValueOnce(new Error('Hai già un abbonamento attivo dal Play Store'))
+    rispondiInvitoBeta.mockRejectedValueOnce(Object.assign(new Error('Hai già un piano attivo: l’invito non serve'), { code: 'functions/failed-precondition', details: { codice: 'beta_gia_piano' } }))
     await monta(invitato())
     await user.click(await screen.findByRole('checkbox'))
     await user.click(screen.getByRole('button', { name: 'Partecipo' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('Hai già un abbonamento attivo dal Play Store')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Hai già un piano attivo: l’invito non serve')
     expect(screen.getByRole('button', { name: 'Partecipo' })).toBeEnabled()
   })
 
