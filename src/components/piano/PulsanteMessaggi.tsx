@@ -4,7 +4,7 @@ import { Check, MessageSquare, Zap } from 'lucide-react'
 import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
-import type { Lingua } from '../../i18n/lingua'
+import { LINGUE as CODICI_LINGUA, NOMI_LINGUA, type Lingua } from '../../i18n/lingua'
 import { useSettings } from '../../hooks/useSettings'
 import { usePlus } from '../../hooks/usePlus'
 import { dataConOra } from '../../i18n/format'
@@ -14,11 +14,7 @@ import { strumentoVisibile } from '../../lib/funzioniPiano'
 import { TYPE } from '../../theme/theme'
 
 const TIPI: TipoMessaggio[] = ['promemoria', 'conferma', 'pronto', 'richiamo', 'auguri']
-const LINGUE: { value: Lingua; label: string }[] = [
-  { value: 'it', label: 'Italiano' },
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Español' },
-]
+const LINGUE: { value: Lingua; label: string }[] = CODICI_LINGUA.map((value) => ({ value, label: NOMI_LINGUA[value] }))
 
 export function WhatsAppMark({ size = 16 }: { size?: number }) {
   return (

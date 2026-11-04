@@ -23,6 +23,21 @@ const TESTI: Record<Lingua, { oggetto: string; titolo: string; corpo: string; fo
     fondatori: 'Participaste en la beta o fuiste de los primeros: tienes un precio especial reservado.',
     firma: 'Gracias por ayudarnos a construir Groomly. Roberto',
   },
+  // LINGUE: da tradurre
+  fr: {
+    oggetto: 'Groomly: Plus and Salon become paid plans',
+    titolo: 'From {{data}} Plus and Salon will be paid plans',
+    corpo: 'Go stays free and all your clients, pets and appointments stay where they are. If you want to keep Plus or Salon, you can subscribe from the app downloaded from Google Play.',
+    fondatori: 'You joined the beta or were among the first: a special price is reserved for you.',
+    firma: 'Thank you for helping us build Groomly. Roberto',
+  },
+  de: {
+    oggetto: 'Groomly: Plus and Salon become paid plans',
+    titolo: 'From {{data}} Plus and Salon will be paid plans',
+    corpo: 'Go stays free and all your clients, pets and appointments stay where they are. If you want to keep Plus or Salon, you can subscribe from the app downloaded from Google Play.',
+    fondatori: 'You joined the beta or were among the first: a special price is reserved for you.',
+    firma: 'Thank you for helping us build Groomly. Roberto',
+  },
 }
 
 function dataBreve(iso: string): string {

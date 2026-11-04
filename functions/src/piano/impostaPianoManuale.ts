@@ -1,6 +1,6 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
-import { linguaValida } from '../../../src/i18n/lingua'
+import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { htmlAvviso, oggettoAvviso } from '../../../src/lib/avvisoPiano'
 import { decisioneVip } from '../../../src/lib/funzioniPiano'
 import { decisioneBypass, type AzioneBypass } from '../../../src/lib/pianoBypass'
@@ -44,7 +44,7 @@ export async function impostaPianoManualePer(input: {
   const memberRef = db.doc(`salons/${input.salonId}/members/${input.salonId}`)
   let avviso: string | null = null
   let emailTitolare = ''
-  let linguaTitolare: 'it' | 'en' | 'es' = 'it'
+  let linguaTitolare: Lingua = 'it'
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref)
     const ownerSnap = await tx.get(ownerRef)
@@ -89,7 +89,7 @@ async function inviaAvvisoPiano(
   email: string,
   avviso: string,
   apiKey: string,
-  lingua: 'it' | 'en' | 'es',
+  lingua: Lingua,
 ): Promise<'inviata' | 'non_inviata'> {
   if (email === '' || apiKey === '') return 'non_inviata'
   try {

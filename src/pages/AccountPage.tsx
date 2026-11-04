@@ -18,6 +18,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { DriveAuth } from '../lib/driveAuth'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { NOMI_LINGUA } from '../i18n/lingua'
 import { etichettaDispositivo } from '../lib/dispositivoAttuale'
 import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
@@ -301,7 +302,7 @@ export function AccountPage() {
     sicurezza: frasi.accSicurezza,
     privacy: frasi.accPrivacy,
   }
-  const linguaNome = lingua === 'en' ? 'English' : lingua === 'es' ? 'Español' : 'Italiano'
+  const linguaNome = NOMI_LINGUA[lingua]
 
   return (
     <ShellFrame>

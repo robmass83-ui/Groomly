@@ -66,7 +66,7 @@ function errorCode(error: unknown): string | undefined {
 }
 
 // Connessione assente e attesa hanno il loro testo. Ogni altro errore di rete o di posta si ritenta più tardi.
-function mailFailureMessage(error: unknown, lingua: 'it' | 'en' | 'es'): string {
+function mailFailureMessage(error: unknown, lingua: Lingua): string {
   const code = errorCode(error)
   return code === 'auth_offline' ? loginFailureMessage(code, lingua) : loginFailureMessage('auth_slow', lingua)
 }

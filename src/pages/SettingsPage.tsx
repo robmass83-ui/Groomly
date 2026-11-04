@@ -42,7 +42,7 @@ import { usePlus } from '../hooks/usePlus'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
-import type { Lingua } from '../i18n/lingua'
+import { LINGUE, NOMI_LINGUA } from '../i18n/lingua'
 import { vedeIncassi, voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
@@ -778,11 +778,7 @@ export function SettingsPage() {
             : null
   const headline = businessHeadline(settings.business, frasi.authIva)
   const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt, now, lingua)
-  const opzioniLingua: { value: Lingua; label: string }[] = [
-    { value: 'it', label: 'Italiano' },
-    { value: 'en', label: 'English' },
-    { value: 'es', label: 'Español' },
-  ]
+  const opzioniLingua = LINGUE.map((value) => ({ value, label: NOMI_LINGUA[value] }))
   const anello = avanzamentoSalone(passi)
   const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
   const avvisiNuovi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {}).length
@@ -1018,7 +1014,7 @@ export function SettingsPage() {
             <button type="button" aria-haspopup="dialog" onClick={() => setLinguaOpen(true)} style={rowButton}>
               <MenuIcon tone="prim"><Languages size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
-              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{opzioniLingua.find((opzione) => opzione.value === lingua)?.label ?? 'Italiano'}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{NOMI_LINGUA[lingua]}</span>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>

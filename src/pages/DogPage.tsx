@@ -45,7 +45,7 @@ import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { rendiPrincipale } from '../lib/contattoPrincipale'
 import { RUOLI_BASE, etichettaRuolo, ruoloDelProprietario } from '../lib/ruoloProprietario'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
-import type { Lingua } from '../i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { finishDogRemoval } from '../lib/dogRemoval'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
@@ -1524,7 +1524,7 @@ export function DogPage() {
                 items={[
                   { label: labels.species, value: specie[dog.species] },
                   { label: labels.sex, value: dog.sex ? sesso[dog.sex] : '—' },
-                  { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat(lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT', { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
+                  { label: labels.weight, value: dog.weightKg != null ? `${new Intl.NumberFormat(LOCALE_INTL[lingua], { maximumFractionDigits: 2 }).format(dog.weightKg)} kg` : '—' },
                   { label: labels.size, value: taglia[dog.size] },
                   { label: labels.breed, value: dog.breed.trim() || '—' },
                   { label: labels.clientType, value: clientFact(dog, lingua) },

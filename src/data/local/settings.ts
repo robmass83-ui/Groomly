@@ -1,3 +1,4 @@
+import type { Lingua } from '../../i18n/lingua'
 import { paeseValido, type CodicePaese } from '../../lib/paese'
 import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
@@ -134,7 +135,7 @@ export interface SettingsMain {
   backup: { lastAt?: string; impostato?: boolean; autoDaily: boolean; snapshot?: unknown; frequenza?: 'giorno' | 'settimana' | 'mese'; soloWifi?: boolean; soloCarica?: boolean; orario?: string }
   ageThresholds: { giovaneFrom: number; adultoFrom: number; anzianoFrom: number }
   ui: { hideAmounts: boolean; reportBadgeSince?: string; ultimaProposta?: string }
-  linguaClienti?: 'it' | 'en' | 'es'
+  linguaClienti?: Lingua
   consensoMetriche?: boolean
   emailPromo?: boolean
   telefonoRecupero?: string

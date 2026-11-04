@@ -1,5 +1,5 @@
 import { emailMessaggio, type TipoEmail } from '../../src/i18n/emailHtml'
-import type { Lingua } from '../../src/i18n/lingua'
+import { LINGUE, type Lingua } from '../../src/i18n/lingua'
 import { normalizeEmail, ROBERTO_EMAIL } from '../../src/lib/salonPath'
 
 export const DESTINATARIO_CAMPIONE = 'info@groomlyapp.it'
@@ -18,7 +18,6 @@ const TIPI: TipoEmail[] = [
   'promemoria',
 ]
 
-const LINGUE: Lingua[] = ['it', 'en', 'es']
 
 export function pianoCampione(): { tipo: TipoEmail; lingua: Lingua }[] {
   return LINGUE.flatMap((lingua) => TIPI.map((tipo) => ({ tipo, lingua })))

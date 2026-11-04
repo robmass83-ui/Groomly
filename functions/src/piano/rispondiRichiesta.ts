@@ -1,13 +1,13 @@
 import type { Request, Response } from 'express'
 import { getFirestore } from 'firebase-admin/firestore'
 import { escapaHtml, saloneNellaFrase } from '../../../src/i18n/emailHtml'
-import type { Lingua } from '../../../src/i18n/lingua'
+import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { htmlDomandaRisposta, quandoConferma } from '../../../src/lib/htmlEsito'
 import { pianoRichiesta } from '../../../src/lib/pianoRichiesta'
 import { linguaClientiSalon } from '../postaHtml'
 import { animaleInArchivio, applicaPiano, idValido, leggiRichiesta, linkRisposta, mailDopoScrittura, nomeSalone } from './gestisciPrenotazione'
 
-async function linguaPagina(salonId: string): Promise<'it' | 'en' | 'es'> {
+async function linguaPagina(salonId: string): Promise<Lingua> {
   if (!idValido(salonId)) return 'it'
   try {
     return await linguaClientiSalon(salonId)
@@ -42,9 +42,9 @@ function fraseConferma(lingua: Lingua, cane: string, dove: string, quando: strin
 }
 
 const TITOLO_PAGINA = {
-  confermato: { it: 'Appuntamento confermato', en: 'Appointment confirmed', es: 'Cita confirmada' },
-  liberato: { it: 'Posto liberato', en: 'Slot released', es: 'Hueco liberado' },
-  nonValido: { it: 'Link non più valido', en: 'This link is no longer valid', es: 'Este enlace ya no es válido' },
+  confermato: { it: 'Appuntamento confermato', en: 'Appointment confirmed', es: 'Cita confirmada', fr: 'Appointment confirmed', de: 'Appointment confirmed' }, // LINGUE: da tradurre
+  liberato: { it: 'Posto liberato', en: 'Slot released', es: 'Hueco liberado', fr: 'Slot released', de: 'Slot released' }, // LINGUE: da tradurre
+  nonValido: { it: 'Link non più valido', en: 'This link is no longer valid', es: 'Este enlace ya no es válido', fr: 'This link is no longer valid', de: 'This link is no longer valid' }, // LINGUE: da tradurre
 } as const
 
 const RESTO_PAGINA = {
@@ -52,11 +52,17 @@ const RESTO_PAGINA = {
     it: 'Va bene, il posto è stato liberato. Se vuoi un altro orario, puoi inviare una nuova richiesta al salone quando vuoi.',
     en: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
     es: 'De acuerdo, el hueco ha quedado libre. Si quieres otro horario, puedes enviar una nueva solicitud a la peluquería cuando quieras.',
+    // LINGUE: da tradurre
+    fr: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
+    de: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
   },
   nonValido: {
     it: 'Potrebbe essere scaduto o già stato usato. Per qualsiasi cosa, contatta direttamente il salone.',
     en: 'It may have expired or already been used. For anything else, please contact the salon directly.',
     es: 'Puede que haya caducado o que ya se haya usado. Para cualquier cosa, contacta directamente con la peluquería.',
+    // LINGUE: da tradurre
+    fr: 'It may have expired or already been used. For anything else, please contact the salon directly.',
+    de: 'It may have expired or already been used. For anything else, please contact the salon directly.',
   },
 } as const
 
@@ -75,7 +81,7 @@ export function paginaRisposta(
   esito: 'confermato' | 'liberato' | 'nonValido',
   dati: { salone?: string; cane?: string; quando?: string },
 ): string {
-  const codice: Lingua = lingua === 'en' || lingua === 'es' ? lingua : 'it'
+  const codice: Lingua = linguaValida(lingua) ?? 'it'
   const tipo = esito === 'liberato' || esito === 'nonValido' ? esito : 'confermato'
   const titolo = TITOLO_PAGINA[tipo][codice]
   const paragrafo = tipo === 'confermato'
@@ -97,7 +103,7 @@ async function inviaEsito(
   salonId: string,
   tipo: 'conferma' | 'liberato' | 'non_valido',
   campi: { salone: string; cane: string; quando: string } = { salone: '', cane: '', quando: '' },
-  lingua?: 'it' | 'en' | 'es',
+  lingua?: Lingua,
 ): Promise<void> {
   inviaPagina(res, paginaRisposta(lingua ?? await linguaPagina(salonId), TIPO_PAGINA[tipo], campi))
 }

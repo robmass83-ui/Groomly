@@ -6,7 +6,7 @@ describe('config dei piani', () => {
     expect(CONFIG_PIANI_DEFAULT).toEqual({
       provaSelfService: false,
       showPrezziInBeta: false,
-      offertaEarlyAdopter: { it: '', en: '', es: '' },
+      offertaEarlyAdopter: { it: '', en: '', es: '', fr: '', de: '' },
       revenueCat: { chiaveSdk: '', offeringId: 'groomly_standard' },
       annuncioPagamentiIl: null,
       pagamentiDal: null,
@@ -35,7 +35,7 @@ describe('config dei piani', () => {
     })).toEqual({
       ...CONFIG_PIANI_DEFAULT,
       provaSelfService: true,
-      offertaEarlyAdopter: { it: '', en: 'Half price', es: '' },
+      offertaEarlyAdopter: { it: '', en: 'Half price', es: '', fr: '', de: '' },
       revenueCat: { chiaveSdk: 'goog_x', offeringId: 'groomly_standard' },
       annuncioPagamentiIl: '2027-01-01T00:00:00.000Z',
     })
@@ -59,7 +59,7 @@ describe('prova self-service per l’app', () => {
 describe('dati per l’acquisto', () => {
   it('config e traccia early adopter del salone, con ripieghi', () => {
     expect(datiAcquistoPiano(undefined, undefined)).toEqual({
-      chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '' }, pagamentiDal: null,
+      chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '', fr: '', de: '' }, pagamentiDal: null,
     })
     expect(datiAcquistoPiano(
       { piani: { revenueCat: { chiaveSdk: 'goog_x' }, offertaEarlyAdopter: { it: 'Metà prezzo' }, pagamentiDal: '2027-01-01T00:00:00.000Z' } },

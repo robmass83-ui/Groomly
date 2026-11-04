@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { PRICE_ICONS, type PriceIconKey } from '../assets/icons/icons'
-import type { Lingua } from '../i18n/lingua'
+import { LINGUE, type Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 import { isStartTime } from './appointments'
@@ -87,7 +87,7 @@ export const priceSheetSchema = z.object({
     scriviAPartireDa: z.boolean(),
     formato: z.enum(['A4', 'A3']),
     tipoFile: z.enum(['pdf', 'jpeg']),
-    lingua: z.enum(['it', 'en', 'es']).optional(),
+    lingua: z.enum(LINGUE).optional(),
   }),
   updatedAt: z.string(),
 })

@@ -1,7 +1,7 @@
 import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import type { TipoEmail } from '../../../src/i18n/emailHtml'
-import type { Lingua } from '../../../src/i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../../../src/i18n/lingua'
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { minutiRichiesta, pianoRichiesta, serviziDellaRichiesta, vociSalvate, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
 import { caneDaDoc, listinoDaDoc, prezziVisita, servizioDaDoc } from '../../../src/lib/prezzoListino'
@@ -98,7 +98,7 @@ export async function animaleInArchivio(salonId: string, dogId: string): Promise
 }
 
 function giornoMail(lingua: Lingua, data: Date): string {
-  const locale = lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT'
+  const locale = LOCALE_INTL[lingua]
   const parti = new Intl.DateTimeFormat(locale, {
     timeZone: 'Europe/Rome',
     weekday: 'long',
