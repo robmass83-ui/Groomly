@@ -400,3 +400,29 @@ Roberto ha scelto la proposta 2 «Tab in alto», con «Da fare oggi» e il panne
 - Scelta di Roberto: **c**.
 - Applicata così: «Salon» è il nome di marca del piano, uguale in italiano, inglese e spagnolo (anche lo spagnolo «Salón» del piano diventa «Salon», come nel logo). Solo il nome del piano: la parola comune resta («il salone», «salón cerrado», «Nome toelettatura»). Le chiavi interne restano `salone`. I loghi SVG non cambiano.
 - Testi: `saloneOmaggio`, `servizioSalonePer`, `teamCollegatiDettaglio`, `uteSalone`, `servizioSalone`, `profiloBaseTesto`, `servizioProIntro`, `sbloccaSalone`, `avvisaSalone`, `segnoSalone`, `proAccendi`, `proPianoSalone`, `sospesoDettaglio*`, `abbSalone` («Groomly Salon»); bollino `BollinoPiano` «SALON». Email delle functions: non nominano il piano. `hosting/salone/` è la pagina pubblica del singolo salone, non del piano: invariata.
+
+## Beta Plus e Salon — B4 Abbonamenti pronti al clic (4 novembre 2026)
+
+Scelte di Roberto: solo il mensile in vetrina; data di partenza dei pagamenti scelta all'annuncio (almeno 15 giorni dopo); un salone in beta può comprare quando vuole (i giorni gratis rimasti si perdono, la vetrina lo dice prima); il piano lo decide solo il webhook; segreti RevenueCat dichiarati nel codice (vanno creati prima del deploy).
+
+Scelte prese da B4 senza Roberto:
+- **Salone ↔ RevenueCat:** `appUserID = salonId`. Un acquisto anonimo si aggancia al primo alias non anonimo.
+- **Posti extra:** il webhook li ignora e li registra nel log, perché non sono in vendita nell'app.
+- **Eventi ignorati:** `TRANSFER`, `SUBSCRIPTION_PAUSED` e `NON_RENEWING_PURCHASE` si registrano e basta. Un trasferimento tra saloni si sistema a mano dall'admin.
+- **Ordine degli eventi:** `pro/main.rcEventoMs` salva l'ultimo evento applicato; uno più vecchio non torna indietro.
+- **Ambienti:** SANDBOX e PRODUCTION scrivono entrambi il piano, così le prove dei license tester funzionano. `rcAmbiente` resta nel documento.
+- **VIP e `shared`:** il webhook non li tocca mai.
+- **EXPIRATION** chiude solo un piano con fonte `play`: una beta o un omaggio non si chiudono per un evento Play.
+- **APK GitHub:** il pacchetto c'è (Capacitor include i plugin in ogni variante), ma il permesso `com.android.vending.BILLING` è tolto dal manifest e il codice JS non avvia mai l'SDK fuori dall'app Play. Escludere il modulo Gradle solo da GitHub sarebbe stato fragile.
+- **Early adopter:** si sceglie l'opzione con id `…:early-adopter` o con il tag `early-adopter`. Se in Play non c'è, si compra a prezzo pieno, senza errore.
+- **Chiave SDK:** il controllo la vuole `goog_…`. Una chiave del Test Store (`test_…`) non accende la produzione.
+- **Offering:** si legge con l'API v2 di RevenueCat (`REVENUECAT_API_KEY` deve essere una chiave segreta **V2**; ID progetto in `REVENUECAT_PROJECT_ID`, parametro non segreto). Senza accesso la voce è rossa con la spiegazione.
+- **Webhook attivo:** basta un evento qualsiasi, anche quello di prova (TEST) mandato dal pannello di RevenueCat.
+- **Annuncio:** verde se inviato da almeno 15 giorni **e** se è arrivata la data di partenza scelta. Un nuovo annuncio fa ripartire il conteggio. Si rifiuta ad abbonamenti accesi.
+- **Email dell'annuncio:** ai titolari dei saloni con `exBeta` o `earlyAdopter`, nella lingua dell'account. Un errore su un indirizzo non ferma gli altri.
+- **Banner a tutti:** in Home, solo per il titolare, da `pagamentiDal` fino all'accensione. Si chiude con ✕, salvato in memoria locale per quella data.
+- **Campi nuovi di `config/globale.piani`:** `pagamentiDal`, `confermaFiscaleIl`, `accesiIl`. Aggiunta compatibile al contratto di A1; li scrivono solo le callable degli abbonamenti, non `impostaConfigPiani`.
+- **Spegnimento:** rimette `abbonamentiAttivi = false` e basta. I piani Play restano e il webhook continua a seguirli; chi ha pagato **continua a rinnovarsi** finché non disdice.
+- **Attesa dopo il pagamento:** la vetrina aspetta il piano Play; dopo 20 secondi dice «entro qualche minuto».
+- **Testi:** chiavi con prefisso `b4` per non collidere con quelle di B2.
+- **Client:** si è esportata da `src/data/firebase/client.ts` la funzione esistente `callCallableData`, usata da `abbonamentiClient.ts`.

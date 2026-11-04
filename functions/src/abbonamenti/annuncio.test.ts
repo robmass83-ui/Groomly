@@ -70,9 +70,9 @@ describe('annunciaPagamentiPer', () => {
 describe('emailAnnuncio', () => {
   it('tre lingue con la data e niente HTML iniettato', () => {
     const it_ = emailAnnuncio('it', '2026-12-21T10:00:00.000Z')
-    expect(it_.oggetto).toContain('Plus e Salone')
+    expect(it_.oggetto).toContain('Plus e Salon')
     expect(it_.html).toContain('21/12/2026')
     expect(emailAnnuncio('en', '2026-12-21T10:00:00.000Z').html).toContain('Go stays free')
-    expect(emailAnnuncio('es', '2026-12-21T10:00:00.000Z').oggetto).toContain('Plus y Salone')
+    expect(emailAnnuncio('es', '2026-12-21T10:00:00.000Z').oggetto).toContain('Plus y Salon')
   })
 })

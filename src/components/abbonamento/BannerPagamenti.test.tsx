@@ -19,7 +19,7 @@ function monta() {
   return render(<LinguaProvider><BannerPagamenti /></LinguaProvider>)
 }
 
-const TESTO = /Plus e Salone saranno a pagamento/
+const TESTO = /Plus e Salon saranno a pagamento/
 
 describe('BannerPagamenti', () => {
   beforeEach(() => {

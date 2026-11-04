@@ -1642,7 +1642,7 @@ export const en = {
   b4Ripristina: 'Restore purchases',
   b4Ripristinati: 'Purchases restored',
   b4RipristinoErrore: 'Restore failed. Please try again.',
-  b4BannerPagamenti: 'From {{data}} Plus and Salone will be paid plans. Go stays free and all your data stays.',
+  b4BannerPagamenti: 'From {{data}} Plus and Salon will be paid plans. Go stays free and all your data stays.',
   b4Chiudi: 'Close',
   b4Spenti: 'Subscriptions off',
   b4Attivi: 'Subscriptions on',

@@ -1640,7 +1640,7 @@ export const it = {
   b4Ripristina: 'Ripristina acquisti',
   b4Ripristinati: 'Acquisti ripristinati',
   b4RipristinoErrore: 'Ripristino non riuscito. Riprova.',
-  b4BannerPagamenti: 'Dal {{data}} Plus e Salone saranno a pagamento. Go resta gratis e i tuoi dati restano tutti.',
+  b4BannerPagamenti: 'Dal {{data}} Plus e Salon saranno a pagamento. Go resta gratis e i tuoi dati restano tutti.',
   b4Chiudi: 'Chiudi',
   b4Spenti: 'Abbonamenti spenti',
   b4Attivi: 'Abbonamenti attivi',
