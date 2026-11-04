@@ -23,7 +23,7 @@ describe('EtichettaBeta', () => {
   it('la variante piena è bianca al 22% e senza bordo', () => {
     render(<EtichettaBeta piano="pro" piena />)
     const pillola = screen.getByText('BETA')
-    expect(pillola.style.background).toMatch(/rgba(255, ?255, ?255, ?0?.22)/)
+    expect(pillola.style.background).toMatch(/^rgba\(255, ?255, ?255, ?0?\.22\)$/)
     expect(pillola.style.borderStyle === '' || pillola.style.borderStyle === 'none').toBe(true)
     expect(pillola.style.color).toBe('#fff')
   })
