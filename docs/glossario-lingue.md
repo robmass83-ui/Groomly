@@ -96,3 +96,37 @@ Termini nati traducendo `fr.ts`. La colonna tedesca si completa con T3.
 | Feedback (beta) | Feedback | Opinión | Avis; nell'Admin Manager *retours* |
 
 In francese si scrive *e-mail*, al maschile. I pulsanti usano l'infinito (*Enregistrer*), le istruzioni l'imperativo con *vous* (*Saisissez*). L'apostrofo è sempre ’.
+## Tedesco: termini aggiunti da T3
+
+Usati in `src/i18n/de.ts`. Le altre lingue restano come sono.
+
+| Italiano | Tedesco | Nota |
+|---|---|---|
+| Proprietario (dell'animale) | Besitzer | `Inhaber` è solo il titolare del salone |
+| Visita | Besuch | |
+| Trattamento | Behandlung | Il servizio resta `Leistung` |
+| Mensile (la visita) | Monatstermin | Il cane: `Monatshund`. Il cliente: `Monatskunde` |
+| Completato | Erledigt | |
+| Non venuto | Nicht erschienen | Il fatto: `Nichterscheinen` |
+| Da fissare | Zu planen | |
+| Da chiudere | Noch offen | L'azione: `Abschließen` |
+| Disdire un appuntamento | stornieren | |
+| Disdire un abbonamento | kündigen | Stato: `Gekündigt` |
+| Impegno (personale) | Verpflichtung | L'appuntamento personale: `Privater Termin` |
+| Chiusura del salone | Schließung | |
+| Home | Start | La pagina nelle frasi: `Startseite` |
+| Attività (i dati del salone) | Betrieb | `Betriebsdaten` |
+| Recensione | Bewertung | |
+| Tessera fedeltà | Treuekarte | Il premio: `Prämie`. I timbri: `Stempel` |
+| Termini d'uso | AGB | Più corto di `Nutzungsbedingungen`. Le policy di T6 usano lo stesso nome |
+| Informativa privacy | Datenschutzerklärung | |
+| DPA | AVV | Per esteso: `Auftragsverarbeitung` |
+| Partita IVA | USt-IdNr. | |
+| Codice fiscale | Steuernummer | |
+| Ragione sociale | Firmenname | |
+| Commercialista | Steuerberatung | |
+| Vetrina (dei piani) | Schaufenster | |
+| Pagella | Pflegebericht | |
+| Richiamo | Folgetermin | |
+
+**Parole lunghe in spazi stretti.** Una parola sola che non entra si può spezzare con il trattino morbido (`­`), invisibile quando c'è posto. Oggi serve solo a `navImpostazioni`, nella barra in basso a 320 px. Le etichette di due parole vanno bene: i pulsanti vanno a capo.

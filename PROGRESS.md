@@ -364,3 +364,13 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Non controllato a schermo: il file si vede solo dopo l'unione con T1. Le lunghezze a 320 px le ho guardate sul codice, la prova vera è in T7.
 - Per T1: 92 frasi `fr` sono uguali a `en` o `it`. L'elenco per il test è in `uguali-fr.txt`, nelle note condivise. `ELIMINA` e `ACCENDI` devono restare nell'elenco.
 - Su richiesta di T1: blocco `// Lingue T1` in fondo a `fr.ts` e nuovo testo di `linguaMessaggiDettaglio`. Le due chiavi nuove esistono in `it.ts` solo sul ramo di T1: finché non si uniscono, `tsc` su `fr.ts` da solo le segnala come chiavi in più.
+
+## Cinque lingue — T3 Tedesco (4 novembre, ramo `claude/lingue-t3-tedesco-8f1243`, non unito)
+- Nuovo `src/i18n/de.ts`: tutte le 1.965 chiavi, stessa struttura di `en.ts`, `export const de`. Non è ancora collegato: `Lingua` e `t.ts` li cambia T1. All'unione questo file vince sul provvisorio di T1.
+- Controllato con uno script: chiavi uguali a `it.ts`, stessi segnaposto, nessun *du*, `tsc` senza errori sul file. Riletto tutto una seconda volta.
+- Lunghezza a 320 px: controllata leggendo il codice e facendo i conti su larghezze e font, **non ancora su un telefono**. Tocca a T7. I punti da guardare: barra in basso, i tre pulsanti di chiusura in Home, età e sesso nella scheda.
+- 74 frasi uguali a inglese o italiano, tutte volute: elenco in `docs/superpowers/specs/2026-11-04-lingue-tedesco-design.md`, per il test di T1.
+- Termini nuovi nel glossario, scelte in `docs/DECISIONI-AUTOMATICHE.md`.
+- Da T1: `linguaClienti` e `linguaClientiDettaglio` in fondo con `// Lingue T1`, nuovo `linguaMessaggiDettaglio`. Le due chiavi nuove arrivano in `it.ts` con T1: su questo ramo da solo `tsc` le segnala come in più, unito a T1 no.
+- Da fare per T4: `homeAnnulla` copre sia «Annulla» sia l'annullamento nei toast, conviene dividerla.
+- `npm test` non eseguito: il worktree non ha `node_modules` e il file non è ancora importato da nessuno.
