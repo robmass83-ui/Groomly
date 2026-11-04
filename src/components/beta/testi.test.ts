@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { en } from '../../i18n/en'
+import { fraseErrore } from '../../i18n/errori'
 import { it as italiano } from '../../i18n/it'
 import { messaggioErroreBeta, riempi, testoOfferta } from './testi'
 
@@ -13,14 +14,15 @@ describe('testi della beta', () => {
     expect(testoOfferta({ it: '−30%', en: '', es: 'x', fr: '', de: '' }, 'es')).toBe('x')
   })
 
-  it('i messaggi noti del server diventano la frase nella lingua dell’app', () => {
-    expect(messaggioErroreBeta(en, new Error('Hai già mandato 5 feedback oggi: riprova domani'))).toBe(en.betaErrLimite)
-    expect(messaggioErroreBeta(en, new Error("Hai già un piano attivo: l'invito non serve"))).toBe(en.betaErrPianoAttivo)
-    expect(messaggioErroreBeta(en, new Error('Questo invito non è più valido'))).toBe(en.betaNonValido)
+  it('il codice del server diventa la frase nella lingua dell’app', () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    const errore = Object.assign(new Error('Hai già un piano attivo: l’invito non serve'), { details: { codice: 'beta_gia_piano' } })
+    expect(messaggioErroreBeta(en, errore)).toBe(fraseErrore('en', 'beta_gia_piano'))
+    localStorage.removeItem('groomly.lingua')
   })
 
-  it('un messaggio sconosciuto passa com’è; senza messaggio, quello generico', () => {
-    expect(messaggioErroreBeta(italiano, new Error('Altro problema'))).toBe('Altro problema')
+  it('senza codice il testo del server non si mostra: resta quello generico', () => {
+    expect(messaggioErroreBeta(italiano, new Error('Altro problema'))).toBe(italiano.betaErrore)
     expect(messaggioErroreBeta(italiano, new Error(''))).toBe(italiano.betaErrore)
   })
 })

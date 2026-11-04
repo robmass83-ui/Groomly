@@ -1,9 +1,8 @@
-import { AppError } from '../errors'
+import { AppError, erroreApp } from '../errors'
 import type { CompressedPhoto } from '../../lib/photoCodec'
 import {
   CHUNK_WRITE_GROUP,
   FILE_MAX_BYTES,
-  FILE_TOO_LARGE,
   dataUrlToBytes,
   fileIdOf,
   fileRef,
@@ -26,7 +25,7 @@ type Codec = { fromDataUrl(dataUrl: string): Promise<CompressedPhoto> }
 type BytesLike = { toUint8Array(): Uint8Array }
 
 function missing(): AppError {
-  return new AppError('File non apribile', 'file_missing')
+  return erroreApp('file_missing')
 }
 
 export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): FileStore {
@@ -59,7 +58,7 @@ export function createFileStore(fs: FirestoreApi, db: unknown, codec: Codec): Fi
       bytes = decoded.bytes
       main.mime = decoded.mime
     }
-    if (bytes.length > FILE_MAX_BYTES) throw new AppError(FILE_TOO_LARGE, 'file_too_large')
+    if (bytes.length > FILE_MAX_BYTES) throw erroreApp('file_too_large')
     const chunks = splitChunks(bytes)
     main.byteSize = bytes.length
     main.chunkCount = chunks.length

@@ -112,22 +112,25 @@ export function MessaggiPronti({
   valori,
   quando,
   aspetto,
+  linguaCliente,
 }: {
   telefono: string
   valori: { nome: string; cane: string; servizio: string }
   quando?: Date
   aspetto: AspettoContatto
+  linguaCliente?: Lingua
 }) {
   const frasi = useFrasi()
   const apriInApp = useApriInApp()
   const { lingua: linguaApp } = useLingua()
   const { settings } = useSettings()
+  const predefinita = linguaCliente ?? settings.linguaClienti ?? linguaApp
   const plus = usePlus('messaggiCategoria')
   const [aperto, setAperto] = useState(false)
   const [tipo, setTipo] = useState<TipoMessaggio>('promemoria')
   const [bozza, setBozza] = useState('')
   const [toccata, setToccata] = useState(false)
-  const [lingua, setLingua] = useState<Lingua>(() => leggiLinguaMessaggio(telefono, linguaApp))
+  const [lingua, setLingua] = useState<Lingua>(() => leggiLinguaMessaggio(telefono, predefinita))
   const conOrario = tipo === 'promemoria' || tipo === 'conferma' || tipo === 'richiamo'
   const compilati = { ...valori, quando: conOrario && quando ? dataConOra(lingua, quando) : '' }
   const testo = toccata ? bozza : testoMessaggio(lingua, tipo, compilati)
@@ -143,7 +146,7 @@ export function MessaggiPronti({
     auguri: frasi.strumAuguri,
   }
   function apri() {
-    const ricordata = leggiLinguaMessaggio(telefono, linguaApp)
+    const ricordata = leggiLinguaMessaggio(telefono, predefinita)
     if (ricordata !== lingua) {
       setToccata(false)
       setBozza('')

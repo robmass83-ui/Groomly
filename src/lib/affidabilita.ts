@@ -1,4 +1,5 @@
 import { renderTemplate } from './whatsapp'
+import { frase } from '../i18n/frase'
 
 const SEI_MESI_MS = 183 * 24 * 60 * 60 * 1000
 
@@ -14,7 +15,7 @@ export function nonVenutiRecenti(nonVenuti: readonly Date[], adesso: Date): numb
 }
 
 export function etichettaAffidabilita(nonVenuti: readonly Date[], adesso: Date): string | null {
-  return nonVenutiRecenti(nonVenuti, adesso) >= 3 ? 'Spesso non viene' : null
+  return nonVenutiRecenti(nonVenuti, adesso) >= 3 ? frase('strumSpesso') : null
 }
 
 export function messaggioWhatsapp(modello: string, valori: Record<string, string>, telefono: string): {
@@ -44,6 +45,6 @@ export function compleanniDelMese(cani: readonly { nome: string; nascita?: strin
 export function codaPromozione(servizi: readonly string[], percentuale: number): { invioAutomatico: false; testi: string[] } {
   return {
     invioAutomatico: false,
-    testi: servizi.map((servizio) => renderTemplate('{{servizio}} a meno {{percentuale}}%', { servizio, percentuale: String(percentuale) })),
+    testi: servizi.map((servizio) => frase('strumPromo', { servizio, percentuale })),
   }
 }

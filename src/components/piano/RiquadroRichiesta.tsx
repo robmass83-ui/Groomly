@@ -151,11 +151,7 @@ export function RiquadroRichiesta({
   const dettagli = [etichette[richiesta.specie], richiesta.razza.trim(), taglie[richiesta.taglia], richiesta.phone.trim(), richiesta.email.trim()].filter((voce) => voce !== '')
   const vociRichiesta = richiesta.voci ?? []
   const totaleIndicativo = richiesta.totaleIndicativo ?? vociRichiesta.reduce((sum, voce) => sum + voce.prezzo, 0)
-  const etichettaTotale = lingua === 'en'
-    ? `Indicative total ${totaleIndicativo} €`
-    : lingua === 'es'
-      ? `Total orientativo ${totaleIndicativo} €`
-      : `Totale indicativo ${totaleIndicativo} €`
+  const etichettaTotale = frasi.richiestaTotale.replace('{{importo}}', String(totaleIndicativo))
   const giorni = calendario ? Object.keys(calendario).sort() : []
   const ore = calendario && giorno ? calendario[giorno] ?? [] : []
   const occupa = valida ? oraOccupata(richiesta, visite, altre) : ''

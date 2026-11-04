@@ -5,13 +5,14 @@ import { CHUNK_WRITE_GROUP, FILE_MAX_BYTES, splitChunks } from '../../lib/fileBy
 import type { FileRipristino } from '../../lib/leggiRipristino'
 import type { FirestoreApi } from './files'
 import { salonRootPath } from './salonRoot'
+import { frase } from '../../i18n/frase'
 
 type Ref = ReturnType<FirestoreApi['doc']>
 type Op =
   | { op: 'delete'; ref: Ref }
   | { op: 'set'; ref: Ref; data: Record<string, unknown> }
 
-const COPPIA_ERR = 'Copia di sicurezza non riuscita'
+
 
 type BytesLike = { toUint8Array(): Uint8Array }
 
@@ -65,7 +66,7 @@ export async function applicaFileRipristino(
   if (files.length === 0) return
   const at = (id: string, ...rest: string[]) => salonAt(fs, db, collezione, id, ...rest)
   for (const file of files) {
-    if (file.bytes.length !== file.byteSize || file.bytes.length > FILE_MAX_BYTES) throw new Error('File non valido')
+    if (file.bytes.length !== file.byteSize || file.bytes.length > FILE_MAX_BYTES) throw new Error(frase('bakFileNonValido'))
     const snap = await fs.getDoc(at(file.id))
     const previous = snap.exists() ? snap.data() as Record<string, unknown> : {}
     const declared = typeof previous.chunkCount === 'number' && Number.isInteger(previous.chunkCount) && previous.chunkCount > 0
@@ -127,20 +128,20 @@ export async function leggiFileAttuali(
     if (chunkCount === 0) {
       const fullSnap = await fs.getDoc(at('full', 'data'))
       const piece = convertiPezzo(fullSnap.exists() ? fullSnap.data() as Record<string, unknown> : undefined)
-      if (piece === 'illeggibile') throw new Error(COPPIA_ERR)
+      if (piece === 'illeggibile') throw new Error(frase('errCopiaSicurezza'))
       parts.push(piece)
     } else {
       for (let index = 0; index < chunkCount; index += 1) {
         const chunkSnap = await fs.getDoc(at('chunks', String(index)))
         const piece = convertiPezzo(chunkSnap.exists() ? chunkSnap.data() as Record<string, unknown> : undefined)
-        if (piece === 'illeggibile') throw new Error(COPPIA_ERR)
+        if (piece === 'illeggibile') throw new Error(frase('errCopiaSicurezza'))
         parts.push(piece)
         if (piece === null) break
       }
     }
     const done = ricomponiFile({ chunkCount, byteSize, parts })
-    if (!done.ok) throw new Error(COPPIA_ERR)
-    if (done.bytes.length > FILE_MAX_BYTES) throw new Error(COPPIA_ERR)
+    if (!done.ok) throw new Error(frase('errCopiaSicurezza'))
+    if (done.bytes.length > FILE_MAX_BYTES) throw new Error(frase('errCopiaSicurezza'))
     const mime = typeof meta.mime === 'string' ? meta.mime : ''
     const file: FileRipristino = {
       id,

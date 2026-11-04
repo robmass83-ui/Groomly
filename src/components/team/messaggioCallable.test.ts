@@ -18,8 +18,13 @@ describe('messaggioCallable', () => {
     expect(m(Object.assign(new Error('Firebase: Error'), { code: 'auth/network-request-failed' }))).toBe(RIPROVA)
     expect(m(new Error('INTERNAL'))).toBe(RIPROVA)
   })
-  it('failed-precondition tiene il testo del server pulito', () => {
-    expect(m(Object.assign(new Error('functions/failed-precondition: Invito scaduto [400]'), { code: 'functions/failed-precondition' }))).toBe('Invito scaduto')
+  it('il codice del server decide la frase, nella lingua dell’app', () => {
+    localStorage.setItem('groomly.lingua', 'de')
+    expect(m(Object.assign(new Error('Invito scaduto'), { code: 'functions/failed-precondition', details: { codice: 'invito_scaduto' } }))).toBe('Einladung abgelaufen')
+    localStorage.removeItem('groomly.lingua')
+  })
+  it('senza codice il testo italiano del server non si mostra', () => {
+    expect(m(Object.assign(new Error('functions/failed-precondition: Invito scaduto [400]'), { code: 'functions/failed-precondition' }))).toBe(FALLITO)
   })
   it('senza errore leggibile: fallito', () => {
     expect(m('x')).toBe(FALLITO)

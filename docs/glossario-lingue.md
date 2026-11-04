@@ -138,3 +138,17 @@ Usati in `src/i18n/de.ts`. Le altre lingue restano come sono.
 | Posto (in agenda) | Slot | Hueco | Créneau | Termin |
 | Orario | Time | Horario | Horaire | Uhrzeit |
 | Prezzo indicativo | Guide price | Precio orientativo | Prix indicatif | Richtpreis |
+## Aggiunte di T4
+
+Parole del Registro Excel e degli strumenti.
+
+| Italiano | Inglese | Spagnolo | Francese | Tedesco |
+|---|---|---|---|---|
+| Registro (Excel del backup) | Register | Registro | Registre | Register |
+| Padrone (colonna del Registro) | Owner | Dueño | Propriétaire | Besitzer |
+| Premio fedeltà | Loyalty reward | Premio de fidelidad | Récompense fidélité | Treueprämie |
+| Bagno + sistemazione | Bath and tidy-up | Baño y arreglo | Bain + finition | Bad + Nacharbeit |
+| Pelo corto, pelo lungo | Short coat, long coat | Pelo corto, pelo largo | Poil court, poil long | Kurzhaar, Langhaar |
+| Tosatrice | Clippers | Máquina de corte | Tondeuse | Schermaschine |
+| Annulla (dialogo) | Cancel | Cancelar | Annuler | Abbrechen |
+| Annulla (dopo un'azione) | Undo | Deshacer | Annuler | Rückgängig |

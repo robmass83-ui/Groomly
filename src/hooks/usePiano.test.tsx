@@ -229,7 +229,7 @@ describe('paywall avvisami', () => {
   })
 
   it('se la prova non parte il foglio resta aperto con il motivo', async () => {
-    callAvviaProva.mockRejectedValueOnce(new Error('Prova non disponibile'))
+    callAvviaProva.mockRejectedValueOnce(Object.assign(new Error('Prova non disponibile'), { code: 'functions/failed-precondition', details: { codice: 'prova_non_disponibile' } }))
     const user = userEvent.setup()
     render(<ConFinestra><Prova /></ConFinestra>)
     await user.click(screen.getByRole('button', { name: 'Prova' }))

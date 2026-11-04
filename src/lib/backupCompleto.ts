@@ -2,6 +2,7 @@ import JSZip from 'jszip'
 import type { BackupManifest, GroomlyDati } from './backupBundle'
 import { nomeSicuro } from './nomeSicuro'
 import { romeDay } from './romeTime'
+import { frase } from '../i18n/frase'
 
 function nomeSalone(manifest: BackupManifest): string {
   return manifest.salone.nome.trim() || 'Groomly'
@@ -26,21 +27,21 @@ function rigaMancante(row: GroomlyDati['fotoMancanti'][number]): string {
 function leggiMi(manifest: BackupManifest, mancanti: number): string {
   const counts = manifest.conteggi
   const lines = [
-    'Backup Groomly',
-    `Salone: ${nomeSalone(manifest)}`,
-    `Creato: ${manifest.creatoIl}`,
+    frase('bakLeggimiTitolo'),
+    frase('bakLeggimiSalone', { nome: nomeSalone(manifest) }),
+    frase('bakLeggimiCreato', { data: manifest.creatoIl }),
     '',
-    'Questo file contiene i dati del salone, il Registro Excel e le cartelle dei file.',
-    'Estrai lo ZIP prima di aprire l\'Excel, altrimenti i link alle cartelle non funzionano.',
+    frase('bakLeggimiCompleto'),
+    frase('bakLeggimiEstraiLink'),
     '',
-    `Cani: ${counts.cani}`,
-    `Clienti: ${counts.clienti}`,
-    `Appuntamenti: ${counts.appuntamenti}`,
-    `Foto: ${counts.foto}`,
-    `File del listino: ${counts.fileListino}`,
+    frase('bakLeggimiCani', { n: counts.cani }),
+    frase('bakLeggimiClienti', { n: counts.clienti }),
+    frase('bakLeggimiAppuntamenti', { n: counts.appuntamenti }),
+    frase('bakLeggimiFoto', { n: counts.foto }),
+    frase('bakLeggimiFileListino', { n: counts.fileListino }),
   ]
   if (mancanti > 0) {
-    lines.push('', `Foto non lette: ${mancanti}`, 'L\'elenco è in dati/foto-mancanti.txt.')
+    lines.push('', frase('bakLeggimiFotoNonLette', { n: mancanti }), frase('bakLeggimiFotoElenco'))
   }
   lines.push('')
   return lines.join('\n')
@@ -54,8 +55,8 @@ export async function backupCompleto(
 ): Promise<{ blob: Blob; name: string }> {
   const zip = new JSZip()
   const mancanti = raccolto.dati.fotoMancanti
-  zip.file('LEGGIMI.txt', leggiMi(raccolto.manifest, mancanti.length))
-  zip.file('Registro Groomly.xlsx', await registro.arrayBuffer(), { compression: 'STORE' })
+  zip.file(frase('bakFileLeggimi'), leggiMi(raccolto.manifest, mancanti.length))
+  zip.file(`${frase('regTitolo')}.xlsx`, await registro.arrayBuffer(), { compression: 'STORE' })
   zip.file('dati/manifest.json', JSON.stringify(raccolto.manifest, null, 2))
   zip.file('dati/groomly-dati.json', raccolto.json)
   if (mancanti.length > 0) zip.file('dati/foto-mancanti.txt', `${mancanti.map(rigaMancante).join('\n')}\n`)

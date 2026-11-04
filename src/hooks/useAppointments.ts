@@ -14,6 +14,7 @@ import { mergePendingAppointments } from '../lib/pendingPhoto'
 import { mergePersonalAppointments } from '../lib/personalSync'
 import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
+import { frase } from '../i18n/frase'
 
 function sortAppointments(items: Appointment[]): Appointment[] {
   return [...items].sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
@@ -140,7 +141,7 @@ export function useAppointments(uid: string) {
       if (cancelled) unsub()
       else stop = unsub
     }).catch(() => {
-      if (!cancelled) setError('Salvataggio non riuscito')
+      if (!cancelled) setError(frase('authSalvataggio'))
     })
     const stopAttesa = attendiServer(rivela)
     return () => {
@@ -177,7 +178,7 @@ export function useAppointments(uid: string) {
       return true
     } catch (caught) {
       if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'appointment_missing')) {
-        setError('Salvataggio non riuscito')
+        setError(frase('authSalvataggio'))
       }
       return false
     }
@@ -185,7 +186,7 @@ export function useAppointments(uid: string) {
 
   function fail(caught: unknown): boolean {
     if (caught instanceof AppError && (caught.code === 'storage_write' || caught.code === 'appointment_missing')) {
-      setError('Salvataggio non riuscito')
+      setError(frase('authSalvataggio'))
     }
     return false
   }

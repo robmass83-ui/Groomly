@@ -11,6 +11,7 @@ import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { UpdateNotice } from './UpdateNotice'
 import { LoadingSplash } from './LoadingSplash'
 import { segnaApertura } from '../lib/primoDato'
+import { frase } from '../i18n/frase'
 
 /** La home non resta coperta dopo l’accesso: lo splash esce appena il gate è pronto. */
 const SPLASH_KNOWN_MS = 0
@@ -65,7 +66,7 @@ function Gate({ isDev, memory, initialPath }: { isDev: boolean; memory: boolean;
     prepareBrowserHistory()
     return createBrowserRouter(routes)
   }, [isDev, memory, initialPath])
-  if (gate.kind === 'corrupt') return <p>Dati locali illeggibili</p>
+  if (gate.kind === 'corrupt') return <p>{frase('errDatiLocali')}</p>
   return (
     <>
       {ready ? <RouterProvider router={router} /> : null}

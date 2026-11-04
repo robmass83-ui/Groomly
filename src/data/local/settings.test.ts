@@ -14,6 +14,8 @@ function priceFile(id: string, extra: Partial<PriceFile> = {}): PriceFile {
   }
 }
 
+const PAROLE = { immagine: 'Immagine', pagina: '1 pagina', pagine: '{{n}} pagine' }
+
 describe('settings', () => {
   beforeEach(() => localStorage.clear())
 
@@ -155,17 +157,17 @@ describe('settings', () => {
   })
 
   it('priceFileMeta di un jpeg da 340000 byte contiene Immagine e KB', () => {
-    const meta = priceFileMeta(priceFile('foto', { mime: 'image/jpeg', byteSize: 340000, fileName: 'foto.jpg' }))
+    const meta = priceFileMeta(priceFile('foto', { mime: 'image/jpeg', byteSize: 340000, fileName: 'foto.jpg' }), PAROLE)
     expect(meta).toContain('Immagine')
     expect(meta).toContain('KB')
     expect(meta).toBe('Immagine · 332 KB')
   })
 
   it('priceFileMeta descrive un pdf senza pagine e le pagine lette', () => {
-    expect(priceFileMeta(priceFile('a'))).toBe('PDF · 2 KB')
-    expect(priceFileMeta(priceFile('a', { pageCount: 1 }))).toBe('1 pagina · 2 KB')
-    expect(priceFileMeta(priceFile('a', { pageCount: 2 }))).toBe('2 pagine · 2 KB')
-    expect(priceFileMeta(priceFile('a', { byteSize: Math.round(1.5 * 1024 * 1024) }))).toBe('PDF · 1,5 MB')
+    expect(priceFileMeta(priceFile('a'), PAROLE)).toBe('PDF · 2 KB')
+    expect(priceFileMeta(priceFile('a', { pageCount: 1 }), PAROLE)).toBe('1 pagina · 2 KB')
+    expect(priceFileMeta(priceFile('a', { pageCount: 2 }), PAROLE)).toBe('2 pagine · 2 KB')
+    expect(priceFileMeta(priceFile('a', { byteSize: Math.round(1.5 * 1024 * 1024) }), PAROLE)).toBe('PDF · 1,5 MB')
   })
 
   it('dropOldestPrice toglie l’ultimo elemento dello storico', () => {

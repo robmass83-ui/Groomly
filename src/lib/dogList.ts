@@ -1,7 +1,7 @@
 import { format, isSameDay } from 'date-fns'
 import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
 import { t, type Chiave } from '../i18n/t'
-import type { AgeCategory, Appointment, ClientType, Dog, DogSize, DogStatus, Sex, Species, Temperament } from '../types/models'
+import type { AgeCategory, Appointment, Dog, DogSize, Species } from '../types/models'
 import { nextAppointment, startOfLocalDay } from './appointments'
 import { dueSoon } from './cycle'
 import { ageText, shortOwner } from './display'
@@ -11,14 +11,6 @@ import { normalizeSearch } from './normalizza'
 export type DogTab = 'attivi' | 'mensili' | 'occasionali' | 'nuovi' | 'archivio'
 export type DogChip = 'tutti' | 'mordaci' | 'anziani' | 'in_agenda' | 'gatti' | 'altri'
 export type DogSort = 'alfabetico' | 'prossimo'
-
-export const SPECIES_LABEL: Record<Species, string> = { cane: 'Cane', gatto: 'Gatto', altro: 'Altro' }
-export const SEX_LABEL: Record<Sex, string> = { M: 'Maschio', F: 'Femmina' }
-export const AGE_LABEL: Record<AgeCategory, string> = { cucciolo: 'Cucciolo', giovane: 'Giovane', adulto: 'Adulto', anziano: 'Anziano' }
-export const SIZE_LABEL: Record<DogSize, string> = { piccola: 'Piccola', media: 'Media', grande: 'Grande' }
-export const TEMPERAMENT_LABEL: Record<Temperament, string> = { bravo: 'Bravo', agitato: 'Agitato', mordace: 'Mordace' }
-export const CLIENT_LABEL: Record<ClientType, string> = { mensile: 'Mensile', occasionale: 'Occasionale' }
-export const ARCHIVE_LABEL: Record<Exclude<DogStatus, 'attivo'>, string> = { non_in_cura: 'Non più in cura', deceduto: 'Deceduto' }
 
 export { normalizeSearch }
 

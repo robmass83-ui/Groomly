@@ -2,6 +2,7 @@ import JSZip from 'jszip'
 import type { BackupManifest } from './backupBundle'
 import { nomeSicuro } from './nomeSicuro'
 import { romeDay } from './romeTime'
+import { frase } from '../i18n/frase'
 
 function nomeSalone(manifest: BackupManifest): string {
   return manifest.salone.nome.trim() || 'Groomly'
@@ -10,20 +11,20 @@ function nomeSalone(manifest: BackupManifest): string {
 function leggiMi(manifest: BackupManifest): string {
   const counts = manifest.conteggi
   return [
-    'Backup Groomly',
-    `Salone: ${nomeSalone(manifest)}`,
-    `Creato: ${manifest.creatoIl}`,
+    frase('bakLeggimiTitolo'),
+    frase('bakLeggimiSalone', { nome: nomeSalone(manifest) }),
+    frase('bakLeggimiCreato', { data: manifest.creatoIl }),
     '',
-    'Questo file contiene i dati del salone e il Registro Excel.',
-    'Estrai lo ZIP prima di aprire l\'Excel.',
+    frase('bakLeggimiDati'),
+    frase('bakLeggimiEstrai'),
     '',
-    'Le cartelle delle foto arrivano con il backup completo.',
+    frase('bakLeggimiCartelle'),
     '',
-    `Cani: ${counts.cani}`,
-    `Clienti: ${counts.clienti}`,
-    `Appuntamenti: ${counts.appuntamenti}`,
-    `Foto: ${counts.foto}`,
-    `File del listino: ${counts.fileListino}`,
+    frase('bakLeggimiCani', { n: counts.cani }),
+    frase('bakLeggimiClienti', { n: counts.clienti }),
+    frase('bakLeggimiAppuntamenti', { n: counts.appuntamenti }),
+    frase('bakLeggimiFoto', { n: counts.foto }),
+    frase('bakLeggimiFileListino', { n: counts.fileListino }),
     '',
   ].join('\n')
 }
@@ -34,8 +35,8 @@ export async function backupZip(
   now: Date,
 ): Promise<{ blob: Blob; name: string }> {
   const zip = new JSZip()
-  zip.file('LEGGIMI.txt', leggiMi(raccolto.manifest))
-  zip.file('Registro Groomly.xlsx', await registro.arrayBuffer())
+  zip.file(frase('bakFileLeggimi'), leggiMi(raccolto.manifest))
+  zip.file(`${frase('regTitolo')}.xlsx`, await registro.arrayBuffer())
   zip.file('dati/manifest.json', JSON.stringify(raccolto.manifest, null, 2))
   zip.file('dati/groomly-dati.json', raccolto.json)
   const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' })

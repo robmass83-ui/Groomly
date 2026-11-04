@@ -1,17 +1,19 @@
 import { SERVICE_SEED } from '../data/seed/services'
 import type { Lingua } from './lingua'
 
-const PREDEFINITI = new Set(SERVICE_SEED.map((servizio) => servizio.name))
+// `Toelettatura` è la voce che il server mette quando la richiesta non ne ha.
+const PREDEFINITI = new Set([...SERVICE_SEED.map((servizio) => servizio.name), 'Toelettatura'])
 
 const TRADOTTI: Record<string, Record<Exclude<Lingua, 'it'>, string>> = {
-  Bagno: { en: 'Bath', es: 'Baño', fr: 'Bath', de: 'Bath' }, // LINGUE: da tradurre
-  'Taglio / tosatura': { en: 'Trim / clip', es: 'Corte / esquilado', fr: 'Trim / clip', de: 'Trim / clip' }, // LINGUE: da tradurre
-  'Bagno + taglio': { en: 'Bath and trim', es: 'Baño y corte', fr: 'Bath and trim', de: 'Bath and trim' }, // LINGUE: da tradurre
-  Stripping: { en: 'Stripping', es: 'Stripping', fr: 'Stripping', de: 'Stripping' }, // LINGUE: da tradurre
-  'Gestione nodi': { en: 'Dematting', es: 'Nudos', fr: 'Dematting', de: 'Dematting' }, // LINGUE: da tradurre
-  Dermatologico: { en: 'Medicated', es: 'Dermatológico', fr: 'Medicated', de: 'Medicated' }, // LINGUE: da tradurre
-  Antiparassitario: { en: 'Flea treatment', es: 'Antiparasitario', fr: 'Flea treatment', de: 'Flea treatment' }, // LINGUE: da tradurre
-  Unghie: { en: 'Nails', es: 'Uñas', fr: 'Nails', de: 'Nails' }, // LINGUE: da tradurre
+  Bagno: { en: 'Bath', es: 'Baño', fr: 'Bain', de: 'Bad' },
+  'Taglio / tosatura': { en: 'Trim / clip', es: 'Corte / esquilado', fr: 'Coupe / tonte', de: 'Schnitt / Schur' },
+  'Bagno + taglio': { en: 'Bath and trim', es: 'Baño y corte', fr: 'Bain + coupe', de: 'Bad + Schnitt' },
+  Stripping: { en: 'Stripping', es: 'Stripping', fr: 'Épilation', de: 'Trimmen' },
+  'Gestione nodi': { en: 'Dematting', es: 'Nudos', fr: 'Démêlage', de: 'Entfilzen' },
+  Dermatologico: { en: 'Medicated', es: 'Dermatológico', fr: 'Dermatologique', de: 'Dermatologisch' },
+  Antiparassitario: { en: 'Flea treatment', es: 'Antiparasitario', fr: 'Antiparasitaire', de: 'Antiparasitär' },
+  Toelettatura: { en: 'Grooming', es: 'Peluquería', fr: 'Toilettage', de: 'Fellpflege' },
+  Unghie: { en: 'Nails', es: 'Uñas', fr: 'Griffes', de: 'Krallen' },
 }
 
 export function nomeServizioVisibile(lingua: Lingua, nomeSalvato: string): string {

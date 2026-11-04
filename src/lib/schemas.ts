@@ -6,6 +6,8 @@ import type { DogDraft, ServiceInput, SizeTriple } from '../types/models'
 import { isStartTime } from './appointments'
 import { paeseDellIva, paeseIndovinato } from './paese'
 import { vatError } from './profile'
+import { frase } from '../i18n/frase'
+import type { Chiave } from '../i18n/t'
 
 const priceIconKeys = Object.keys(PRICE_ICONS) as [PriceIconKey, ...PriceIconKey[]]
 const priceKindSchema = z.enum(['da', 'fisso', 'valutazione'])
@@ -92,12 +94,15 @@ export const priceSheetSchema = z.object({
   updatedAt: z.string(),
 })
 
-const durationField = z.string().trim().regex(/^\d+$/, 'Minuti interi, minimo 1').transform(Number).refine((value) => value >= 1, 'Minuti interi, minimo 1')
+// Il messaggio si legge quando si valida: lo schema nasce una volta sola, la lingua può cambiare.
+const messaggio = (chiave: Chiave) => () => ({ message: frase(chiave) })
+
+const durationField = z.string().trim().refine((value) => /^\d+$/.test(value), messaggio('schedaMinutiInvalidi')).transform(Number).refine((value) => value >= 1, messaggio('schedaMinutiInvalidi'))
 
 const priceField = z.string().trim().transform((value, ctx) => {
   const normalized = value.replace(',', '.')
   if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Prezzo ≥ 0, al massimo due decimali' })
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: frase('schedaPrezzoInvalido') })
     return z.NEVER
   }
   return Number(normalized)
@@ -146,14 +151,14 @@ function sameTriple(value: number): SizeTriple {
 export const serviceFormSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('principale'),
-    name: z.string().trim().min(1, 'Il nome è obbligatorio'),
+    name: z.string().trim().refine((value) => value.length >= 1, messaggio('schedaNomeObbligatorio')),
     active: z.boolean(),
     durationMin: triple,
     price: priceTriple,
   }),
   z.object({
     kind: z.literal('extra'),
-    name: z.string().trim().min(1, 'Il nome è obbligatorio'),
+    name: z.string().trim().refine((value) => value.length >= 1, messaggio('schedaNomeObbligatorio')),
     active: z.boolean(),
     durationMin: durationField,
     price: priceField,
@@ -172,7 +177,7 @@ export const serviceFormSchema = z.discriminatedUnion('kind', [
 })
 
 export const dogFormSchema = z.object({
-  name: z.string().trim().min(1, 'Il nome è obbligatorio'),
+  name: z.string().trim().refine((value) => value.length >= 1, messaggio('schedaNomeObbligatorio')),
   species: z.enum(['cane', 'gatto', 'altro']),
   breed: z.string().trim(),
   sex: z.enum(['', 'M', 'F']),
@@ -181,7 +186,7 @@ export const dogFormSchema = z.object({
   temperament: z.enum(['bravo', 'agitato', 'mordace']),
   clientType: z.enum(['mensile', 'occasionale']),
   contactName: z.string().trim(),
-  phone: z.string().trim().min(1, 'Il telefono è obbligatorio'),
+  phone: z.string().trim().refine((value) => value.length >= 1, messaggio('schedaTelefonoObbligatorio')),
   notes: z.string().trim(),
   criticalNote: z.string().trim(),
 }).transform((value): DogDraft => ({
@@ -211,8 +216,8 @@ export interface AppointmentFormValues {
 }
 
 export const appointmentFormSchema = z.object({
-  dogId: z.string().min(1, 'Scegli un cane'),
-  serviceIds: z.array(z.string()).min(1, 'Scegli un servizio'),
-  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Scegli il giorno'),
-  time: z.string().refine(isStartTime, 'Scegli l’ora'),
+  dogId: z.string().refine((value) => value.length >= 1, messaggio('formScegliCane')),
+  serviceIds: z.array(z.string()).refine((value) => value.length >= 1, messaggio('formScegliServizio')),
+  day: z.string().refine((value) => /^\d{4}-\d{2}-\d{2}$/.test(value), messaggio('formScegliGiorno')),
+  time: z.string().refine(isStartTime, messaggio('formScegliOra')),
 })

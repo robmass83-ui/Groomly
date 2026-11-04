@@ -2,6 +2,7 @@ import { type Locale } from 'date-fns'
 import { de, enGB, es, fr, it } from 'date-fns/locale'
 import { dataBreve, euro } from '../i18n/format'
 import { LOCALE_INTL as INTL, type Lingua } from '../i18n/lingua'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 
 const LOCALI: Record<Lingua, Locale> = { it, en: enGB, es, fr, de }
 
@@ -17,9 +18,9 @@ export function maiuscolaIniziale(lingua: Lingua, testo: string): string {
 }
 
 export function formatEuro(amount: number): string {
-  return euro('it', amount)
+  return euro(leggiLinguaAttiva(), amount)
 }
 
 export function formatHomeDate(date: Date): string {
-  return dataBreve('it', date)
+  return dataBreve(leggiLinguaAttiva(), date)
 }

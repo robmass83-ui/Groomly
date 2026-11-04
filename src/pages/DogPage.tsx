@@ -34,7 +34,7 @@ import { usePlus } from '../hooks/usePlus'
 import { TesseraFedelta } from '../components/piano/TesseraFedelta'
 import { LinkWhatsApp, MessaggiPronti, STILE_ICONA_CONTATTO } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
-import { NOTA_PREMIO, ricalcolaFedelta } from '../lib/fedelta'
+import { NOTA_PREMIO, notaVisibile, ricalcolaFedelta } from '../lib/fedelta'
 import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
@@ -850,7 +850,7 @@ function HistoryVisit({ item, before, actions, onCorrect }: {
             <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
             <div style={{ fontWeight: 700, color: absent ? 'var(--bad)' : undefined, textDecoration: absent ? 'line-through' : undefined }}>{item.services.map((line) => line.name).join(', ')}</div>
             {absent ? <div style={{ color: 'var(--bad)' }}>{frasi.homeNonVenuto}</div> : <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>}
-            {!absent && actions && item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{item.adjustmentNote}</div> : null}
+            {!absent && actions && item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{notaVisibile(item.adjustmentNote, frasi.fedPremioNota)}</div> : null}
           </div>
           {change && changeLabel ? <span role="img" aria-label={changeLabel}>{change}</span> : null}
           {actions && !absent ? (
@@ -1174,7 +1174,7 @@ export function DogPage() {
         return
       }
       toast.show(frasi.schedaSalvatoNome.replace('{{nome}}', draft.name), 'ok', {
-        label: frasi.homeAnnulla,
+        label: frasi.toastAnnulla,
         onClick: () => {
           if (!api.remove(createdId, [])) {
             toast.show(frasi.authSalvataggio, 'plain')
@@ -1486,6 +1486,7 @@ export function DogPage() {
                   <MessaggiPronti
                     aspetto="icona"
                     telefono={phone}
+                    linguaCliente={dog.lingua}
                     quando={prossimaVisita?.start}
                     valori={{
                       nome: owner,

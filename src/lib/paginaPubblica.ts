@@ -2,7 +2,7 @@ import type { VoceCatalogo } from './catalogoPrenotazione'
 import { orariCompilati, type Fascia, type Giorno, type OrariSettimana } from './orari'
 import { specieAccettate, type SpeciePrenotabile } from './prenotazionePubblica'
 import { logoSicuro } from './logoPubblico'
-import type { Lingua } from '../i18n/lingua'
+import { LINGUE, NOMI_LINGUA, type Lingua } from '../i18n/lingua'
 
 export type LinguaPagina = Lingua
 
@@ -10,18 +10,16 @@ const GIORNI: Record<LinguaPagina, readonly string[]> = {
   it: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'],
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   es: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
-  // LINGUE: da tradurre
-  fr: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  de: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  fr: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+  de: ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'],
 }
 
 const COPY: Record<LinguaPagina, { prenota: string; gestito: string; privacy: string; lingue: string; spento: string; prezzi: string }> = {
   it: { prenota: 'Prenota un appuntamento', gestito: 'Gestito con', privacy: 'Privacy', lingue: 'Lingua', spento: 'Questo salone non accetta prenotazioni online.', prezzi: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.' },
   en: { prenota: 'Book an appointment', gestito: 'Run with', privacy: 'Privacy', lingue: 'Language', spento: 'This salon is not taking online bookings.', prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.' },
   es: { prenota: 'Reserva una cita', gestito: 'Gestionado con', privacy: 'Privacidad', lingue: 'Idioma', spento: 'Este salón no acepta reservas online.', prezzi: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.' },
-  // LINGUE: da tradurre
-  fr: { prenota: 'Book an appointment', gestito: 'Run with', privacy: 'Privacy', lingue: 'Language', spento: 'This salon is not taking online bookings.', prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.' },
-  de: { prenota: 'Book an appointment', gestito: 'Run with', privacy: 'Privacy', lingue: 'Language', spento: 'This salon is not taking online bookings.', prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.' },
+  fr: { prenota: 'Prendre rendez-vous', gestito: 'Géré avec', privacy: 'Confidentialité', lingue: 'Langue', spento: 'Ce salon ne prend pas de réservations en ligne.', prezzi: 'Les prix sont indicatifs. Ils peuvent changer une fois l’animal vu, en cas de nœuds ou de problèmes qui demandent plus de temps.' },
+  de: { prenota: 'Termin buchen', gestito: 'Verwaltet mit', privacy: 'Datenschutz', lingue: 'Sprache', spento: 'Dieser Salon nimmt keine Online-Buchungen an.', prezzi: 'Die Preise sind Richtwerte. Sie können sich ändern, wenn wir das Tier gesehen haben, zum Beispiel bei Knoten oder Problemen, die mehr Zeit brauchen.' },
 }
 
 function firmaFasce(fasce: unknown): string {
@@ -100,23 +98,26 @@ export function htmlPaginaPubblica(input: {
     input.indirizzo ? `<li><a href="${esc(mapsHref(input.indirizzo, input.placeId))}">${esc(input.indirizzo)}</a></li>` : '',
     input.telefono ? `<li><a href="${esc(telHref(input.telefono))}">${esc(input.telefono)}</a></li>` : '',
   ].filter(Boolean).join('')
-  return `<!DOCTYPE html><html lang="${input.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><title>${nome}</title><meta name="description" content="${testoOg}"><meta property="og:title" content="${nome}"><meta property="og:description" content="${testoOg}"><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingua('it', 'Italiano', input.lang)} · ${linkLingua('en', 'English', input.lang)} · ${linkLingua('es', 'Español', input.lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main><article class="scheda scheda-salone"><div class="identita">${marchio}<div>${input.prenotabile ? `<p class="kicker">${esc(copia.prenota)}</p>` : ''}<h1>${nome}</h1>${contatti ? `<ul class="contatti">${contatti}</ul>` : ''}${descrizione ? `<p class="muto">${esc(descrizione)}</p>` : ''}${orari ? `<p class="orari">${esc(orari)}</p>` : ''}</div></div></article><section id="prenota" class="scheda"><p class="nota" id="prezzi">${esc(copia.prezzi)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${input.lang}">${esc(copia.privacy)}</a></p></footer><script type="application/json" id="profilo">${profilo}</script><script type="application/json" id="catalogo">${catalogo}</script><script src="/s/pagina.js" defer></script></body></html>`
+  return `<!DOCTYPE html><html lang="${input.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><title>${nome}</title><meta name="description" content="${testoOg}"><meta property="og:title" content="${nome}"><meta property="og:description" content="${testoOg}"><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingue(input.lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main><article class="scheda scheda-salone"><div class="identita">${marchio}<div>${input.prenotabile ? `<p class="kicker">${esc(copia.prenota)}</p>` : ''}<h1>${nome}</h1>${contatti ? `<ul class="contatti">${contatti}</ul>` : ''}${descrizione ? `<p class="muto">${esc(descrizione)}</p>` : ''}${orari ? `<p class="orari">${esc(orari)}</p>` : ''}</div></div></article><section id="prenota" class="scheda"><p class="nota" id="prezzi">${esc(copia.prezzi)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${input.lang}">${esc(copia.privacy)}</a></p></footer><script type="application/json" id="profilo">${profilo}</script><script type="application/json" id="catalogo">${catalogo}</script><script src="/s/pagina.js" defer></script></body></html>`
 }
 
 const ASSENTE: Record<LinguaPagina, { titolo: string; testo: string }> = {
   it: { titolo: 'Indirizzo non trovato', testo: 'Questo link non porta a nessun salone. Controlla di averlo scritto bene, o chiedi al salone il link giusto.' },
   en: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
   es: { titolo: 'Dirección no encontrada', testo: 'Este enlace no lleva a ningún salón. Comprueba que está bien escrito o pide al salón el enlace correcto.' },
-  // LINGUE: da tradurre
-  fr: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
-  de: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
+  fr: { titolo: 'Adresse introuvable', testo: 'Ce lien ne mène à aucun salon. Vérifiez qu’il est bien écrit ou demandez le bon lien au salon.' },
+  de: { titolo: 'Adresse nicht gefunden', testo: 'Dieser Link führt zu keinem Salon. Prüfen Sie die Schreibweise oder fragen Sie den Salon nach dem richtigen Link.' },
 }
 
 /** Lo slug non corrisponde a nessun salone: niente scheda finta né riquadro delle prenotazioni, solo cosa fare. */
 export function htmlPaginaAssente(lang: LinguaPagina): string {
   const copia = COPY[lang]
   const assente = ASSENTE[lang]
-  return `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><meta name="robots" content="noindex"><title>${esc(assente.titolo)}</title><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingua('it', 'Italiano', lang)} · ${linkLingua('en', 'English', lang)} · ${linkLingua('es', 'Español', lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main style="grid-template-columns:minmax(0,1fr)"><section class="scheda"><h1>${esc(assente.titolo)}</h1><p class="muto">${esc(assente.testo)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${lang}">${esc(copia.privacy)}</a></p></footer></body></html>`
+  return `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><meta name="robots" content="noindex"><title>${esc(assente.titolo)}</title><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingue(lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main style="grid-template-columns:minmax(0,1fr)"><section class="scheda"><h1>${esc(assente.titolo)}</h1><p class="muto">${esc(assente.testo)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${lang}">${esc(copia.privacy)}</a></p></footer></body></html>`
+}
+
+function linkLingue(attiva: LinguaPagina): string {
+  return LINGUE.map((codice) => linkLingua(codice, NOMI_LINGUA[codice], attiva)).join(' · ')
 }
 
 function linkLingua(codice: LinguaPagina, etichetta: string, attiva: LinguaPagina): string {

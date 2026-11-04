@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { FRASI_AMMESSE } from './frasiAmmesse'
 import { FILE_AMMESSI, fileSorgente, fileTsx, frasiNelFile } from './frasiFisse'
 
 /** Tutte le schermate, salvo i test e le pagine di sviluppo (kit, anteprima beta). */
@@ -20,7 +21,7 @@ const trovate = new Map(sorgenti.map((file) => [file, frasiNelFile(join(process.
 describe('frasi fisse', () => {
   it('nessun file tiene una frase italiana fissa fuori dall’elenco di debito', () => {
     const nuove = [...trovate].flatMap(([file, frasi]) => frasi
-      .filter((frase) => !frasiDaPagare[file]?.includes(frase))
+      .filter((frase) => !frasiDaPagare[file]?.includes(frase) && !FRASI_AMMESSE[file]?.includes(frase))
       .map((frase) => `${file}: ${frase}`))
     expect(nuove).toEqual([])
   })

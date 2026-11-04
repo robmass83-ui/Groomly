@@ -19,7 +19,7 @@ function exportFixture(): ExportData {
     },
     servizi: [{ key: 'bagno', name: 'Bagno', count: 1, amount: 40 }],
     gruppi: [{ label: '1–7', count: 1, amount: 40 }],
-    gruppoTitolo: 'Settimana',
+    gruppoTitolo: 'settimana',
     rows: [{
       date: '02/09/2026',
       time: '09:30',

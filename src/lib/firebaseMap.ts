@@ -1,3 +1,4 @@
+import { linguaValida } from '../i18n/lingua'
 import { paeseValido } from './paese'
 import { backupPulito, blankSettings, readBadge, readExportPrefs, type SettingsMain } from '../data/local/settings'
 import {
@@ -233,6 +234,7 @@ export function dogToDoc(dog: Dog): Record<string, unknown> {
     status: dog.status,
     ...(dog.daRevisionare === true ? { daRevisionare: true } : {}),
     emailBloccata: dog.emailBloccata === true ? true : undefined,
+    lingua: dog.lingua,
     archivedAt: dog.archivedAt ? dateToMillis(dog.archivedAt) : undefined,
     searchKey: dog.searchKey,
     createdAt: dateToMillis(dog.createdAt),
@@ -303,6 +305,8 @@ export function dogFromDoc(pathId: string, data: Record<string, unknown>): Dog {
   if (removedPhotoIds.length > 0) dog.removedPhotoIds = removedPhotoIds
   if (pathId && pathId !== dog.id) dog.sourceDocId = pathId
   if (data.emailBloccata === true) dog.emailBloccata = true
+  const lingua = linguaValida(data.lingua)
+  if (lingua) dog.lingua = lingua
   return dog
 }
 

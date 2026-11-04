@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { hrefVoce, vociMenuPiani } from '../../lib/vociMenu'
 import type { Livello } from '../../lib/piano'
 import { PianoCard } from './PianoCard'
+import { frase } from '../../i18n/frase'
 
 export function SezionePiani({
   mostraPiani,
@@ -21,7 +22,7 @@ export function SezionePiani({
     <>
       {visibile ? <PianoCard livello={livello} provaUsata={provaUsata} onProva={onProva} onApri={() => undefined} /> : null}
       {vociMenuPiani(visibile).map((voce) => (
-        <Link key={voce} to={hrefVoce(voce)}>{voce}</Link>
+        <Link key={voce} to={hrefVoce(voce)}>{frase(voce)}</Link>
       ))}
     </>
   )

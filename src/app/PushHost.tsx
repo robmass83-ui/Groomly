@@ -14,6 +14,7 @@ import { PUSH_FIREBASE_CONFIGURED } from '../lib/pushFirebaseConfigured'
 import { idPushCompleta, mostraPushCompleta } from '../lib/pushDue'
 import { setPushStatus } from '../lib/pushStatus'
 import { programmaNotifiche } from '../lib/notificheLocali'
+import { frase } from '../i18n/frase'
 
 const PUSH_READY_KEY = 'groomly.pushUpdatesReady'
 const COMPLETE_CHANNEL = 'da-completare'
@@ -119,9 +120,9 @@ export function PushHost() {
           // Senza l'elenco il telefono registra comunque le push di questo accesso.
         }
         await Promise.all([
-          PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: 'Da completare', importance: 4 }),
-          PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: 'Aggiornamenti', importance: 4 }),
-          PushNotifications.createChannel({ id: REMINDER_CHANNEL, name: 'Promemoria', importance: 4 }),
+          PushNotifications.createChannel({ id: COMPLETE_CHANNEL, name: frase('pushDaCompletare'), importance: 4 }),
+          PushNotifications.createChannel({ id: UPDATE_CHANNEL, name: frase('relTitolo'), importance: 4 }),
+          PushNotifications.createChannel({ id: REMINDER_CHANNEL, name: frase('codaPromemoria'), importance: 4 }),
         ])
         await Promise.all([
           PushNotifications.addListener('registration', ({ value }) => {

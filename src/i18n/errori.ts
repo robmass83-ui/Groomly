@@ -3,13 +3,13 @@ import type { Lingua } from './lingua'
 type Riga = { it: string } & Partial<Record<Lingua, string>>
 
 const ERRORI: Record<string, Riga> = {
-  nome_preso: { it: 'Nome già preso', en: 'Name already taken', es: 'Nombre ya usado', fr: 'Name already taken', de: 'Name already taken' }, // LINGUE: da tradurre
-  scegli_cane: { it: 'Scegli un cane', en: 'Choose a dog', es: 'Elige un perro', fr: 'Choose a dog', de: 'Choose a dog' }, // LINGUE: da tradurre
-  email_valida: { it: 'Inserisci un’email valida', en: 'Enter a valid email address', es: 'Introduce un correo válido', fr: 'Enter a valid email address', de: 'Enter a valid email address' }, // LINGUE: da tradurre
-  invio: { it: 'Invio non riuscito', en: 'Couldn’t send', es: 'No se ha podido enviar', fr: 'Couldn’t send', de: 'Couldn’t send' }, // LINGUE: da tradurre
+  nome_preso: { it: 'Nome già preso', en: 'Name already taken', es: 'Nombre ya usado', fr: 'Nom déjà pris', de: 'Name schon vergeben' },
+  scegli_cane: { it: 'Scegli un cane', en: 'Choose a dog', es: 'Elige un perro', fr: 'Choisissez un chien', de: 'Wählen Sie einen Hund' },
+  email_valida: { it: 'Inserisci un’email valida', en: 'Enter a valid email address', es: 'Introduce un correo válido', fr: 'Saisissez une adresse e-mail valide', de: 'Geben Sie eine gültige E-Mail-Adresse ein' },
+  invio: { it: 'Invio non riuscito', en: 'Couldn’t send', es: 'No se ha podido enviar', fr: 'Envoi impossible', de: 'Senden fehlgeschlagen' },
   solo_inglese: { it: 'Solo italiano', en: 'English only' },
   solo_italiano: { it: 'Solo italiano' },
-  generico: { it: 'Qualcosa non ha funzionato', en: 'Something went wrong', es: 'Algo no ha funcionado', fr: 'Something went wrong', de: 'Something went wrong' }, // LINGUE: da tradurre
+  generico: { it: 'Qualcosa non ha funzionato', en: 'Something went wrong', es: 'Algo no ha funcionado', fr: 'Une erreur est survenue', de: 'Etwas ist schiefgelaufen' },
 }
 
 export function fraseErrore(lingua: Lingua, codice: string, valori: ValoriErrore = {}): string {

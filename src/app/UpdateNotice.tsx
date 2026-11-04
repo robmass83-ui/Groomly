@@ -8,15 +8,16 @@ import { Button } from '../components/ui/Button'
 import { Palleggio } from '../components/ui/Zampette'
 import { Dialog } from '../components/layout/Dialog'
 import { AppInstaller } from '../lib/appInstaller'
-import { isNewerVersion, urlApkConsentito, watchLatestRelease, type AppRelease } from '../lib/appRelease'
+import { isNewerVersion, noteInLingua, urlApkConsentito, watchLatestRelease, type AppRelease } from '../lib/appRelease'
 import { shouldScheduleLocalUpdate } from '../lib/pushDevice'
 import { registerUpdatePrompt } from '../lib/updatePrompt'
 import { APP_VERSION } from '../lib/appVersion'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 import { t } from '../i18n/t'
 import { TYPE } from '../theme/theme'
 import { programmaNotifiche } from '../lib/notificheLocali'
+import { frase } from '../i18n/frase'
 
 const UPDATE_NOTIFICATION_ID = 2
 const UPDATE_CHANNEL = 'aggiornamenti'
@@ -29,7 +30,7 @@ async function announceRelease(version: string): Promise<void> {
   try {
     await LocalNotifications.createChannel({
       id: UPDATE_CHANNEL,
-      name: 'Aggiornamenti',
+      name: frase('relTitolo'),
       importance: 4,
       visibility: 1,
     })
@@ -54,18 +55,19 @@ async function announceRelease(version: string): Promise<void> {
 }
 
 export function downloadLabel(received: number, total: number): string {
-  if (total <= 0) return 'Download…'
+  if (total <= 0) return frase('aggDownload')
   const percent = Math.floor((received * 100) / total)
   const clamped = Math.max(0, Math.min(100, percent))
-  return `Download ${clamped}%`
+  return frase('aggDownloadPct', { n: clamped })
 }
 
 export function UpdateNotice({ release }: { release?: AppRelease | null }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [offer, setOffer] = useState<AppRelease | null>(null)
   const [hidden, setHidden] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [label, setLabel] = useState('Scarica')
+  const [label, setLabel] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [awaitingPermission, setAwaitingPermission] = useState(false)
   const shown = useRef(true)
@@ -141,7 +143,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
           setAwaitingPermission(false)
           setNotice(null)
           setBusy(false)
-          setLabel('Scarica')
+          setLabel(null)
         })
       }
     }).then((registeredHandle) => {
@@ -187,20 +189,20 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
       if (!shown.current) return
       if (result.opened === 'settings') {
         setAwaitingPermission(true)
-        setNotice('Per installare, consenti le app di Groomly')
+        setNotice(frasi.aggConsenti)
       } else if (result.opened === 'none') {
         setAwaitingPermission(false)
-        setNotice('Download non riuscito')
+        setNotice(frasi.aggDownloadKo)
       } else {
         setAwaitingPermission(false)
         setNotice(null)
       }
     } catch {
-      if (shown.current) setNotice('Download non riuscito')
+      if (shown.current) setNotice(frasi.aggDownloadKo)
     } finally {
       if (shown.current) {
         setBusy(false)
-        setLabel('Scarica')
+        setLabel(null)
       }
     }
   }
@@ -212,7 +214,7 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     setHidden(true)
   }
 
-  const notes = offer.notes ?? []
+  const notes = noteInLingua(offer.notes ?? [], lingua)
 
   return (
     <Dialog open title={frasi.aggAdesso} onClose={dismiss}>
@@ -237,10 +239,10 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
           void Browser.open({ url: offer.url })
         }}
       >
-        {label}
+        {label ?? frasi.lisScarica}
       </Button>
       <Button variant="ghost" onClick={dismiss}>
-        Più tardi
+        {frasi.betaPiuTardi}
       </Button>
     </Dialog>
   )

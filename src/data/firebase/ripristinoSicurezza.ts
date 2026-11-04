@@ -7,8 +7,8 @@ import { loadCloudBackup, readSalonDoc, transactionSalon } from './client'
 import type { FirestoreApi } from './files'
 import { applicaFileRipristino, eliminaFileRipristino, leggiFileAttuali } from './ripristinoFile'
 import { salonRootPath } from './salonRoot'
+import { frase } from '../../i18n/frase'
 
-const ERRORE = 'Copia di sicurezza non riuscita'
 const LIMITE_JSON = 900000
 const LIMITE_BYTE = 80 * 1024 * 1024
 
@@ -38,12 +38,12 @@ function stringhe(value: unknown): string[] {
 function codiciDa(value: Record<string, unknown> | null): CodiciCaneDoc | null {
   if (value === null) return null
   const { next, cartella, byId } = value
-  if (typeof next !== 'number' || !Number.isInteger(next) || next < 1) throw new Error(ERRORE)
-  if (cartella !== 'cani' && cartella !== 'animali') throw new Error(ERRORE)
-  if (!isRecord(byId)) throw new Error(ERRORE)
+  if (typeof next !== 'number' || !Number.isInteger(next) || next < 1) throw new Error(frase('errCopiaSicurezza'))
+  if (cartella !== 'cani' && cartella !== 'animali') throw new Error(frase('errCopiaSicurezza'))
+  if (!isRecord(byId)) throw new Error(frase('errCopiaSicurezza'))
   const codes: Record<string, string> = {}
   for (const [id, code] of Object.entries(byId)) {
-    if (typeof code !== 'string' || code.length === 0) throw new Error(ERRORE)
+    if (typeof code !== 'string' || code.length === 0) throw new Error(frase('errCopiaSicurezza'))
     codes[id] = code
   }
   return { next, cartella, byId: codes }
@@ -56,11 +56,11 @@ export async function salvaCopiaCloud(uid: string, ids: readonly string[]): Prom
   const letti = await leggiFileAttuali(ids, fs, db)
   let totale = 0
   for (const file of letti.presenti) totale += file.byteSize
-  if (totale > LIMITE_BYTE) throw new Error(ERRORE)
+  if (totale > LIMITE_BYTE) throw new Error(frase('errCopiaSicurezza'))
   const precedente = await readSalonDoc('meta', 'ripristino-sicurezza')
   const nuovi = letti.presenti.map((file) => file.id)
   const documento = { bundle, codici, assenti: letti.assenti, presenti: nuovi }
-  if (JSON.stringify(documento).length > LIMITE_JSON) throw new Error(ERRORE)
+  if (JSON.stringify(documento).length > LIMITE_JSON) throw new Error(frase('errCopiaSicurezza'))
   await applicaFileRipristino(letti.presenti, fs, db, 'sicurezza')
   await transactionSalon(async (tx) => {
     tx.set('meta', 'ripristino-sicurezza', documento)
@@ -80,7 +80,7 @@ export async function leggiCopiaCloud(): Promise<CopiaCloud | null> {
   const richiesti = stringhe(saved.presenti)
   const { fs, db } = strumenti()
   const letti = await leggiFileAttuali(richiesti, fs, db, 'sicurezza')
-  if (richiesti.some((id) => letti.assenti.includes(id))) throw new Error(ERRORE)
+  if (richiesti.some((id) => letti.assenti.includes(id))) throw new Error(frase('errCopiaSicurezza'))
   return {
     bundle: saved.bundle as BackupBundle,
     codici: (saved.codici ?? null) as CodiciCaneDoc | null,

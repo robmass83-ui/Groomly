@@ -19,6 +19,7 @@ import { CompleanniAvviso } from './CompleanniAvviso'
 import { OrarioScadutoAvviso } from './OrarioScadutoAvviso'
 import { DriveInvioAuto } from './DriveInvioAuto'
 import { programmaNotifiche } from '../lib/notificheLocali'
+import { frase } from '../i18n/frase'
 
 const REMINDER_ID = 1
 const REMINDER_CHANNEL = 'promemoria-mensili'
@@ -73,7 +74,7 @@ function MonthlyReminderForAccount() {
         }
         await LocalNotifications.createChannel({
           id: REMINDER_CHANNEL,
-          name: 'Promemoria mensili',
+          name: frase('canaleMensili'),
           importance: 4,
           visibility: 1,
         })
@@ -83,7 +84,7 @@ function MonthlyReminderForAccount() {
         if (permission.display !== 'granted') return
         await programmaNotifiche([{
           id: REMINDER_ID,
-          title: 'Promemoria mensili',
+          title: frase('canaleMensili'),
           body: text,
           channelId: REMINDER_CHANNEL,
           schedule: { at, allowWhileIdle: true },

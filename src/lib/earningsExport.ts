@@ -41,7 +41,7 @@ export interface ExportData {
   pagamenti: EarningsSummary['pagamenti']
   servizi: ServiceShare[]
   gruppi: { label: string; count: number; amount: number }[]
-  gruppoTitolo: 'Settimana' | 'Mese'
+  gruppoTitolo: 'settimana' | 'mese'
   rows: ExportRow[]
   missed: ExportRow[]
   daChiudere: number
@@ -315,7 +315,7 @@ export function buildExportData(
     pagamenti: paymentSplit(done),
     servizi: serviceBreakdown(done, services).map((share) => ({ ...share, name: nomeServizioVisibile(lingua, share.name) })),
     gruppi: kind === 'mese' ? weekGroups(done, range, lingua) : monthGroups(done, range, lingua),
-    gruppoTitolo: kind === 'mese' ? 'Settimana' : 'Mese',
+    gruppoTitolo: kind === 'mese' ? 'settimana' : 'mese',
     rows: done.map((item) => completedRow(item, dogs, lingua)),
     missed: lost.map((item) => missedRow(item, dogs, lingua)),
     daChiudere: open.length,
@@ -355,7 +355,7 @@ export function toCsv(data: ExportData, include: ExportInclude): string {
     const importo = round2(data.servizi.reduce((sum, service) => sum + service.amount, 0))
     lines.push(`${frasi.totale};${volte};${csvMoney(importo)}`)
     lines.push('')
-    lines.push(`${data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana};${frasi.app};${frasi.importo}`)
+    lines.push(`${data.gruppoTitolo === 'mese' ? frasi.mese : frasi.settimana};${frasi.app};${frasi.importo}`)
     for (const group of data.gruppi) lines.push([csvField(group.label), String(group.count), csvMoney(group.amount)].join(';'))
   }
   return `\uFEFF${lines.join('\r\n')}\r\n`

@@ -5,14 +5,14 @@ import type { SettingsMain } from '../data/local/settings'
 import type { DogSize } from '../types/models'
 import type { Breed, PriceKind, PriceSheet, SheetSectionId } from '../types/priceSheet'
 import { priceSheetSchema } from './schemas'
+import { frase } from '../i18n/frase'
 
 export { iconForName } from './priceSheetIcon'
 
 export type BulkOp = 'p5' | 'p10' | 'e+1' | 'e-1' | 'round'
 
-export const NOME_SERVIZIO_NUOVO = 'Nuovo servizio'
-export const PRICE_SHEET_NOT_SAVED = 'Il listino non è stato salvato. Controlla nomi e prezzi.'
-export const PRICE_SHEET_UNREADABLE = 'Il listino salvato non è leggibile. Non l\'ho sostituito.'
+export const PRICE_SHEET_NOT_SAVED = 'listino-non-salvato'
+export const PRICE_SHEET_UNREADABLE = 'listino-illeggibile'
 
 export function getPriceSheet(settings: SettingsMain): PriceSheet {
   const parsed = priceSheetSchema.safeParse(settings.priceSheet)
@@ -29,7 +29,7 @@ export function savePriceSheet(
     return PRICE_SHEET_UNREADABLE
   }
   if (!priceSheetSchema.safeParse(next).success) return PRICE_SHEET_NOT_SAVED
-  if (!save({ ...settings, priceSheet: next })) return 'Salvataggio non riuscito'
+  if (!save({ ...settings, priceSheet: next })) return frase('authSalvataggio')
   return null
 }
 
@@ -164,7 +164,7 @@ export function duplicateBreed(sheet: PriceSheet, id: string, newId: () => strin
   const copy: Breed = {
     ...original,
     id: newId(),
-    nome: `${original.nome} (copia)`,
+    nome: frase('lisCopiaDi', { nome: original.nome }),
     voci: original.voci.map((voce) => ({ ...voce, id: newId() })),
   }
   const razze = sheet.razze.slice()

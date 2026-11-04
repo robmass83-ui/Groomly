@@ -33,7 +33,6 @@ import {
   duplicateBreed,
   getPriceSheet,
   iconForName,
-  NOME_SERVIZIO_NUOVO,
   PRICE_SHEET_NOT_SAVED,
   PRICE_SHEET_UNREADABLE,
   savePriceSheet,
@@ -559,8 +558,8 @@ export function PriceSheetManagePage() {
                           <button
                             key={key}
                             type="button"
-                            title={PRICE_ICONS[key].label}
-                            aria-label={PRICE_ICONS[key].label}
+                            title={frasi[PRICE_ICONS[key].label]}
+                            aria-label={frasi[PRICE_ICONS[key].label]}
                             onClick={() => { setVoce(index, { iconKey: key, iconaScelta: true }); setIconPick(null) }}
                             style={{
                               border: voce.iconKey === key ? '2px solid var(--pri)' : '1px solid var(--line)',
@@ -591,7 +590,7 @@ export function PriceSheetManagePage() {
                     {nomeVoceListino(lingua, nomeServizio)}
                   </button>
                 ))}
-                <button type="button" onClick={() => addVoce(NOME_SERVIZIO_NUOVO)} style={chipStyle(true)}>{frasi.manPersonalizzato}</button>
+                <button type="button" onClick={() => addVoce(frasi.srvNuovo)} style={chipStyle(true)}>{frasi.manPersonalizzato}</button>
               </div>
             </div>
           </div>

@@ -179,7 +179,7 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 800, fontSize: 13.5, ...USER_TEXT }}>{nome}</div>
-          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{descrizione}</div>
+          <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{nomeVoceListino(lingua, descrizione)}</div>
           <div style={{ fontSize: 11, marginTop: 2, ...USER_TEXT }}>{indirizzo} · {telefono}</div>
         </div>
       </Card>

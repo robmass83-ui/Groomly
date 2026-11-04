@@ -28,44 +28,44 @@ import avatarGeneric from './svg/avatar-generic.svg';
 
 /** Carattere del cane. `tone` = token colore usato per chip/sfondi tenui. */
 export const TEMPERAMENT_ICONS = {
-  bravo:   { src: bravo,   label: 'Bravo',   tone: 'ok'   },
-  agitato: { src: agitato, label: 'Agitato', tone: 'warn' },
-  mordace: { src: mordace, label: 'Mordace', tone: 'bad'  },
+  bravo:   { src: bravo,   label: 'schedaBravo',   tone: 'ok'   },
+  agitato: { src: agitato, label: 'schedaAgitato', tone: 'warn' },
+  mordace: { src: mordace, label: 'schedaMordace', tone: 'bad'  },
 } as const;
 
 /** Flag aggiuntivi (si sommano al carattere). */
 export const FLAG_ICONS = {
-  anziano: { src: anziano, label: 'Anziano', tone: 'sen' },
-  mensile: { src: mensile, label: 'Mensile', tone: 'tea' },
+  anziano: { src: anziano, label: 'schedaAnziano', tone: 'sen' },
+  mensile: { src: mensile, label: 'schedaMensile', tone: 'tea' },
 } as const;
 
 /** Servizi di default (chiave = `iconKey` nel catalogo servizi). */
 export const SERVICE_ICONS = {
-  bagno:            { src: bagno,            label: 'Bagno' },
-  taglio:           { src: taglio,           label: 'Taglio / tosatura' },
-  bagno_taglio:     { src: bagnoTaglio,      label: 'Bagno + taglio' },
-  nodi:             { src: nodi,             label: 'Gestione nodi' },
-  dermatologico:    { src: dermatologico,    label: 'Dermatologico' },
-  antiparassitario: { src: antiparassitario, label: 'Antiparassitario' },
+  bagno:            { src: bagno,            label: 'icoBagno' },
+  taglio:           { src: taglio,           label: 'icoTaglio' },
+  bagno_taglio:     { src: bagnoTaglio,      label: 'icoBagnoTaglio' },
+  nodi:             { src: nodi,             label: 'icoNodi' },
+  dermatologico:    { src: dermatologico,    label: 'icoDermatologico' },
+  antiparassitario: { src: antiparassitario, label: 'icoAntiparassitario' },
 } as const;
 
 export const PRICE_ICONS = {
   ...SERVICE_ICONS,
-  bagno_sistemazione: { src: bagnoSistemazione, label: 'Bagno + sistemazione' },
-  pelo_corto: { src: peloCorto, label: 'Pelo corto' },
-  pelo_lungo: { src: peloLungo, label: 'Pelo lungo' },
-  unghie: { src: unghie, label: 'Taglio unghie' },
-  orecchie: { src: orecchie, label: 'Pulizia orecchie' },
-  occhi: { src: occhi, label: 'Pulizia occhi' },
-  shampoo: { src: shampoo, label: 'Shampoo' },
-  tosatrice: { src: tosatrice, label: 'Tosatrice' },
+  bagno_sistemazione: { src: bagnoSistemazione, label: 'icoBagnoSistemazione' },
+  pelo_corto: { src: peloCorto, label: 'icoPeloCorto' },
+  pelo_lungo: { src: peloLungo, label: 'icoPeloLungo' },
+  unghie: { src: unghie, label: 'icoUnghie' },
+  orecchie: { src: orecchie, label: 'icoOrecchie' },
+  occhi: { src: occhi, label: 'icoOcchi' },
+  shampoo: { src: shampoo, label: 'icoShampoo' },
+  tosatrice: { src: tosatrice, label: 'icoTosatrice' },
 } as const;
 
 /** Strumenti e prodotti (storico trattamenti). */
 export const TOOL_ICONS = {
-  tosatrice: { src: tosatrice, label: 'Lama / tosatrice' },
-  shampoo:   { src: shampoo,   label: 'Shampoo' },
-  profumo:   { src: profumo,   label: 'Profumo' },
+  tosatrice: { src: tosatrice, label: 'icoLama' },
+  shampoo:   { src: shampoo,   label: 'icoShampoo' },
+  profumo:   { src: profumo,   label: 'icoProfumo' },
 } as const;
 
 export const AVATAR_PLACEHOLDER = avatarPlaceholder;

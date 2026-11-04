@@ -4,6 +4,7 @@ import logoScuro from '../assets/brand/groomly-logo-animato-scuro.svg'
 import scrittaChiara from '../assets/brand/groomly-logo-scritta.svg'
 import scrittaScura from '../assets/brand/groomly-logo-scritta-scuro.svg'
 import './loadingSplash.css'
+import { frase } from '../i18n/frase'
 
 const VIEW_W = 307
 const VIEW_H = 250
@@ -29,7 +30,7 @@ const pct = (part: number, whole: number) => `${(part / whole) * 100}%`
  */
 export function LoadingSplash({ leaving = false, greeting = null }: { leaving?: boolean; greeting?: string | null }) {
   return (
-    <div className={`loading-splash${leaving ? ' is-leaving' : ''}`} role="status" aria-label="Caricamento Groomly">
+    <div className={`loading-splash${leaving ? ' is-leaving' : ''}`} role="status" aria-label={frase('splashCaricamento')}>
       <div className="loading-splash__center">
         <div className="loading-splash__mark">
           <img className="loading-splash__logo loading-splash__logo--light" src={logoChiaro} alt="" />

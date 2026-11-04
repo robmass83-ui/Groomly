@@ -1,11 +1,12 @@
 import { addDays, addMonths, addWeeks, format, startOfMonth, startOfWeek } from 'date-fns'
-import type { Lingua } from '../i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration, sumPrice } from './appointments'
 import { appointmentKind } from './personal'
 import { meseAnno } from '../i18n/format'
 import { formatEuro, maiuscolaIniziale, opzioniDate } from './format'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 
 export type EarningsPeriod = 'giorno' | 'settimana' | 'mese'
 export type EarningsClass = 'incassato' | 'previsto' | 'perso' | 'da_chiudere' | 'escluso'
@@ -76,7 +77,7 @@ export function maskEuro(amount: number, hidden: boolean): string {
 }
 
 export function plainAmount(amount: number): string {
-  return new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat(LOCALE_INTL[leggiLinguaAttiva()], { maximumFractionDigits: 0 }).format(amount)
 }
 
 export interface EarningsBucket {

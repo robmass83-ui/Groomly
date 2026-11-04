@@ -1,5 +1,6 @@
 import { fitInside, openBitmap } from './dogPhoto'
 import { dataUrlToBytes } from './fileBytes'
+import { frase } from '../i18n/frase'
 
 export const FULL_MAX_SIDE = 1400
 export const FULL_REDUCED_SIDE = 1100
@@ -14,12 +15,11 @@ export const THUMB_HARD_MAX_BYTES = 25000
 export const THUMB_MAX_ATTEMPTS = 8
 export const THUMB_MIN_SIDE = 40
 
-export const PHOTO_TOO_LARGE = 'La foto è troppo grande per essere salvata. Prova con un’altra immagine.'
 export const FOTO_ALTRO = 'altro' as const
 
 export class PhotoTooLargeError extends Error {
   constructor() {
-    super(PHOTO_TOO_LARGE)
+    super(frase('schedaFotoGrande'))
     this.name = 'PhotoTooLargeError'
   }
 }

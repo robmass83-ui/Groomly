@@ -2,11 +2,11 @@ import type { PaymentMethod } from '../types/models'
 import { formatCompactDuration } from './display'
 
 export const NOTE_MAX = 280
-export const NA_PRICE_MESSAGE = 'Con N/A il prezzo deve essere 0'
-export const PRICE_NOTE_MESSAGE = 'Scrivi perché il prezzo è diverso'
+export const NA_PRICE_MESSAGE = 'prezzo-na'
+export const PRICE_NOTE_MESSAGE = 'prezzo-nota'
 
-export const INVALID_PRICE = 'Importo non valido'
-export const INVALID_TIME = 'Tempo non valido'
+export const INVALID_PRICE = 'importo-non-valido'
+export const INVALID_TIME = 'tempo-non-valido'
 
 export type ClosePatch = {
   total: number | null
@@ -24,7 +24,7 @@ export function formatSpent(minutes: number): string {
   return formatCompactDuration(minutes)
 }
 
-export function parseClosePrice(raw: string): { ok: true; value: number } | { ok: false; message: 'Importo non valido' } {
+export function parseClosePrice(raw: string): { ok: true; value: number } | { ok: false; message: typeof INVALID_PRICE } {
   const normalized = raw.trim().replace(',', '.')
   if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return { ok: false, message: INVALID_PRICE }
   return { ok: true, value: Number(normalized) }
@@ -33,7 +33,7 @@ export function parseClosePrice(raw: string): { ok: true; value: number } | { ok
 export function parseCloseDuration(
   hoursRaw: string,
   minutesRaw: string,
-): { ok: true; value: number } | { ok: false; message: 'Tempo non valido' } {
+): { ok: true; value: number } | { ok: false; message: typeof INVALID_TIME } {
   if (!/^\d+$/.test(hoursRaw) || !/^\d+$/.test(minutesRaw)) return { ok: false, message: INVALID_TIME }
   const hours = Number(hoursRaw)
   const minutes = Number(minutesRaw)

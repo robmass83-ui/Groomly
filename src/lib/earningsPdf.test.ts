@@ -76,7 +76,7 @@ function exportFixture(): ExportData {
     },
     servizi: [{ key: 'bagno', name: 'Bagno', count: 1, amount: 40 }],
     gruppi: [{ label: '1–7', count: 1, amount: 40 }],
-    gruppoTitolo: 'Settimana',
+    gruppoTitolo: 'settimana',
     rows: [{
       date: '02/09/2026',
       time: '09:30',
@@ -137,7 +137,7 @@ describe('toPdf', () => {
 
   it('con pagamento spento non scrive POS né la colonna Pagamento', () => {
     const data = exportFixture()
-    data.gruppoTitolo = 'Mese'
+    data.gruppoTitolo = 'mese'
     toPdf(data, { riepilogo: true, dettaglio: true, attivita: true, mancati: true })
     const openStart = (tables[0] as { startY: number }).startY
     expect(texts.join('\n')).toContain('POS')

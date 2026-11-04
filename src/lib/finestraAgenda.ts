@@ -1,3 +1,4 @@
+import { frase } from '../i18n/frase'
 const MESI = 13
 const GIORNI_VISTA_RAPIDA = 21
 let pavimento = inizioFinestraAgenda(new Date()).getTime()
@@ -38,7 +39,7 @@ export function agendaInAttesa(firebase: boolean, agendaPronta: boolean): boolea
 }
 
 export function testoAgendaVuota(inAttesa: boolean): string {
-  return inAttesa ? "Carico l'agenda…" : 'Nessun appuntamento'
+  return frase(inAttesa ? 'homeCaricoAgenda' : 'homeNessunAppuntamento')
 }
 
 export function mostraIncassoZero(inAttesa: boolean, importo: number): boolean {

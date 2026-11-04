@@ -1,8 +1,10 @@
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { DriveAuth, type DriveCopia } from './driveAuth'
 import { nomeSicuro } from './nomeSicuro'
+import { frase } from '../i18n/frase'
+import { LOCALE_INTL } from '../i18n/lingua'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
 
-const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic']
 const FILE_RIPRISTINO = 'groomly-drive-ripristino.zip'
 
 export function cartellaBackup(nome: string): string {
@@ -11,15 +13,16 @@ export function cartellaBackup(nome: string): string {
 
 export function etichettaCopia(giorno: string, nome: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(giorno)
-  const mese = match ? MESI[Number(match[2]) - 1] : undefined
-  if (!match || !mese) return nome
-  return `${Number(match[3])} ${mese} ${match[1]}`
+  if (!match) return nome
+  const giornoUtc = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  if (Number.isNaN(giornoUtc.getTime()) || giornoUtc.getUTCMonth() !== Number(match[2]) - 1) return nome
+  return new Intl.DateTimeFormat(LOCALE_INTL[leggiLinguaAttiva()], { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(giornoUtc)
 }
 
 export function messaggioRipristinoDrive(error: unknown): string {
-  if (error instanceof Error && error.message === 'telefono') return 'Il collegamento a Google Drive funziona sul telefono'
-  if (error instanceof Error && error.message === 'ricollega') return 'Ricollega Google Drive'
-  return 'Ripristino da Drive non riuscito'
+  if (error instanceof Error && error.message === 'telefono') return frase('bakSoloTelefono')
+  if (error instanceof Error && error.message === 'ricollega') return frase('bakRicollega')
+  return frase('bakRipristinoDriveKo')
 }
 
 export async function elencoCopie(cartella: string): Promise<DriveCopia[]> {

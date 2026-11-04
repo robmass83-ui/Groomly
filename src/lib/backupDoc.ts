@@ -1,7 +1,7 @@
 import { format, isSameDay } from 'date-fns'
 import { migrateMaps } from './migrate'
 import JSZip from 'jszip'
-import { AppError } from '../data/errors'
+import { erroreApp } from '../data/errors'
 import { readJson, storageKeys, writeJson } from '../data/local/storage'
 import type { Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
@@ -90,7 +90,7 @@ export function readRestoreBundle(value: unknown): BackupBundle | null {
 
 export function restoreBackup(uid: string, bundle: BackupBundle): void {
   const accepted = readRestoreBundle(bundle)
-  if (!accepted) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (!accepted) throw erroreApp('storage_write')
   const migrated = migrateMaps(
     accepted.dogs as Record<string, unknown>,
     accepted.appointments as Record<string, unknown>,

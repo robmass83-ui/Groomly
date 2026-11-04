@@ -387,3 +387,20 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Brevo: nessun template è in uso, niente da tradurre (`docs/DA-FARE-ROBERTO.md`).
 - Non provato su emulatore né con email vere: le frasi fr e de le ha scritte Claude e vanno lette da T7 con `campioneEmail`, ora 75 email.
 - Resta a T4: `src/lib/avvisoPiano.ts` (oggetto dell'email di piano in fr e de), `src/lib/paginaPubblica.ts`, le righe vecchie di `errori.ts`, la lettura di `dog.lingua`. Finché T4 e T6 non sono uniti i client non leggono i codici: il server funziona comunque come prima.
+
+## Cinque lingue — T4 App (5 novembre, ramo `claude/great-hamilton-2bc8bc`, non unito)
+- Spec `docs/superpowers/specs/2026-11-04-lingue-app-design.md`, piano `docs/superpowers/plans/2026-11-04-lingue-app.md`. Scelte in `docs/DECISIONI-AUTOMATICHE.md`.
+- Fatto:
+  - frasi fisse di `src/` nel catalogo: blocco `// Lingue T4` nei cinque file, `frase()` ed `erroreApp()` per il codice fuori dalle schermate;
+  - tabelle in cinque lingue: `report`, `listino`, `servizioVisibile`, `errori`, `avvisoPiano`, `paginaPubblica` (con i testi di T6), `messaggiManuali`;
+  - errori del server tradotti da `details.codice`, sul contratto di T5;
+  - Registro Excel, LEGGIMI, PDF ed Excel degli incassi, notifiche locali, `UpdateNotice`, note di rilascio per lingua;
+  - listino iniziale tradotto alla visualizzazione, con le voci che mancavano;
+  - `dog.lingua` letto, conservato al salvataggio e proposto in `PulsanteMessaggi`;
+  - debito di `src/` a zero: `debitoFrasi.json` ha solo `functions/`, `DEBITO_CATENE` solo i file di T5. I `// LINGUE: da tradurre` rimasti sono in file di T5.
+- Per la chiusura:
+  - `errori.ts` viene dal ramo di T5: va unito dopo T5, le differenze sono cinque righe;
+  - `SEGNAPOSTO_AMMESSI` è ancora `true`: va a `false` quando T5 è unito;
+  - `frasiFisse.test.ts`, `debitoFrasi.json` e `debitoLingue.ts` li tocca anche T5: conviene controllarli all'unione;
+  - le note della prossima release possono avere le sezioni `[en]`, `[es]`, `[fr]`, `[de]`: senza, chi non è italiano legge la frase generica.
+- Verifiche sul ramo: `npm run build` e `tsc` di app e functions verdi. I file di test toccati passano. La suite completa con tutte le correzioni va confermata sul risultato unito: sotto carico `ExportSheet` e `useAttesa` sono andati in timeout, da soli passano. Controllati font e output PDF. Non provato su emulatore o telefono: lunghezze a 320 px e schermate reali sono di T7.

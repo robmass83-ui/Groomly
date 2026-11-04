@@ -1,6 +1,6 @@
 import { PASSWORD_ITERATIONS, hashPassword, verifyPassword } from '../../lib/password'
 import type { AccountRole } from '../../lib/salonPath'
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 import { findCorruptGroomlyKey, readJson, storageKeys, writeJson } from './storage'
 
 export interface LocalAccount {
@@ -45,8 +45,8 @@ export async function createAccount(
   password: string,
   profile?: { firstName: string; lastName: string },
 ): Promise<LocalAccount> {
-  if (findCorruptGroomlyKey()) throw new AppError('Dati locali illeggibili', 'storage_corrupt')
-  if (getAccount()) throw new AppError('Account già presente', 'auth_exists')
+  if (findCorruptGroomlyKey()) throw erroreApp('storage_corrupt')
+  if (getAccount()) throw erroreApp('auth_exists')
   const hashed = await hashPassword(password, PASSWORD_ITERATIONS)
   const uid = crypto.randomUUID()
   const account: LocalAccount = {
@@ -69,48 +69,48 @@ export async function createAccount(
   try {
     localStorage.setItem(storageKeys.session, account.uid)
   } catch {
-    throw new AppError('Salvataggio non riuscito', 'storage_write')
+    throw erroreApp('storage_write')
   }
   return account
 }
 
 export async function cambiaPasswordLocale(attuale: string, nuova: string): Promise<void> {
   const account = getAccount()
-  if (!account) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!account) throw erroreApp('auth_invalid')
   const ok = await verifyPassword(attuale, account.salt, account.passwordHash, account.iterations)
-  if (!ok) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!ok) throw erroreApp('auth_invalid')
   const hashed = await hashPassword(nuova, PASSWORD_ITERATIONS)
   writeJson(storageKeys.auth, { ...account, passwordHash: hashed.passwordHash, salt: hashed.salt, iterations: hashed.iterations })
 }
 
 export async function cambiaEmailLocale(attuale: string, email: string): Promise<void> {
   const account = getAccount()
-  if (!account) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!account) throw erroreApp('auth_invalid')
   const ok = await verifyPassword(attuale, account.salt, account.passwordHash, account.iterations)
-  if (!ok) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!ok) throw erroreApp('auth_invalid')
   writeJson(storageKeys.auth, { ...account, email: email.trim().toLowerCase() })
 }
 
 export function aggiornaNomeLocale(firstName: string, lastName: string): LocalAccount {
   const account = getAccount()
-  if (!account) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!account) throw erroreApp('auth_invalid')
   const aggiornato = { ...account, firstName, lastName }
   writeJson(storageKeys.auth, aggiornato)
   return aggiornato
 }
 
 export async function login(email: string, password: string): Promise<LocalAccount> {
-  if (findCorruptGroomlyKey()) throw new AppError('Dati locali illeggibili', 'storage_corrupt')
+  if (findCorruptGroomlyKey()) throw erroreApp('storage_corrupt')
   const account = getAccount()
   if (!account || account.email !== normalizeEmail(email)) {
-    throw new AppError('Email o password non corretti', 'auth_invalid')
+    throw erroreApp('auth_invalid')
   }
   const ok = await verifyPassword(password, account.salt, account.passwordHash, account.iterations)
-  if (!ok) throw new AppError('Email o password non corretti', 'auth_invalid')
+  if (!ok) throw erroreApp('auth_invalid')
   try {
     localStorage.setItem(storageKeys.session, account.uid)
   } catch {
-    throw new AppError('Salvataggio non riuscito', 'storage_write')
+    throw erroreApp('storage_write')
   }
   return account
 }

@@ -53,7 +53,7 @@ describe('ConfermaRuolo', () => {
   })
 
   it('un errore di precondizione mostra il messaggio e resta aperto', async () => {
-    client.change.mockRejectedValueOnce(Object.assign(new Error('Accesso negato'), { code: 'functions/failed-precondition' }))
+    client.change.mockRejectedValueOnce(Object.assign(new Error('Accesso negato'), { code: 'functions/failed-precondition', details: { codice: 'accesso_negato' } }))
     const onChiudi = vi.fn()
     render(<ConfermaRuolo membro={anna} onChiudi={onChiudi} />)
     await userEvent.setup().click(screen.getByRole('button', { name: 'Conferma' }))

@@ -1,4 +1,4 @@
-import { AppError } from '../errors'
+import { erroreApp } from '../errors'
 import { salonCollection } from '../../lib/salonPath'
 
 let salonId: string | null = null
@@ -16,11 +16,11 @@ export function currentSalonId(): string | null {
 }
 
 export function salonDocPath(kind: string, id: string): string[] {
-  if (!salonId) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (!salonId) throw erroreApp('storage_write')
   return [...salonCollection(salonId), kind, id]
 }
 
 export function salonRootPath(): string[] {
-  if (!salonId) throw new AppError('Salvataggio non riuscito', 'storage_write')
+  if (!salonId) throw erroreApp('storage_write')
   return salonCollection(salonId)
 }

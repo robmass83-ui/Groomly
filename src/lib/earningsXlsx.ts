@@ -5,17 +5,19 @@ import { wantsPayment, type ExportData, type ExportInclude, type ExportRow } fro
 const MONEY = '#,##0.00'
 const DATE_FMT = 'dd/mm/yyyy'
 
-const WIDTH: Record<string, number> = {
-  Data: 12,
-  Ora: 8,
-  Cane: 18,
-  Proprietario: 22,
-  Servizi: 36,
-  'Durata (min)': 14,
-  'Importo (€)': 14,
-  Pagamento: 16,
-  Stato: 22,
-  'Importo mancato (€)': 20,
+function larghezze(frasi: FrasiReport): Record<string, number> {
+  return {
+    [frasi.data]: 12,
+    [frasi.ora]: 8,
+    [frasi.cane]: 18,
+    [frasi.proprietario]: 22,
+    [frasi.servizi]: 36,
+    [frasi.durata]: 14,
+    [frasi.importo]: 14,
+    [frasi.pagamento]: 16,
+    [frasi.stato]: 22,
+    [frasi.importoMancato]: 20,
+  }
 }
 
 function titleFill(): FillPattern {
@@ -105,7 +107,7 @@ export async function toXlsx(data: ExportData, include: ExportInclude): Promise<
       cell.font = titleFont()
       cell.fill = titleFill()
       const column = sheet.getColumn(index + 1)
-      column.width = WIDTH[header] ?? 16
+      column.width = larghezze(frasi)[header] ?? 16
       if (header === frasi.servizi) column.alignment = { wrapText: true }
     })
     rowNumber += 1
@@ -162,7 +164,7 @@ export async function toXlsx(data: ExportData, include: ExportInclude): Promise<
     serviceTotal.value = importo
     serviceTotal.numFmt = MONEY
     rowNumber += 2
-    ;[data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importo].forEach((header, index) => {
+    ;[data.gruppoTitolo === 'mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importo].forEach((header, index) => {
       sheet.getCell(rowNumber, index + 1).value = header
     })
     rowNumber += 1

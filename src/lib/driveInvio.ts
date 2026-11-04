@@ -9,6 +9,7 @@ import { cartellaBackup } from './driveRipristino'
 import { chiamaPonte, ponteBackup } from './ponteBackup'
 import { blobBase64 } from './shareFile'
 import { chiaveErroreDrive, millisecondiFrequenza, prossimoBackup } from './statoDrive'
+import { frase } from '../i18n/frase'
 
 export function chiaveInvioDrive(uid: string): string {
   return `groomly.users.${uid}.driveUltimoInvio`
@@ -23,11 +24,11 @@ export function invioDriveDovuto(uid: string, now: Date, frequenza?: string): bo
 }
 
 export function messaggioInvio(error: unknown): string {
-  if (error instanceof Error && error.message === 'telefono') return 'Il collegamento a Google Drive funziona sul telefono'
-  if (error instanceof Error && error.message === 'ricollega') return 'Ricollega Google Drive'
-  if (error instanceof Error && error.message === 'occupato') return 'Un altro telefono sta facendo il backup'
+  if (error instanceof Error && error.message === 'telefono') return frase('bakSoloTelefono')
+  if (error instanceof Error && error.message === 'ricollega') return frase('bakRicollega')
+  if (error instanceof Error && error.message === 'occupato') return frase('bakAltroTelefono')
   if (error instanceof AppError && error.code === 'backup_offline') return error.message
-  return 'Invio su Drive non riuscito'
+  return frase('bakInvioDriveKo')
 }
 
 // Nel backup notturno Capacitor non c'è: i file passano dal ponte di Android.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Card } from '../ui/Card'
-import { useFrasi } from '../../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { USER_TEXT } from '../../theme/text'
 import { rosterLabel, type SalonMember } from '../../lib/salonRoster'
 import { roleLabel } from '../../lib/salonAccess'
@@ -9,6 +9,7 @@ import { ConfermaRevoca } from './ConfermaRevoca'
 /** Con il piano Salone spento: chi è ancora collegato al salone del titolare, da togliere. */
 export function PersoneCollegate({ salonId }: { salonId: string }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const [membri, setMembri] = useState<SalonMember[]>([])
   const [daTogliere, setDaTogliere] = useState<SalonMember | null>(null)
 
@@ -42,7 +43,7 @@ export function PersoneCollegate({ salonId }: { salonId: string }) {
           <div key={membro.uid} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 9px', borderTop: '1px solid var(--line)' }}>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontWeight: 700, overflowWrap: 'anywhere', ...USER_TEXT }}>{rosterLabel(membro)}</span>
-              <span style={{ display: 'block', color: 'var(--tx2)', fontSize: 13 }}>{roleLabel(membro.role as 'socio' | 'collaboratore')}</span>
+              <span style={{ display: 'block', color: 'var(--tx2)', fontSize: 13 }}>{roleLabel(membro.role as 'socio' | 'collaboratore', lingua)}</span>
             </span>
             <button type="button" aria-label={frasi.teamTogliA.replace('{{nome}}', rosterLabel(membro))} onClick={() => setDaTogliere(membro)} style={{ height: 26, padding: 0, border: 0, background: 'transparent', color: 'var(--bad)', font: 'inherit', fontSize: 12, fontWeight: 650 }}>
               {frasi.teamTogli}

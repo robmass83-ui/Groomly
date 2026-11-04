@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   CHUNK_BYTES,
-  FILE_TOO_LARGE,
   INLINE_MAX_BYTES,
   bytesToDataUrl,
   dataUrlToBytes,
@@ -52,9 +51,5 @@ describe('fileBytes', () => {
     const joined = joinChunks(parts)
     expect(joined.length).toBe(bytes.length)
     expect(joined.every((value, index) => value === bytes[index])).toBe(true)
-  })
-
-  it('messaggio del file troppo grande', () => {
-    expect(FILE_TOO_LARGE).toBe('Il file pesa più di 10 MB. Riduci la scansione e riprova.')
   })
 })

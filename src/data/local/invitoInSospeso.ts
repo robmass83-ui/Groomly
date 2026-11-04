@@ -1,4 +1,6 @@
 import { INVITE_DAYS } from '../../lib/salonAccess'
+import { fraseErrore } from '../../i18n/errori'
+import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 
 // L'invito aperto da chi non è ancora dentro resta sul telefono finché non viene accettato o scade,
 // così registrarsi o entrare non lo fa perdere. Il token è lo stesso del link (64 esadecimali minuscoli).
@@ -39,11 +41,12 @@ export function dimenticaInvito(): void {
   }
 }
 
-// Risposte del server (in italiano) che non cambiano riprovando: l'invito ricordato va tolto,
+// Risposte del server che non cambiano riprovando: l'invito ricordato va tolto,
 // così il rimando non riporta alla pagina dell'invito. «Questo account ha già un salone»:
 // prima si torna al proprio salone, poi serve un nuovo invito.
-const DEFINITIVI = new Set(['Invito non valido', 'Invito scaduto', 'Posti esauriti', 'Questo account ha già un salone'])
+const DEFINITIVI = ['invito_non_valido', 'invito_scaduto', 'posti_esauriti', 'invito_account_con_salone'] as const
 
 export function erroreInvitoDefinitivo(messaggio: string): boolean {
-  return DEFINITIVI.has(messaggio)
+  const lingua = leggiLinguaAttiva()
+  return DEFINITIVI.some((codice) => fraseErrore(lingua, codice) === messaggio)
 }

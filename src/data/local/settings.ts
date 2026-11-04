@@ -1,4 +1,4 @@
-import type { Lingua } from '../../i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../../i18n/lingua'
 import { paeseValido, type CodicePaese } from '../../lib/paese'
 import { firebaseEnabled } from '../firebase/enabled'
 import type { ThemeChoice } from '../../theme/theme'
@@ -10,6 +10,7 @@ import { codaDaImpostazioni, type RigaCoda } from '../../lib/codaEmail'
 import { sceltaOperativa, type ChiaveServizioEmail, type ModoServizio, type SceltaServizio } from '../../lib/serviziEmail'
 import { leggiTourSalone, type TourSalone } from '../../lib/tourBenvenuto'
 import { readJson, storageKeys, writeJson } from './storage'
+import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 
 const CHIAVI_SERVIZI_EMAIL: ChiaveServizioEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa', 'fedelta']
 
@@ -371,21 +372,18 @@ const BYTES_IN_MB = 1024 * 1024
 
 function formatByteSize(byteSize: number): string {
   if (byteSize < BYTES_IN_MB) return `${Math.round(byteSize / 1024)} KB`
-  const formatted = new Intl.NumberFormat('it-IT', {
+  const formatted = new Intl.NumberFormat(LOCALE_INTL[leggiLinguaAttiva()], {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   }).format(byteSize / BYTES_IN_MB)
   return `${formatted} MB`
 }
 
-export function priceFileMeta(file: PriceFile, parole?: { immagine: string; pagina: string; pagine: string }): string {
+export function priceFileMeta(file: PriceFile, parole: { immagine: string; pagina: string; pagine: string }): string {
   const size = formatByteSize(file.byteSize)
-  const immagine = parole?.immagine ?? 'Immagine'
-  const pagina = parole?.pagina ?? '1 pagina'
-  const pagine = parole?.pagine ?? '{{n}} pagine'
-  if (file.mime.startsWith('image/')) return `${immagine} · ${size}`
+  if (file.mime.startsWith('image/')) return `${parole.immagine} · ${size}`
   if (typeof file.pageCount === 'number') {
-    const pages = file.pageCount === 1 ? pagina : pagine.replace('{{n}}', String(file.pageCount))
+    const pages = file.pageCount === 1 ? parole.pagina : parole.pagine.replace('{{n}}', String(file.pageCount))
     return `${pages} · ${size}`
   }
   return `PDF · ${size}`

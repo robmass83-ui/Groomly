@@ -10,7 +10,7 @@ import type { PriceFile, SettingsMain } from '../data/local/settings'
 import { readFileBlob, useFileState } from '../hooks/useFileSrc'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
-import { FILE_UNOPENABLE, isFileRef } from '../lib/fileBytes'
+import { isFileRef } from '../lib/fileBytes'
 import { openPdf, openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
 import { SIZES } from '../theme/sizes'
@@ -18,6 +18,7 @@ import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 import { AttesaRiga } from '../components/ui/Zampette'
+import { frase } from '../i18n/frase'
 
 function findPrice(settings: SettingsMain | null, id: string | null): PriceFile | undefined {
   if (!settings) return undefined
@@ -41,7 +42,7 @@ function openPricePdf(file: PriceFile): Promise<void> {
     return readFileBlob(dataUrl).then(
       (blob) => openPdfBlob(blob, fileName),
       () => {
-        throw new Error(FILE_UNOPENABLE)
+        throw new Error(frase('lisFileChiuso'))
       },
     )
   }
@@ -83,7 +84,7 @@ export function PriceViewPage() {
     let active = true
     openPricePdf(file).catch((error: unknown) => {
       if (!active) return
-      setPdfError(error instanceof Error && error.message !== FILE_UNOPENABLE ? error.message : frasi.lisFileChiuso)
+      setPdfError(error instanceof Error ? error.message : frasi.lisFileChiuso)
     })
     return () => {
       active = false
@@ -183,7 +184,7 @@ export function PriceViewPage() {
             <p style={noteStyle}>{pdfError ?? file.fileName}</p>
             <Button onClick={() => {
               void openPricePdf(file).catch((error: unknown) => {
-                setPdfError(error instanceof Error && error.message !== FILE_UNOPENABLE ? error.message : frasi.lisFileChiuso)
+                setPdfError(error instanceof Error ? error.message : frasi.lisFileChiuso)
               })
             }}
             >

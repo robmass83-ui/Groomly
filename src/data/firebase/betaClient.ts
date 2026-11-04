@@ -7,10 +7,12 @@ import { callCallableData, database, loadFirestore } from './client'
 /** Errore di una callable beta: `message` è il testo del server da mostrare, vuoto se non c'è niente di utile. */
 export class ErroreBeta extends Error {
   readonly code: string
-  constructor(message: string, code: string) {
+  readonly details: unknown
+  constructor(message: string, code: string, details?: unknown) {
     super(message)
     this.name = 'ErroreBeta'
     this.code = code
+    this.details = details
   }
 }
 
@@ -18,7 +20,8 @@ function comeErroreBeta(error: unknown): ErroreBeta {
   const testo = error instanceof Error ? error.message.trim() : ''
   const code = error && typeof error === 'object' && 'code' in error && typeof error.code === 'string' ? error.code : ''
   const generico = testo === '' || testo.startsWith('Firebase') || testo === 'internal' || code.endsWith('/internal') || code.endsWith('/unavailable')
-  return new ErroreBeta(generico ? '' : testo, code)
+  const details = error && typeof error === 'object' && 'details' in error ? error.details : undefined
+  return new ErroreBeta(generico ? '' : testo, code, details)
 }
 
 async function chiama(nome: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {

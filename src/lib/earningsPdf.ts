@@ -4,6 +4,7 @@ import type { Lingua } from '../i18n/lingua'
 import { euro as euroVisibile } from '../i18n/format'
 import { frasiReport } from '../i18n/report'
 import { wantsPayment, type ExportData, type ExportInclude } from './earningsExport'
+import { t } from '../i18n/t'
 
 const MARGIN = 14
 
@@ -61,7 +62,7 @@ function detailBody(data: ExportData, payment: boolean): RowInput[] {
   const frasi = frasiReport(data.lingua ?? 'it')
   const lingua = data.lingua ?? 'it'
   const body: RowInput[] = []
-  if (data.gruppoTitolo === 'Mese') {
+  if (data.gruppoTitolo === 'mese') {
     let month = ''
     let sum = 0
     const flush = () => {
@@ -99,7 +100,7 @@ function groupBody(data: ExportData): RowInput[] {
   const frasi = frasiReport(data.lingua ?? 'it')
   const lingua = data.lingua ?? 'it'
   const rows: RowInput[] = data.gruppi.map((group) => [group.label, String(group.count), euro(group.amount, lingua)])
-  if (data.gruppoTitolo !== 'Mese') return rows
+  if (data.gruppoTitolo !== 'mese') return rows
   const count = data.gruppi.reduce((sum, group) => sum + group.count, 0)
   const amount = round2(data.gruppi.reduce((sum, group) => sum + group.amount, 0))
   rows.push([bold(frasi.totale), bold(String(count)), bold(euro(amount, lingua))])
@@ -124,11 +125,11 @@ function drawTable(doc: PdfDoc, options: UserOptions): number {
   return (doc.lastAutoTable?.finalY ?? start) + 6
 }
 
-function footerStamp(date: Date): string {
+function footerStamp(date: Date, lingua: Lingua): string {
   const pad = (value: number) => String(value).padStart(2, '0')
   const day = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`
   const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`
-  return `Generato con Groomly il ${day} alle ${time} · documento riepilogativo, non è una fattura`
+  return t(lingua, 'incGenerato', { giorno: day, ora: time })
 }
 
 function heading(doc: PdfDoc, text: string, x: number, y: number) {
@@ -203,7 +204,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
   if (include.riepilogo) {
     const gap = 4
     const half = (width - MARGIN * 2 - gap) / 2
-    if (data.gruppoTitolo === 'Settimana') {
+    if (data.gruppoTitolo === 'settimana') {
       heading(doc, frasi.perServizio, MARGIN, y)
       heading(doc, frasi.perSettimana, MARGIN + half + gap, y)
       y += 4
@@ -235,7 +236,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
       heading(doc, frasi.perMese, MARGIN, y)
       y += 4
       y = drawTable(doc, tableOptions(y, {
-        head: [[data.gruppoTitolo === 'Mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importoBreve]],
+        head: [[data.gruppoTitolo === 'mese' ? frasi.mese : frasi.settimana, frasi.app, frasi.importoBreve]],
         body: groupBody(data),
         columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
       }))
@@ -272,7 +273,7 @@ export function toPdf(data: ExportData, include: ExportInclude): Blob {
   }
 
   const pages = doc.getNumberOfPages()
-  const stamp = footerStamp(data.generatedAt)
+  const stamp = footerStamp(data.generatedAt, data.lingua ?? 'it')
   for (let page = 1; page <= pages; page += 1) {
     doc.setPage(page)
     doc.setFont('helvetica', 'normal')

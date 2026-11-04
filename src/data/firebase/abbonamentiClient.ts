@@ -1,4 +1,5 @@
 import type { Controllo } from '../../lib/accensione'
+import { frase } from '../../i18n/frase'
 
 // Callable operatore degli abbonamenti (fase 4). Le usa il PannelloAccensione e, per l'annuncio, la scheda Piani dell'Admin Manager.
 async function chiama(nome: string, dati: Record<string, unknown> = {}): Promise<unknown> {
@@ -8,7 +9,7 @@ async function chiama(nome: string, dati: Record<string, unknown> = {}): Promise
 
 export async function controlloAccensione(): Promise<Controllo> {
   const dati = await chiama('controlloAccensione')
-  if (!dati || typeof dati !== 'object' || !Array.isArray((dati as Controllo).voci)) throw new Error('Risposta non valida')
+  if (!dati || typeof dati !== 'object' || !Array.isArray((dati as Controllo).voci)) throw new Error(frase('b4ErroreAdmin'))
   return dati as Controllo
 }
 

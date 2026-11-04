@@ -4,9 +4,8 @@ import { sha256Hex } from './backupBundle'
 import { readRestoreBundle, type BackupBundle } from './backupDoc'
 import { FILE_MAX_BYTES } from './fileBytes'
 import { readTombstone, tombstoneRejectsDog } from './tombstone'
+import { frase } from '../i18n/frase'
 
-const FILE = 'File non valido'
-const INTERNO = 'Questo è il JSON interno. Ripristina lo ZIP di Backup ZIP.'
 
 const LIMITE_FILE = 200
 const LIMITE_BYTE = 80 * 1024 * 1024
@@ -82,30 +81,30 @@ async function leggiCompleto(
   parsed: Record<string, unknown>,
   pronto: { bundle: BackupBundle; codici: CodiciCaneDoc },
 ): Promise<EsitoRipristino> {
-  if (!isRecord(parsed.files)) return rifiuto(FILE)
+  if (!isRecord(parsed.files)) return rifiuto(frase('bakFileNonValido'))
   const pronti: FileInCorso[] = []
   const percorsi = new Set<string>()
   for (const [id, value] of Object.entries(parsed.files)) {
     const voce = leggiVoce(id, value)
-    if (!voce) return rifiuto(FILE)
+    if (!voce) return rifiuto(frase('bakFileNonValido'))
     if (voce.esito === 'mancante') continue
-    if (percorsi.has(voce.file.percorso)) return rifiuto(FILE)
+    if (percorsi.has(voce.file.percorso)) return rifiuto(frase('bakFileNonValido'))
     percorsi.add(voce.file.percorso)
     pronti.push(voce.file)
   }
-  if (pronti.length > LIMITE_FILE) return rifiuto(FILE)
-  if (pronti.reduce((sum, file) => sum + file.byteSize, 0) > LIMITE_BYTE) return rifiuto(FILE)
+  if (pronti.length > LIMITE_FILE) return rifiuto(frase('bakFileNonValido'))
+  if (pronti.reduce((sum, file) => sum + file.byteSize, 0) > LIMITE_BYTE) return rifiuto(frase('bakFileNonValido'))
   const file: FileRipristino[] = []
   for (const item of pronti) {
     const entry = zip.file(item.percorso)
-    if (!entry) return rifiuto(FILE)
+    if (!entry) return rifiuto(frase('bakFileNonValido'))
     let letti: Uint8Array
     try {
       letti = await entry.async('uint8array')
     } catch {
-      return rifiuto(FILE)
+      return rifiuto(frase('bakFileNonValido'))
     }
-    if (letti.length !== item.byteSize) return rifiuto(FILE)
+    if (letti.length !== item.byteSize) return rifiuto(frase('bakFileNonValido'))
     const { percorso, ...rest } = item
     void percorso
     file.push({ ...rest, bytes: new Uint8Array(letti) })
@@ -157,35 +156,35 @@ async function leggiZip(bytes: Uint8Array): Promise<EsitoRipristino> {
   try {
     zip = await JSZip.loadAsync(bytes)
   } catch {
-    return rifiuto(FILE)
+    return rifiuto(frase('bakFileNonValido'))
   }
   const manifestFile = zip.file('dati/manifest.json')
   const datiFile = zip.file('dati/groomly-dati.json')
-  if (!manifestFile || !datiFile) return rifiuto(FILE)
+  if (!manifestFile || !datiFile) return rifiuto(frase('bakFileNonValido'))
   const manifestText = await manifestFile.async('string')
   const json = await datiFile.async('string')
   let manifest: unknown
   try {
     manifest = JSON.parse(manifestText) as unknown
   } catch {
-    return rifiuto(FILE)
+    return rifiuto(frase('bakFileNonValido'))
   }
-  if (!isRecord(manifest) || manifest.formato !== 'groomly-backup' || manifest.versioneFormato !== 1) return rifiuto(FILE)
+  if (!isRecord(manifest) || manifest.formato !== 'groomly-backup' || manifest.versioneFormato !== 1) return rifiuto(frase('bakFileNonValido'))
   const checksums = manifest.checksum
   const checksum = isRecord(checksums) ? checksums['groomly-dati.json'] : undefined
-  if (typeof checksum !== 'string' || await sha256Hex(json) !== checksum) return rifiuto(FILE)
+  if (typeof checksum !== 'string' || await sha256Hex(json) !== checksum) return rifiuto(frase('bakFileNonValido'))
   let parsed: unknown
   try {
     parsed = JSON.parse(json) as unknown
   } catch {
-    return rifiuto(FILE)
+    return rifiuto(frase('bakFileNonValido'))
   }
-  if (!isRecord(parsed)) return rifiuto(FILE)
+  if (!isRecord(parsed)) return rifiuto(frase('bakFileNonValido'))
   const codici = leggiCodici(parsed.codiciCane)
   const pronto = codici ? bundleDati(parsed, codici) : null
-  if (!pronto) return rifiuto(FILE)
+  if (!pronto) return rifiuto(frase('bakFileNonValido'))
   if (manifest.tipo === 'completo') return leggiCompleto(zip, parsed, pronto)
-  if (manifest.tipo !== 'solo-dati') return rifiuto(FILE)
+  if (manifest.tipo !== 'solo-dati') return rifiuto(frase('bakFileNonValido'))
   return { esito: 'solo-dati', bundle: pronto.bundle, codici: pronto.codici }
 }
 
@@ -194,11 +193,11 @@ function leggiJson(bytes: Uint8Array): EsitoRipristino {
   try {
     parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown
   } catch {
-    return rifiuto(FILE)
+    return rifiuto(frase('bakFileNonValido'))
   }
-  if (isRecord(parsed) && 'versioneFormato' in parsed) return rifiuto(INTERNO)
+  if (isRecord(parsed) && 'versioneFormato' in parsed) return rifiuto(frase('bakJsonInterno'))
   const bundle = readRestoreBundle(parsed)
-  if (!bundle) return rifiuto(FILE)
+  if (!bundle) return rifiuto(frase('bakFileNonValido'))
   return { esito: 'vecchio', bundle }
 }
 

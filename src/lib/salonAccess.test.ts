@@ -92,7 +92,8 @@ describe('salonAccess', () => {
     })).toMatchObject({ ok: true, email: 'nuova@salone.it', role: 'collaboratore' })
     const ok = createInviteDecision({ caller, proEnabled: true, email: ' Nuova@Salone.it ', role: 'collaboratore', members, invites: [], now })
     expect(ok).toMatchObject({ ok: true, email: 'nuova@salone.it', role: 'collaboratore' })
-    expect(roleLabel('socio')).toBe('Socio')
+    expect(roleLabel('socio', 'it')).toBe('Socio')
+    expect(roleLabel('collaboratore', 'de')).toBe('Mitarbeiter')
     expect(inviteLink('abc')).toBe('https://groomly-3128b.web.app/invito/abc')
   })
 
