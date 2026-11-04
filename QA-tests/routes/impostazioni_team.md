@@ -56,7 +56,7 @@ Sorgente: `src/pages/ProPage.tsx`
   ],
   "buttons": [
    {
-    "label": "Invita nuovo collaboratore",
+    "label": "Invita una persona",
     "destructive": false,
     "opens": "dialog:Invita (solo con piano attivo)"
    },

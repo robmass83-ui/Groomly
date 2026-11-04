@@ -23,7 +23,7 @@
 ### TC-01: Happy path - titolare con piano Plus
 1. Sign in as titolare (piano Plus). Navigate to `/impostazioni/team`.
 2. Assert: URL is `/impostazioni/pro`.
-3. Assert: titolo "Funzioni Plus" visibile e nessun elenco membri né pulsante **Invita nuovo collaboratore**.
+3. Assert: titolo "Funzioni Plus" visibile e nessun elenco membri né pulsante **Invita una persona**.
 
 ### TC-02: Titolare free
 1. Sign out. Sign in as titolare-go. Navigate to `/impostazioni/team`.

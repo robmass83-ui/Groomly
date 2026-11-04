@@ -308,7 +308,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                   }}
                 >
                   <Plus size={16} strokeWidth={1.8} aria-hidden />
-                  Invita nuovo collaboratore
+                  {frasi.teamInvitaPersona}
                 </button>
               </Card>
             )}
@@ -333,12 +333,12 @@ export function ProPage({ titolo }: { titolo?: string }) {
           </>
         )}
       </div>
-      <Dialog open={inviteOpen} title="Invita" onClose={() => setInviteOpen(false)}>
-        <form aria-label="Invita" noValidate onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <Dialog open={inviteOpen} title={frasi.teamInvitaTitolo} onClose={() => setInviteOpen(false)}>
+        <form aria-label={frasi.teamInvitaTitolo} noValidate onSubmit={(event) => { void send(event) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <p style={{ margin: 0, color: 'var(--tx2)', fontSize: 13, lineHeight: 1.4 }}>{frasi.proRuoloDettaglio}</p>
-          <Input label="Email" type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
+          <Input label={frasi.teamInvitaEmail} type="email" value={email} error={error || undefined} onChange={(event) => setEmail(event.target.value)} />
           <RoleChoice value={inviteRole} onChange={setInviteRole} />
-          <Button type="submit" size="sm" disabled={sending} aria-busy={sending || undefined} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>Invia</Button>
+          <Button type="submit" size="sm" disabled={sending} aria-busy={sending || undefined} style={{ alignSelf: 'flex-end', minHeight: 32, padding: '0 14px' }}>{frasi.teamInvitaInvia}</Button>
           {notice ? <p style={{ margin: 0, ...USER_TEXT }}>{notice}</p> : null}
           <AttesaZampe testo={sending ? frasi.authInvio : null} />
         </form>
