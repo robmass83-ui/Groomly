@@ -34,8 +34,8 @@ export type PianoValore = {
   // Salone personale in pausa mentre si lavora in un altro; null se non lo è.
   pausa?: PausaSalone | null
   // Traccia della beta (exBeta, date, early adopter) e blocco piani di config/globale.
-  traccia: TracciaBeta
-  configPiani: ConfigPiani
+  traccia?: TracciaBeta
+  configPiani?: ConfigPiani
 }
 
 const spento: PianoValore = {

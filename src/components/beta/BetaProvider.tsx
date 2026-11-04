@@ -142,7 +142,7 @@ export function BetaProvider({ children }: { children: ReactNode }) {
   }, [salonId])
 
   const valore = useMemo<ValoreBeta>(() => {
-    const stato = faseBeta({ invito: titolare ? invito : null, stato: piano.stato, traccia: piano.traccia ?? {}, adesso }) // i piani finti dei test vecchi non hanno la traccia
+    const stato = faseBeta({ invito: titolare ? invito : null, stato: piano.stato, traccia: piano.traccia ?? {}, adesso })
     const avvisi = avvisiBeta(stato, adesso, { feedbackInviatoIl })
     return {
       ...stato,

@@ -54,6 +54,7 @@ import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
 import { PianoPage } from '../pages/PianoPagine'
 import { AbbonamentoPage, PianoAbbonamentoPage } from '../pages/AbbonamentoPage'
+import { BetaInvitoPage } from '../pages/BetaInvitoPage'
 import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { isOperator } from '../lib/salonPath'
@@ -185,6 +186,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/strumenti', element: <Navigate to="/impostazioni/abbonamento" replace /> },
     { path: '/impostazioni/abbonamento', element: <Guard><AbbonamentoPage /></Guard> },
     { path: '/impostazioni/abbonamento/:piano', element: <Guard><PianoAbbonamentoPage /></Guard> },
+    { path: '/impostazioni/beta', element: <Guard><BetaInvitoPage /></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },

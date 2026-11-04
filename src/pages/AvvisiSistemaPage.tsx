@@ -1,5 +1,7 @@
 import { Bell, CheckCheck, Gift, Plus, Sparkles, Trash2, TriangleAlert, Wrench, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { AvvisiBetaLista } from '../components/beta/AvvisiBetaLista'
+import { useBeta } from '../components/beta/BetaProvider'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -30,6 +32,7 @@ export function AvvisiSistemaPage() {
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const operatore = isOperator(account?.email)
   const { avvisi, lettiFino, pronti, segnaLetti } = useAvvisiSistema(account?.uid ?? '')
+  const avvisiBeta = useBeta().avvisi
   // Cosa era già letto quando si è aperta la pagina: decide cosa resta in evidenza durante la visita.
   const apertura = useRef<number | null>(null)
   if (pronti && apertura.current === null) apertura.current = lettiFino
@@ -75,7 +78,9 @@ export function AvvisiSistemaPage() {
         ) : undefined}
       />
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
-        {pronti && avvisi.length === 0 ? (
+        <AvvisiBetaLista />
+
+        {pronti && avvisi.length === 0 && avvisiBeta.length === 0 ? (
           <div style={{ flex: 1, minHeight: 320, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, textAlign: 'center', padding: 24 }}>
             <span style={{ width: 72, height: 72, borderRadius: 36, background: 'var(--pri-s)', color: 'var(--pri)', display: 'grid', placeItems: 'center' }}>
               <Bell size={32} strokeWidth={1.8} aria-hidden />

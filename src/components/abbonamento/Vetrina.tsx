@@ -17,7 +17,7 @@ import { Button } from '../ui/Button'
 
 type PianoPagato = 'plus' | 'salone'
 
-const FUNZIONI: Record<PianoPagato, { chiave: Chiave; icona: LucideIcon }[]> = {
+export const FUNZIONI: Record<PianoPagato, { chiave: Chiave; icona: LucideIcon }[]> = {
   plus: [
     { chiave: 'abbFPrenotazioni', icona: CalendarPlus },
     { chiave: 'abbFAttesa', icona: List },

@@ -311,7 +311,7 @@ describe('paywall avvisami', () => {
 describe('traccia beta e config piani', () => {
   function Beta() {
     const piano = usePiano()
-    return <span>{`exBeta:${piano.traccia.exBeta === true}|prezzi:${piano.configPiani.showPrezziInBeta}|offerta:${piano.configPiani.offertaEarlyAdopter.it}`}</span>
+    return <span>{`exBeta:${piano.traccia?.exBeta === true}|prezzi:${piano.configPiani?.showPrezziInBeta}|offerta:${piano.configPiani?.offertaEarlyAdopter.it}`}</span>
   }
 
   it('espone la traccia del piano e il blocco piani della config', async () => {
