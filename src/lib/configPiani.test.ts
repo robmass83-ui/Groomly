@@ -9,7 +9,17 @@ describe('config dei piani', () => {
       offertaEarlyAdopter: { it: '', en: '', es: '' },
       revenueCat: { chiaveSdk: '', offeringId: 'groomly_standard' },
       annuncioPagamentiIl: null,
+      pagamentiDal: null,
+      confermaFiscaleIl: null,
+      accesiIl: null,
     })
+  })
+
+  it('legge le date della fase 4 solo se valide', () => {
+    const piani = leggiConfigPiani({ piani: { pagamentiDal: '2027-01-01T00:00:00.000Z', confermaFiscaleIl: 'x', accesiIl: 4 } })
+    expect(piani.pagamentiDal).toBe('2027-01-01T00:00:00.000Z')
+    expect(piani.confermaFiscaleIl).toBeNull()
+    expect(piani.accesiIl).toBeNull()
   })
 
   it('config assente o rotta → default', () => {

@@ -12,6 +12,11 @@ export interface ConfigPiani {
   // Chiave pubblica dell'SDK Android ('goog_…'): non è un segreto.
   revenueCat: { chiaveSdk: string; offeringId: string }
   annuncioPagamentiIl: string | null
+  // Fase 4: data di partenza dei pagamenti scelta all'annuncio, conferma «ho Partita IVA», ultima accensione.
+  // Le scrivono solo le callable degli abbonamenti, non impostaConfigPiani.
+  pagamentiDal: string | null
+  confermaFiscaleIl: string | null
+  accesiIl: string | null
 }
 
 export type ModificheConfigPiani = Partial<{
@@ -33,6 +38,9 @@ export const CONFIG_PIANI_DEFAULT: ConfigPiani = {
   offertaEarlyAdopter: { it: '', en: '', es: '' },
   revenueCat: { chiaveSdk: '', offeringId: OFFERING_ID },
   annuncioPagamentiIl: null,
+  pagamentiDal: null,
+  confermaFiscaleIl: null,
+  accesiIl: null,
 }
 
 function oggetto(value: unknown): Record<string, unknown> {
@@ -63,6 +71,9 @@ export function leggiConfigPiani(globale: unknown): ConfigPiani {
       offeringId: typeof rc.offeringId === 'string' && rc.offeringId !== '' ? rc.offeringId : d.revenueCat.offeringId,
     },
     annuncioPagamentiIl: dataIsoValida(piani.annuncioPagamentiIl) ? piani.annuncioPagamentiIl : null,
+    pagamentiDal: dataIsoValida(piani.pagamentiDal) ? piani.pagamentiDal : null,
+    confermaFiscaleIl: dataIsoValida(piani.confermaFiscaleIl) ? piani.confermaFiscaleIl : null,
+    accesiIl: dataIsoValida(piani.accesiIl) ? piani.accesiIl : null,
   }
 }
 
