@@ -505,3 +505,22 @@ Spec: `docs/superpowers/specs/2026-11-04-lingue-basi-design.md`.
 - **Età e sesso nella scheda.** `Adult` invece di `Erwachsen` e `Unbekannt` invece di `Keine Angabe`, per stare nei pulsanti affiancati a 320 px.
 - **Pagine per soli operatori.** Le chiavi dell'Admin Manager sono tradotte comunque: il catalogo le chiede tutte.
 - **Testi legati a regole italiane.** `authIvaForma` («11 Ziffern, ohne IT») è tradotto alla lettera.
+
+## Cinque lingue — T5 Server (5 novembre)
+
+Spec: `docs/superpowers/specs/2026-11-04-lingue-server-design.md`.
+
+- **Tabella unica degli errori.** Sta in `src/i18n/errori.ts`, non in `functions`: il client la legge e il server ne prende il `message` italiano, così le due parti non possono divergere.
+- **Frasi di `src/lib`.** Il server le converte in codici per confronto esatto, perché quei file sono di T4 e il client li usa ancora. Un test controlla che ognuna abbia il suo codice.
+- **Errori per operatori.** Hanno codice e cinque lingue come gli altri: la regola «ogni `HttpsError` ha il codice» resta senza eccezioni.
+- **«Pro non è attivo».** In inglese, spagnolo, francese e tedesco dice *Plus*: il nome di vendita è quello. L'italiano resta com'è per il confronto esatto.
+- **Lingua della scheda già esistente.** Si scrive solo se manca. Chi ha già una lingua la tiene, anche se una nuova prenotazione arriva da un browser diverso.
+- **Link vecchi di `rispondiRichiesta`.** Senza `lang` la pagina legge la lingua dalla richiesta, poi dal salone.
+- **Iscritti vecchi in lista d'attesa.** Senza `lingua` si usa quella che la pagina manda con `confermaAttesa`, solo per la scheda.
+- **Prezzo nelle email.** Francese e tedesco scrivono `40,50 €`. Italiano, inglese e spagnolo restano `€ 40,50`, come oggi.
+- **Data dell'annuncio.** Ora segue la lingua: `21.12.2026` in tedesco. Prima era sempre nel formato italiano; per it, fr, es il risultato non cambia.
+- **`nomeAnimaleVuoto`.** Serve solo se la richiesta non ha né cane né nome, cosa che i controlli d'ingresso impediscono.
+- **Push personale senza titolo.** Il titolo lo dà la lingua di ogni persona (`persTitolo`), non più una frase fissa.
+- **Email a Roberto** (feedback, rifiuti, suggerimenti): restano in italiano.
+- **`campioneEmail`.** Aggiunti pronto, auguri, recensione e attesa, che T7 deve controllare: ora sono 75 email.
+- **Richieste di T6 su `src/lib/paginaPubblica.ts`.** Girate a T4, che possiede il file.

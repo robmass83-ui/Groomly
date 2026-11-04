@@ -145,6 +145,28 @@ describe('confermaAttesaPer', () => {
     expect(cani[0]).toMatchObject({ id: visita.dogId, name: 'Rex', species: 'cane', size: 'media' })
   })
 
+  it('la lingua dell’iscritto va sulla scheda nuova; quella della pagina vale solo per gli iscritti vecchi', async () => {
+    const conLingua = salone({ [`${BASE}/attesa/i1`]: { attivo: true, nome: 'Mario', phone: '+3900000000', email: 'm@example.com', nomeCane: 'Rex', specie: 'cane', taglia: 'media', servizioId: 'bagno', trattamento: 'Bagno', durataMin: 60, lingua: 'de' } })
+    await confermaAttesaPer({ salonId: 's1', token: TOKEN, azione: 'conferma', lingua: 'fr', adesso: ADESSO }, conLingua.db)
+    expect(conLingua.elenco(`${BASE}/dogs`)[0].lingua).toBe('de')
+    const vecchio = salone()
+    await confermaAttesaPer({ salonId: 's1', token: TOKEN, azione: 'conferma', lingua: 'fr', adesso: ADESSO }, vecchio.db)
+    expect(vecchio.elenco(`${BASE}/dogs`)[0].lingua).toBe('fr')
+    const senza = salone()
+    await conferma(senza.db, 'conferma')
+    expect(senza.elenco(`${BASE}/dogs`)[0]).not.toHaveProperty('lingua')
+  })
+
+  it('una scheda che esiste già prende la lingua solo se non ne ha una', async () => {
+    const scheda = (lingua?: string) => ({ [`${BASE}/dogs/d9`]: { name: 'Rex', status: 'attivo', contact: { email: 'm@example.com' }, ...(lingua ? { lingua } : {}) } })
+    const vuota = salone(scheda())
+    await confermaAttesaPer({ salonId: 's1', token: TOKEN, azione: 'conferma', lingua: 'fr', adesso: ADESSO }, vuota.db)
+    expect(vuota.store.get(`${BASE}/dogs/d9`)?.lingua).toBe('fr')
+    const piena = salone(scheda('es'))
+    await confermaAttesaPer({ salonId: 's1', token: TOKEN, azione: 'conferma', lingua: 'fr', adesso: ADESSO }, piena.db)
+    expect(piena.store.get(`${BASE}/dogs/d9`)?.lingua).toBe('es')
+  })
+
   it('due conferme dello stesso token: la seconda trova occupato e non scrive un’altra visita', async () => {
     const { db, elenco } = salone()
     const prima = await conferma(db, 'conferma')

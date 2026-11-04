@@ -147,3 +147,16 @@ Le functions scrivono `salons/{id}/dogs/{dogId}.lingua` quando una richiesta o u
 ### 6. `?lang=` nei link
 
 Ogni link per il cliente in un'email porta `lang=<lingua dell'email>`: pagina del salone (`/s/<slug>`), lista d'attesa (`?attesa=<token>`), `rispondiRichiesta`, `/azione`. **T6:** `hosting/azione` e `hosting/s/pagina.js` leggono `lang` anche da questi link. `rispondiRichiesta` risponde già nella lingua del parametro: non serve altro.
+
+## Come è fatto
+
+- **Errori.** `functions/src/erroriServer.ts` è l'unico punto che crea un `HttpsError`. `erroreServer(tipo, codice, valori?)` prende il `message` italiano dalla tabella; `erroreDaMessaggio(tipo, frase)` serve alle decisioni di `src/lib` e tiene la frase com'è. Un test fallisce se `new HttpsError(` compare altrove o se una frase di `src/lib` non ha un codice.
+- **Email.** In `emailHtml.ts` le catene `lingua === 'en'` sono diventate tabelle per lingua: una lingua in meno non compila. Italiano, inglese e spagnolo restano parola per parola: i test con le frasi esatte non sono cambiati.
+- **Salone senza nome.** Il tedesco declina: nuovo ruolo `oggetto` (`den Salon`) accanto a `soggetto` (`der Salon`).
+- **Pagine di risposta.** `paginaRisposta` è passata da `rispondiRichiesta.ts` a `src/lib/htmlEsito.ts`, dove stanno già le tabelle con le lingue affiancate.
+- **Lingua per riga.** Non si salva sulla riga di coda: `inviaCoda` riceve `lingueCani` e sceglie al momento dell'invio. Così una riga già in coda segue la lingua attuale della scheda.
+- **`RichiestaSalvata`.** `RichiestaDoc` sta in `src/lib`, area di T4: il campo `lingua` si aggiunge con un tipo delle functions.
+
+## Brevo
+
+Il codice non usa nessun template Brevo. `postBrevoTemplate`, `BREVO_TEMPLATE` e `INVITE_TEMPLATE_ID` esistono ma nessuna email passa da lì: tutte, invito compreso, partono come HTML da `emailMessaggio`. Il campo `template` della richiesta è solo un numero salvato. Controllato sull'account il 5/11/2026: i template 1-5 sono attivi, i 6-12 spenti, tutti solo in italiano. Tradurli non cambierebbe nessuna email.

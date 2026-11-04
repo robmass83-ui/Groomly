@@ -130,3 +130,11 @@ Usati in `src/i18n/de.ts`. Le altre lingue restano come sono.
 | Richiamo | Folgetermin | |
 
 **Parole lunghe in spazi stretti.** Una parola sola che non entra si può spezzare con il trattino morbido (`­`), invisibile quando c'è posto. Oggi serve solo a `navImpostazioni`, nella barra in basso a 320 px. Le etichette di due parole vanno bene: i pulsanti vanno a capo.
+
+## Aggiunte delle email (T5)
+
+| Italiano | Inglese | Spagnolo | Francese | Tedesco |
+|---|---|---|---|---|
+| Posto (in agenda) | Slot | Hueco | Créneau | Termin |
+| Orario | Time | Horario | Horaire | Uhrzeit |
+| Prezzo indicativo | Guide price | Precio orientativo | Prix indicatif | Richtpreis |

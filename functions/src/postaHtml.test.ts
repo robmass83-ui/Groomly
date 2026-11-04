@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { replyToDa } from './postaHtml'
+import { conLingua, linguaCliente, replyToDa } from './postaHtml'
+
+describe('catena della lingua dei clienti', () => {
+  it('la persona, poi il salone, poi l’italiano', () => {
+    expect(linguaCliente('de', 'en')).toBe('de')
+    expect(linguaCliente(undefined, 'en')).toBe('en')
+    expect(linguaCliente('pt', undefined)).toBe('it')
+  })
+
+  it('il link porta la lingua e tiene i suoi parametri', () => {
+    expect(conLingua('https://groomlyapp.it/s/x?attesa=abc', 'de')).toBe('https://groomlyapp.it/s/x?attesa=abc&lang=de')
+    expect(conLingua('https://groomlyapp.it/s/x?lang=it', 'fr')).toBe('https://groomlyapp.it/s/x?lang=fr')
+  })
+})
 
 describe('replyToDa', () => {
   it('con email e nome validi restituisce entrambi, email senza spazi', () => {

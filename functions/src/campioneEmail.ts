@@ -16,6 +16,10 @@ const TIPI: TipoEmail[] = [
   'scadenza',
   'disdetta',
   'promemoria',
+  'pronto',
+  'auguri',
+  'recensione',
+  'attesa',
 ]
 
 

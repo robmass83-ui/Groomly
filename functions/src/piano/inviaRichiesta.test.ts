@@ -16,6 +16,13 @@ describe('inviaRichiesta pubblica', () => {
     const corpo = index.slice(da, a)
     expect(corpo).toContain('chiaveBrevo()')
   })
+  it('la lingua della pagina arriva dalla callable, si salva sulla richiesta e guida la ricevuta', () => {
+    const funzione = readFileSync('functions/src/piano/inviaRichiesta.ts', 'utf8')
+    expect(funzione).toContain('...(linguaPagina ? { lingua: linguaPagina } : {})')
+    expect(funzione).toContain('linguaCliente(linguaPagina, impostazioni.linguaClienti)')
+    const index = readFileSync('functions/src/index.ts', 'utf8')
+    expect(index.slice(index.indexOf('export const inviaRichiesta'), index.indexOf('function chiaveBrevo'))).toContain("lingua: text(field(request.data, 'lingua'))")
+  })
   it('la terza richiesta con lo stesso cellulare senza prefisso è rifiutata come con lo stesso formato', () => {
     const aperte = [{ phone: '+39 320 5550000' }, { phone: '0039 320 5550000' }]
     const conti = contaAperte(aperte, '320 5550000', 'nuova@cliente.it')

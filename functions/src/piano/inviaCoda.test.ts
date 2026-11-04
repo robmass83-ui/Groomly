@@ -56,6 +56,24 @@ describe('inviaCoda', () => {
     expect(body.replyTo?.email).toBe('sala@salone.it')
   })
 
+  it('ogni riga parla la lingua del suo cane; senza, vale la riserva del salone', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    await inviaCoda({
+      apiKey: 'x',
+      salonId: 'salone-1',
+      lingua: 'es',
+      lingueCani: new Map([['tedesco', 'de' as const]]),
+      righe: [{ ...base, dogId: 'tedesco' }, { ...base, id: '2', evento: 'e2', dogId: 'altro' }],
+      emailOggi: 0,
+      fetchImpl,
+    })
+    const corpi = fetchImpl.mock.calls.map((chiamata) => JSON.parse(String((chiamata[1] as RequestInit).body)) as { subject: string; htmlContent: string })
+    expect(corpi[0].subject).toBe('Bis bald, Rex!')
+    expect(corpi[0].htmlContent).toContain('lang=de')
+    expect(corpi[1].subject).toBe('¡Nos vemos pronto, Rex!')
+    expect(corpi[1].htmlContent).toContain('lang=es')
+  })
+
   it('senza replyTo la posta parte senza rispondi-a', async () => {
     const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
     await inviaCoda({
@@ -621,6 +639,14 @@ describe('inviaOfferteAttesa', () => {
     const salva = vi.fn(async () => undefined)
     await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [{ ...iscrittoBase, email: 'non-valida' }], emailOggi: 0, adesso, salva })
     expect(salva).not.toHaveBeenCalled()
+  })
+
+  it('segue la lingua dell’iscritto e il link la porta con sé', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [{ ...iscrittoBase, lingua: 'fr' }], emailOggi: 0, lingua: 'en', fetchImpl, adesso })
+    const body = JSON.parse(String((fetchImpl.mock.calls[0][1] as RequestInit).body)) as { subject: string; htmlContent: string }
+    expect(body.subject).toBe('Un créneau s’est libéré')
+    expect(body.htmlContent.replaceAll('&amp;', '&')).toContain(`${offerta.url}&lang=fr`)
   })
 
   it('parla nella lingua passata', async () => {
