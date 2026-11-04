@@ -355,3 +355,4 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
   - `hosting/*` non toccato: è di T6;
   - in `src/i18n/emailHtml.test.ts` il tipo `LinguaEmail` esclude fr e de finché T5 non scrive le email.
 
+- Verifiche sul ramo: `npm run build` verde; `npm test` (comprende le functions) solo il fallimento noto `driveInvio`, che c'è anche su `main`. Suite lenta: 25 fallimenti in `DogsPage` e `appointments`, identici sul codice di partenza. `lingue.test` passa anche con i `fr.ts` e `de.ts` veri di T2 e T3. Non provato su emulatore o telefono; regole Firestore non toccate.
