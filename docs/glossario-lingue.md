@@ -90,9 +90,9 @@ Termini nati traducendo `fr.ts`. La colonna tedesca si completa con T3.
 | Auguri | Greetings | Felicitación | Vœux |
 | Pagella | Grooming card | Informe | Bulletin de toilettage |
 | Impegno (in agenda) | Commitment | Compromiso | Engagement |
-| Partita IVA | VAT number | NIF | Numéro de TVA |
+| Partita IVA | VAT number | NIF / CIF | Numéro de TVA |
 | Codice fiscale | Tax code | Código fiscal | Numéro fiscal |
 | Beta | Beta | Beta | Bêta |
-| Feedback (beta) | Feedback | Feedback | Avis; nell'Admin Manager *retours* |
+| Feedback (beta) | Feedback | Opinión | Avis; nell'Admin Manager *retours* |
 
 In francese si scrive *e-mail*, al maschile. I pulsanti usano l'infinito (*Enregistrer*), le istruzioni l'imperativo con *vous* (*Saisissez*). L'apostrofo è sempre ’.
