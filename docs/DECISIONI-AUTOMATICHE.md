@@ -375,3 +375,18 @@ Spec: `docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md`. Scelte di R
 - `impostaConfigPiani` rifiuta tutto se un solo campo è sconosciuto o non valido.
 - ID: abbonamenti `groomly_plus`, `groomly_salone`, `groomly_posto_extra` con piani base `mensile`/`annuale`; offerta `early-adopter`; entitlement `plus` e `salone`; offering `groomly_standard` con pacchetti `plus_mensile` … `posto_extra_annuale` (ID unici nell'offering).
 - Prova self-service: il server la rifiuta («Prova non disponibile») se `provaSelfService` non è vera; l'app non mostra «Prova gratis» (`usePiano.provaConcessa`). «Regala 30 giorni» dell'operatore invariato.
+
+## A2 Proposte design (4/11/2026)
+
+Roberto ha scelto la proposta 2 «Tab in alto», con «Da fare oggi» e il pannello di accensione della 5. Spec: `docs/superpowers/specs/2026-11-04-admin-manager-design.md`. Scelte minori prese da A2:
+- Percorso `/impostazioni/admin-manager`; `/impostazioni/utenti` reindirizza.
+- Filtri dei saloni: in E tra gruppi diversi, in O nello stesso gruppo.
+- Niente «Ricorda invito»: non c'è nei contratti. Un invito scaduto si rifà.
+- I feedback «non visti» si segnano in locale, come i Suggerimenti.
+- Il motivo del «No grazie» è obbligatorio; «Più tardi» nasconde la card in Home per 3 giorni.
+- La riga «Invia feedback beta» resta per gli ex beta per 30 giorni.
+- Il benvenuto è senza genere («Ti diamo il benvenuto nella beta»).
+- La domanda di fine beta apre il modulo al passo 4, con «Pagheresti» già scelto e `fineBeta: true`.
+- Se l'offerta early adopter non c'è in una lingua, si usa il testo italiano.
+- Per accendere gli abbonamenti si scrive ACCENDI, come per Elimina.
+- Trovato: nessuna function scrive `mostraPiani`. Serve una callable operatore (B1).

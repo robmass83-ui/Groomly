@@ -265,3 +265,9 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 5. **Da provare sul telefono con la 1.1.186** (oltre alla 1.1.184/185): telefono «abc» e peso «1e3» rifiutati nella scheda, «Non venuto» assente sulle visite future. Già prima, con la 1.1.184 (non verificabile nel browser): al primo accesso su Android nessuna schermata «Sveglie e promemoria»; righe promemoria/auguri della Home leggibili; paese e partita IVA in Account; cambio di salone (A7) ed «Esci» (A10).
 6. Da guardare a parte: gli 8 test che falliscono con `vitest.slow.config.ts` in `DogsPage.test.tsx` e `appointments.test.tsx` (falliscono anche senza le modifiche recenti); fallimento noto in tutta la suite: `src/lib/driveInvio.test.ts`.
 7. In una sessione nuova (agenti qa caricabili): regressione `/qa-my-app:run-all` sulle rotte toccate (invito, login, Home, Impostazioni, Account, Incassi, Gestione listino), pagina pubblica dell'offerta d'attesa. All'avvio il plugin qa-my-app segnala 25 rotte cambiate rispetto al catalogo: prima `/qa-my-app:sync`.
+
+## Beta Plus/Salone — A2 Proposte design (4 novembre)
+- Fase 1B fatta. Ci sono le 5 proposte HTML e l'indice: `docs/superpowers/specs/2026-11-04-admin-manager-proposte.html`.
+- Roberto ha scelto la **2 «Tab in alto»**, con «Da fare oggi» e il pannello di accensione della 5.
+- Spec definitiva per B2/B3: `docs/superpowers/specs/2026-11-04-admin-manager-design.md`.
+- Da passare a B1: oggi nessuna function scrive `mostraPiani` e serve una callable operatore.
