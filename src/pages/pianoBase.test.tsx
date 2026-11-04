@@ -58,7 +58,7 @@ describe('titolare base con i piani accesi', () => {
     expect(screen.getByRole('heading', { name: 'Profilo base' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Servizio base/ })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /Servizio Plus/ })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Servizio Salone' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Servizio Salon' })).toBeInTheDocument()
     expect(screen.getByText('Promemoria')).toBeInTheDocument()
     expect(screen.getByText('Prenotazioni online')).toBeInTheDocument()
     expect(screen.getByText('Tessera fedeltà')).toBeInTheDocument()

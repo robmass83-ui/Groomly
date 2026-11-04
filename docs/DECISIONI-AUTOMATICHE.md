@@ -390,3 +390,13 @@ Roberto ha scelto la proposta 2 «Tab in alto», con «Da fare oggi» e il panne
 - Se l'offerta early adopter non c'è in una lingua, si usa il testo italiano.
 - Per accendere gli abbonamenti si scrive ACCENDI, come per Elimina.
 - Trovato: nessuna function scrive `mostraPiani`. Serve una callable operatore (B1).
+
+## Beta Plus e Salone — A3 Nomi (4 novembre 2026)
+
+### Nome del piano Salone
+
+- Domanda: oggi convivono «Salone» (testi, bollino, Abbonamento) e «SALON» (scritta disegnata nei loghi della vetrina e della testata). Quale nome, per lingua?
+- Opzioni: (a) un nome per lingua (Salone / Salon / Salón) con la parola del logo tradotta; (b) «Salone» in tutte le lingue, loghi ridisegnati; (c) «Salon» anche in italiano, come nei loghi.
+- Scelta di Roberto: **c**.
+- Applicata così: «Salon» è il nome di marca del piano, uguale in italiano, inglese e spagnolo (anche lo spagnolo «Salón» del piano diventa «Salon», come nel logo). Solo il nome del piano: la parola comune resta («il salone», «salón cerrado», «Nome toelettatura»). Le chiavi interne restano `salone`. I loghi SVG non cambiano.
+- Testi: `saloneOmaggio`, `servizioSalonePer`, `teamCollegatiDettaglio`, `uteSalone`, `servizioSalone`, `profiloBaseTesto`, `servizioProIntro`, `sbloccaSalone`, `avvisaSalone`, `segnoSalone`, `proAccendi`, `proPianoSalone`, `sospesoDettaglio*`, `abbSalone` («Groomly Salon»); bollino `BollinoPiano` «SALON». Email delle functions: non nominano il piano. `hosting/salone/` è la pagina pubblica del singolo salone, non del piano: invariata.

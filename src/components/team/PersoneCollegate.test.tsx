@@ -36,7 +36,7 @@ describe('PersoneCollegate', () => {
     const user = userEvent.setup()
     await monta({ enabled: false, members: [titolare, anna], openInviteExpiries: [] })
     expect(await screen.findByText('Persone ancora collegate al tuo salone')).toBeInTheDocument()
-    expect(screen.getByText('Il piano Salone non è attivo: queste persone non possono entrare. Toglile per liberare il loro account.')).toBeInTheDocument()
+    expect(screen.getByText('Il piano Salon non è attivo: queste persone non possono entrare. Toglile per liberare il loro account.')).toBeInTheDocument()
     expect(screen.getByText('Anna Rossi')).toBeInTheDocument()
     expect(screen.queryByText('Tina Verdi')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Togli Anna Rossi' }))

@@ -17,7 +17,7 @@ export function MarchioGo({ altezza = 20 }: { altezza?: number }) {
 const PILLOLA = {
   plus: { testo: 'PLUS', sfondo: 'linear-gradient(135deg, #8A52EE, #4F2BB8)', colore: '#fff' },
   // Oro chiaro con scritta marrone scuro: 7:1, come il bollino VIP nero e oro.
-  salone: { testo: 'SALONE', sfondo: 'linear-gradient(135deg, #EBB928, #DCA50E)', colore: '#3A2700' },
+  salone: { testo: 'SALON', sfondo: 'linear-gradient(135deg, #EBB928, #DCA50E)', colore: '#3A2700' },
 } as const
 
 // Bollino inclinato dei piani a pagamento, nello stile del bollino VIP.
