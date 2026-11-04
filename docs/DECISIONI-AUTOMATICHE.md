@@ -490,3 +490,10 @@ Spec: `docs/superpowers/specs/2026-11-04-lingue-basi-design.md`.
 - **`frasiFisse`:** guarda anche i template con backtick. Nei `.ts` ignora la parola sola in minuscolo, che è un valore salvato. Ignora le righe di `console` e `logger`.
 - **Formati:** francese con spazio insecabile come separatore delle migliaia e prima di €; tedesco con `Mittwoch, 4. November` e `4. Nov`.
 
+## Cinque lingue — T2 Francese (4 novembre)
+
+- **Trattamento:** *soin*, per non confonderlo con *prestation* (Servizio). I livelli «Servizio Plus» e «Servizio Salon» restano *Service*, perché non sono prestazioni del salone.
+- **Disdire un abbonamento:** *résilier*. Per un appuntamento resta *annuler*, come dice il glossario.
+- **Feedback della beta:** *avis* per i saloni, *retours* nell'Admin Manager.
+- **Parole di conferma:** `ELIMINA` e `ACCENDI` restano in italiano perché il codice le confronta fisse. Tradurle romperebbe l'eliminazione dell'account.
+- **Spazio insecabile:** U+00A0, non quello stretto, per sicurezza sui font.

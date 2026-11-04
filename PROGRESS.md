@@ -356,3 +356,11 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
   - in `src/i18n/emailHtml.test.ts` il tipo `LinguaEmail` esclude fr e de finché T5 non scrive le email.
 
 - Verifiche sul ramo: `npm run build` verde; `npm test` (comprende le functions) solo il fallimento noto `driveInvio`, che c'è anche su `main`. Suite lenta: 25 fallimenti in `DogsPage` e `appointments`, identici sul codice di partenza. `lingue.test` passa anche con i `fr.ts` e `de.ts` veri di T2 e T3. Non provato su emulatore o telefono; regole Firestore non toccate.
+
+## Cinque lingue — T2 Francese (4 novembre)
+- Ramo `claude/lingue-t2-francese-442e26`, **non unito**, niente APK. Spec `docs/superpowers/specs/2026-11-04-lingue-francese-design.md`.
+- Fatto: `src/i18n/fr.ts` con tutte le 1.965 chiavi, *vous*, spazi insecabili, terminologia del glossario. Sezione «Aggiunte del francese» in `docs/glossario-lingue.md`, dove manca ancora la colonna tedesca.
+- Controlli: chiavi e segnaposto `{{...}}` uguali a `it.ts` con uno script mio, `tsc` su `fr.ts` passa. `npm test` non è girato: il file non è collegato e il worktree non ha `node_modules`.
+- Non controllato a schermo: il file si vede solo dopo l'unione con T1. Le lunghezze a 320 px le ho guardate sul codice, la prova vera è in T7.
+- Per T1: 92 frasi `fr` sono uguali a `en` o `it`. L'elenco per il test è in `uguali-fr.txt`, nelle note condivise. `ELIMINA` e `ACCENDI` devono restare nell'elenco.
+- Su richiesta di T1: blocco `// Lingue T1` in fondo a `fr.ts` e nuovo testo di `linguaMessaggiDettaglio`. Le due chiavi nuove esistono in `it.ts` solo sul ramo di T1: finché non si uniscono, `tsc` su `fr.ts` da solo le segnala come chiavi in più.

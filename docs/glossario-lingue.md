@@ -72,3 +72,27 @@ Groomly, Go, Plus, Salon, VIP, WhatsApp, Google, Drive, Play.
 | Statistiche | Statistics | Estadísticas | Statistiques | Statistik |
 
 Le forme maschili in francese e tedesco (`Gérant`, `Inhaber`, `Kunde`) sono quelle dell'etichetta breve. Nelle frasi si preferisce una forma neutra quando esiste.
+
+## Aggiunte del francese
+
+Termini nati traducendo `fr.ts`. La colonna tedesca si completa con T3.
+
+| Italiano | Inglese | Spagnolo | Francese |
+|---|---|---|---|
+| Trattamento | Treatment | Tratamiento | Soin |
+| Servizio Plus, Servizio Salon (livello del piano) | Plus service | Servicio Plus | Service Plus |
+| Disdire un abbonamento | Cancel | Cancelar | Résilier |
+| Non venuto | No-show | No vino | Absent |
+| Completato (visita) | Completed | Completado | Terminé |
+| Chiudere (una visita) | Close | Cerrar | Clôturer |
+| Fissare (un appuntamento) | Book | Reservar | Fixer; *da fissare* è *à planifier* |
+| Richiamo | Recall | Aviso | Relance |
+| Auguri | Greetings | Felicitación | Vœux |
+| Pagella | Grooming card | Informe | Bulletin de toilettage |
+| Impegno (in agenda) | Commitment | Compromiso | Engagement |
+| Partita IVA | VAT number | NIF / CIF | Numéro de TVA |
+| Codice fiscale | Tax code | Código fiscal | Numéro fiscal |
+| Beta | Beta | Beta | Bêta |
+| Feedback (beta) | Feedback | Opinión | Avis; nell'Admin Manager *retours* |
+
+In francese si scrive *e-mail*, al maschile. I pulsanti usano l'infinito (*Enregistrer*), le istruzioni l'imperativo con *vous* (*Saisissez*). L'apostrofo è sempre ’.
