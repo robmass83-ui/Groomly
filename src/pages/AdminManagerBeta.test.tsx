@@ -61,6 +61,12 @@ vi.mock('../data/firebase/client', async () => {
 })
 
 const scarica = vi.hoisted(() => vi.fn((_blob: Blob, _nome: string) => undefined))
+vi.mock('../data/firebase/abbonamentiClient', () => ({
+  controlloAccensione: vi.fn(async () => ({ voci: [], pronti: 0, tuttoVerde: false, attivi: false })),
+  confermaPartitaIva: vi.fn(async () => undefined),
+  accendiAbbonamenti: vi.fn(async () => undefined),
+  spegniAbbonamenti: vi.fn(async () => undefined),
+}))
 vi.mock('../lib/shareFile', async () => {
   const actual = await vi.importActual<typeof import('../lib/shareFile')>('../lib/shareFile')
   return { ...actual, downloadAnchor: (blob: Blob, nome: string) => scarica(blob, nome) }
@@ -124,7 +130,7 @@ describe('Admin Manager: beta', () => {
     expect(screen.getByRole('tab', { name: /Saloni/ })).toHaveAttribute('aria-selected', 'true')
     await userEvent.setup().click(screen.getByRole('tab', { name: /Piani/ }))
     expect(screen.getByRole('tab', { name: /Piani/ })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByTestId('segnaposto-accensione')).toHaveTextContent('Abbonamenti spenti')
+    expect(await screen.findByRole('heading', { name: 'Abbonamenti spenti' })).toBeInTheDocument()
   })
 
   it('Panoramica: numeri della beta, Da fare oggi con +30 gg e numeri non disponibili con Riprova', async () => {

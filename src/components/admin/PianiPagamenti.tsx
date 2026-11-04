@@ -1,4 +1,4 @@
-import { ChevronRight, Lock, Megaphone, Power } from 'lucide-react'
+import { ChevronRight, Megaphone } from 'lucide-react'
 import { useState } from 'react'
 import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
@@ -15,6 +15,7 @@ import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { CHIAVE_SDK_MAX, OFFERING_ID_MAX, OFFERTA_MAX, type ConfigPiani, type LinguaOfferta } from '../../lib/configPiani'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, Nota, RIGA } from './comuni'
+import { PannelloAccensione } from './PannelloAccensione'
 
 const GIORNO = 86_400_000
 type Interruttore = 'mostraPiani' | 'provaSelfService' | 'showPrezziInBeta'
@@ -113,20 +114,10 @@ export function PianiPagamenti({ config }: { config: ConfigGlobale | null }) {
   const annuncioIl = attuali.annuncioPagamentiIl
   const campo = { width: '100%', boxSizing: 'border-box' as const, font: 'inherit', padding: 10, border: '1px solid var(--line)', borderRadius: 10, background: 'transparent', color: 'inherit' }
   const etichetta = { display: 'flex', flexDirection: 'column' as const, gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--tx2)' }
-  const acceso = config.abbonamentiAttivi
 
   return (
     <>
-      {/* Segnaposto del pannello di accensione: lo monta B4 (PannelloAccensione). */}
-      <div className="am-scuro" data-testid="segnaposto-accensione" style={{ borderRadius: 14, padding: 14, color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textAlign: 'center' }}>
-        <span aria-hidden style={{ width: 44, height: 44, borderRadius: 999, display: 'grid', placeItems: 'center', background: acceso ? '#2E9E6A' : '#C0362C' }}>
-          <Power size={22} />
-        </span>
-        <span style={{ fontWeight: 800 }}>{acceso ? frasi.amAttivi : frasi.amSpenti}</span>
-        <span style={{ fontSize: 12, color: '#C9D6EE', display: 'inline-flex', alignItems: 'center', gap: 4, ...USER_TEXT }}>
-          <Lock size={12} aria-hidden />{frasi.amPannelloInArrivo}
-        </span>
-      </div>
+      <PannelloAccensione />
 
       <SectionTitle>{frasi.amDuranteBeta}</SectionTitle>
       <Card>
