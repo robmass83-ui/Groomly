@@ -390,4 +390,4 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
   - `SEGNAPOSTO_AMMESSI` è ancora `true`: va a `false` quando T5 è unito;
   - `frasiFisse.test.ts`, `debitoFrasi.json` e `debitoLingue.ts` li tocca anche T5: conviene controllarli all'unione;
   - le note della prossima release possono avere le sezioni `[en]`, `[es]`, `[fr]`, `[de]`: senza, chi non è italiano legge la frase generica.
-- Verifiche: vedi la riga finale di questa sezione.
+- Verifiche sul ramo: `npm run build` e `tsc` di app e functions verdi. I file di test toccati passano. La suite completa con tutte le correzioni va confermata sul risultato unito: sotto carico `ExportSheet` e `useAttesa` sono andati in timeout, da soli passano. Controllati font e output PDF. Non provato su emulatore o telefono: lunghezze a 320 px e schermate reali sono di T7.
