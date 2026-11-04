@@ -22,6 +22,17 @@ rimborsi, IVA a carico di Google, recesso). Quando si accende il pagamento basta
       Per Google Play e per i pagamenti si userà la sede della partita IVA o un domicilio d'impresa, non l'indirizzo di casa.
 - [ ] Prodotti in abbonamento: Pro 9,99 €/mese o 99,90 €/anno; Salone 19,99 €/mese o 199,90 €/anno;
       posto extra 3,99 €/mese o 39,90 €/anno. Periodo di tolleranza 7 giorni, sospensione account 30 giorni.
+- [ ] Creare i prodotti **con questi ID esatti** (fissati il 4/11/2026, sono nel codice in `src/lib/idAbbonamenti.ts`):
+
+      | Abbonamento (ID prodotto) | Piani base | Prezzo |
+      |---|---|---|
+      | `groomly_plus` (Plus) | `mensile`, `annuale` | 9,99 €/mese, 99,90 €/anno |
+      | `groomly_salone` (Salone) | `mensile`, `annuale` | 19,99 €/mese, 199,90 €/anno |
+      | `groomly_posto_extra` (posto extra) | `mensile`, `annuale` | 3,99 €/mese, 39,90 €/anno |
+
+      Su ogni piano base un'offerta `early-adopter` con idoneità «decisa dallo sviluppatore» (prezzo di favore per ex beta ed early adopter).
+      In RevenueCat: entitlement `plus` (prodotti Plus) e `salone` (prodotti Salone); offering `groomly_standard` con i pacchetti
+      `$rc_monthly`/`$rc_annual` e `posto_extra_mensile`/`posto_extra_annuale`. ID prodotto in RevenueCat: `groomly_plus:mensile` ecc.
 - [ ] **Sicurezza dei dati**: aggiungere «Informazioni finanziarie → Cronologia acquisti» (raccolta, non condivisa).
 - [ ] **Classificazione dei contenuti**: alla domanda «L'app consente di acquistare beni digitali?» rispondere **Sì**.
 - [ ] License tester per provare gli acquisti senza pagare (checklist §9.7 in `DA-FARE-ROBERTO.md`).
