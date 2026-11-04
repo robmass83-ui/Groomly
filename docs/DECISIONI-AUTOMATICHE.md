@@ -400,3 +400,26 @@ Roberto ha scelto la proposta 2 «Tab in alto», con «Da fare oggi» e il panne
 - Scelta di Roberto: **c**.
 - Applicata così: «Salon» è il nome di marca del piano, uguale in italiano, inglese e spagnolo (anche lo spagnolo «Salón» del piano diventa «Salon», come nel logo). Solo il nome del piano: la parola comune resta («il salone», «salón cerrado», «Nome toelettatura»). Le chiavi interne restano `salone`. I loghi SVG non cambiano.
 - Testi: `saloneOmaggio`, `servizioSalonePer`, `teamCollegatiDettaglio`, `uteSalone`, `servizioSalone`, `profiloBaseTesto`, `servizioProIntro`, `sbloccaSalone`, `avvisaSalone`, `segnoSalone`, `proAccendi`, `proPianoSalone`, `sospesoDettaglio*`, `abbSalone` («Groomly Salon»); bollino `BollinoPiano` «SALON». Email delle functions: non nominano il piano. `hosting/salone/` è la pagina pubblica del singolo salone, non del piano: invariata.
+
+## Beta B2 — Admin Manager (4 novembre 2026)
+
+Spec `docs/superpowers/specs/2026-11-04-beta-admin-ui-design.md`, piano `docs/superpowers/plans/2026-11-04-beta-b2-admin-manager.md`.
+
+### Domanda a Roberto: attività e città per salone
+- Domanda: la spec vuole i filtri «Attivi 7 gg / Inattivi», la pillola «Attivo oggi» e la città, ma nessun dato per salone li fornisce (la directory ha nome, titolare e piano; `contatoriAdmin` solo i totali).
+- Opzioni: (a) leggere un campo facoltativo se B1 lo aggiunge, altrimenti nasconderli; (b) calcolarli dal client con molte letture; (c) toglierli.
+- Scelta di Roberto: **a**. Il client legge `perSalone?: Record<salonId, { ultimaAttivita?: string; citta?: string }>` nell'esito di `contatoriAdmin`; senza, filtri attività, pillola e città non compaiono. **È un'aggiunta al contratto: da proporre a B1 all'unione.**
+
+### Scelte minori (B2)
+- Wrapper operatore in `src/data/firebase/adminClient.ts`; in `client.ts` sono solo esportati `callCallableData`, `database`, `loadFirestore`, e `listSalonDirectory` porta anche la traccia beta di `pro/main` (`traccia`), che serve per «In beta», la fine e l'early adopter.
+- `impostaMostraPiani({ valore })` con la firma della spec A2; l'interruttore è attivo: se la callable non c'è ancora torna indietro col messaggio di salvataggio. Stesso per `annunciaPagamenti({ data })` (B4).
+- Revoca di un invito aperto: `revocaBeta` (lo prevede la spec A2).
+- «Regala 30 giorni a tutti»: `impostaPianoManuale(prova)` salone per salone, dopo una conferma; il riepilogo dice quanti sono riusciti.
+- Il dettaglio salone tiene le tre card piano di «Utenti Groomly» (Go / Plus / Salon) sotto il blocco Beta, invece della griglia 2×2: comportamento e test di oggi invariati.
+- In modalità selezione la testata usa la freccia (non la ✕) per uscire: `Header` ha solo la freccia.
+- Feedback «non visti» in `localStorage` (`groomly.am.feedbackVisti`), segnati aprendo il tab.
+- Nomi delle funzioni (Avvisami, feedback): i titoli del paywall `pw…Titolo`; `piano-plus`/`piano-salone` → «Vetrina Plus / Salon».
+- `EtichettaBeta` creata in `src/components/abbonamento/` identica alla sezione 8 (all'unione vale quella di B3). I token `--plus-s/-ink`, `--sal-s/-ink` sono definiti con gli stessi valori nello stile della pagina (`STILE_ADMIN`) finché B3 non li mette in `tokens.css`: all'unione si possono togliere da lì.
+- Il tab Beta mostra i saloni con un invito, filtrati per stato (Tutti · Invitati · In beta · Rifiutati · Scaduti · Revocati); lo stato è nell'URL (`stato=`).
+- Contatori in memoria per 60 secondi; dopo un invito o un'azione beta si rileggono al ritorno sulla Panoramica.
+- Valori interni che non coincidono con le parole del catalogo (test «frasi fisse»): durata libera `libera`, fonti con l'iniziale maiuscola.

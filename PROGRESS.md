@@ -275,3 +275,13 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Roberto ha scelto la **2 «Tab in alto»**, con «Da fare oggi» e il pannello di accensione della 5.
 - Spec definitiva per B2/B3: `docs/superpowers/specs/2026-11-04-admin-manager-design.md`.
 - Da passare a B1: oggi nessuna function scrive `mostraPiani` e serve una callable operatore.
+
+## Beta Plus/Salone — B2 Admin Manager (4 novembre, ramo `claude/beta-b2-admin-5395f1`, non unito)
+- «Utenti Groomly» è diventato **Admin Manager** (`/impostazioni/admin-manager`; `/impostazioni/utenti` reindirizza, anche con i vecchi `zona=`). Voce in Impostazioni con la corona viola, solo operatori.
+- Tab: Panoramica (numeri beta, Da fare oggi con +30 gg, saloni per piano e fonte, Avvisami, inviti per stato, Tour), Saloni (cerca, filtri, selezione multipla, barra d'invito, Regala 30 giorni a tutti), Beta (saloni con invito per stato), Feedback (riepilogo, funzioni, righe, esportazione PDF/Excel), Suggerimenti (coda di oggi), Piani (interruttori, offerta early adopter, RevenueCat, annuncio; segnaposto del pannello di accensione di B4).
+- Dettaglio salone: piano effettivo e perché, barra dei giorni, Azioni (estendi, revoca, early adopter, invita, revoca invito + le card piano di oggi, Regala 30 giorni, Elimina con ELIMINA) · Storico · Feedback.
+- File: `src/pages/AdminManagerPage.tsx`, `src/components/admin/*`, `src/lib/adminManager.ts`, `src/data/firebase/adminClient.ts`, `src/lib/percorsoAdmin.ts`, `EtichettaBeta`. `UsersPage.tsx` tolto; i suoi 23 test sono in `AdminManagerPage.test.tsx`, più `AdminManagerBeta.test.tsx` (10).
+- Callable usate (le implementa B1, qui simulate nei test): `invitaBeta`, `revocaBeta`, `estendiBeta`, `segnaEarlyAdopter`, `contatoriAdmin`, `impostaMostraPiani`; `annunciaPagamenti` (B4).
+- **Da segnalare all'unione:** campo facoltativo `perSalone` in `contatoriAdmin` (scelta a di Roberto) per attività e città; i token `--plus-*`/`--sal-*` di B3 rendono superflua la copia in `STILE_ADMIN`.
+- Controllo grafico a 360×640 in chiaro e scuro con dati finti (Playwright): nessuno scroll orizzontale. Suite `src`: solo il fallimento noto `driveInvio`. I test delle functions non girano nel worktree (manca `functions/node_modules`). Niente APK, niente merge.
+
