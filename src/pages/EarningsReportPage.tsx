@@ -25,7 +25,7 @@ import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { meseCorto } from '../i18n/format'
 import { t } from '../i18n/t'
-import type { Lingua } from '../i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
 import { formatSpent } from '../lib/closeVisit'
 import { maskEuro, niceScale, reportOf, MOTIVO_ASSENTE, MOTIVO_CLIENTE, type LostRow, type ReportPreset } from '../lib/earnings'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
@@ -120,8 +120,7 @@ const periodButton: CSSProperties = {
 
 function etichettaMese(lingua: Lingua, data: Date): string {
   const breve = meseCorto(lingua, data)
-  const locale = lingua === 'it' ? 'it-IT' : lingua === 'es' ? 'es' : 'en-GB'
-  return breve ? breve.charAt(0).toLocaleUpperCase(locale) + breve.slice(1) : breve
+  return breve ? breve.charAt(0).toLocaleUpperCase(LOCALE_INTL[lingua]) + breve.slice(1) : breve
 }
 
 export function EarningsReportPage() {

@@ -21,6 +21,9 @@ function blockedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Res
   return Promise.resolve(new Response('offline', { status: 503 }))
 }
 
+// Le schermate si leggono in italiano: senza scelta la lingua viene dal telefono, qualunque sia la macchina.
+if (typeof navigator !== 'undefined') Object.defineProperty(navigator, 'language', { value: 'it-IT', configurable: true })
+
 globalThis.fetch = blockedFetch as typeof fetch
 vi.stubGlobal('fetch', blockedFetch as typeof fetch)
 

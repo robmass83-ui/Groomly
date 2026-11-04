@@ -106,6 +106,6 @@ describe('priceSheetSchema', () => {
     const seed = seedPriceSheet({ name: 'A', phone: '1', address: 'b' })
     expect(priceSheetSchema.safeParse(seed).success).toBe(true)
     expect(priceSheetSchema.safeParse({ ...seed, opzioni: { ...seed.opzioni, lingua: 'es' } }).success).toBe(true)
-    expect(priceSheetSchema.safeParse({ ...seed, opzioni: { ...seed.opzioni, lingua: 'fr' } }).success).toBe(false)
+    expect(priceSheetSchema.safeParse({ ...seed, opzioni: { ...seed.opzioni, lingua: 'pt' } }).success).toBe(false)
   })
 })

@@ -1,9 +1,10 @@
+import { LINGUE, type Lingua } from '../i18n/lingua'
 import { OFFERING_ID } from './idAbbonamenti'
 import { provaConcessa, tracciaBetaDi, type ProMain } from './piano'
 
 // Impostazioni del programma beta e dei pagamenti, nel blocco `piani` di config/globale.
 // Le scrive solo la callable operatore impostaConfigPiani; mostraPiani e abbonamentiAttivi restano in radice.
-export type LinguaOfferta = 'it' | 'en' | 'es'
+export type LinguaOfferta = Lingua
 
 export interface ConfigPiani {
   provaSelfService: boolean
@@ -27,7 +28,7 @@ export type ModificheConfigPiani = Partial<{
   annuncioPagamentiIl: string | null
 }>
 
-export const LINGUE_OFFERTA: readonly LinguaOfferta[] = ['it', 'en', 'es']
+export const LINGUE_OFFERTA: readonly LinguaOfferta[] = LINGUE
 export const OFFERTA_MAX = 500
 export const CHIAVE_SDK_MAX = 200
 export const OFFERING_ID_MAX = 100
@@ -35,7 +36,7 @@ export const OFFERING_ID_MAX = 100
 export const CONFIG_PIANI_DEFAULT: ConfigPiani = {
   provaSelfService: false,
   showPrezziInBeta: false,
-  offertaEarlyAdopter: { it: '', en: '', es: '' },
+  offertaEarlyAdopter: { it: '', en: '', es: '', fr: '', de: '' },
   revenueCat: { chiaveSdk: '', offeringId: OFFERING_ID },
   annuncioPagamentiIl: null,
   pagamentiDal: null,
@@ -65,6 +66,8 @@ export function leggiConfigPiani(globale: unknown): ConfigPiani {
       it: testoO(offerta.it, d.offertaEarlyAdopter.it),
       en: testoO(offerta.en, d.offertaEarlyAdopter.en),
       es: testoO(offerta.es, d.offertaEarlyAdopter.es),
+      fr: testoO(offerta.fr, d.offertaEarlyAdopter.fr),
+      de: testoO(offerta.de, d.offertaEarlyAdopter.de),
     },
     revenueCat: {
       chiaveSdk: testoO(rc.chiaveSdk, d.revenueCat.chiaveSdk),

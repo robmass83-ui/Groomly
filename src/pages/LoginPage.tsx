@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
+import { Eye, EyeOff, Languages, Lock, Mail } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useForm, type Resolver, type UseFormRegisterReturn } from 'react-hook-form'
 import { useLocation } from 'react-router-dom'
@@ -11,7 +11,7 @@ import { invitoInSospeso } from '../data/local/invitoInSospeso'
 import { readPendingSalon } from '../data/local/pendingSalon'
 import { readSignInHint } from '../data/local/signInHint'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
-import type { Lingua } from '../i18n/lingua'
+import { NOMI_LINGUA, OPZIONI_LINGUA, type Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { loginFailureMessage } from '../lib/authAction'
 import { linkLegale } from '../lib/distribuzione'
@@ -25,8 +25,10 @@ import { useEsci } from '../hooks/useEsci'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { AuthMark } from '../components/brand/AuthMark'
+import { Dialog } from '../components/layout/Dialog'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
+import { SceltaLista } from '../components/ui/SceltaLista'
 import { AttesaRiga, AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
@@ -66,7 +68,7 @@ function errorCode(error: unknown): string | undefined {
 }
 
 // Connessione assente e attesa hanno il loro testo. Ogni altro errore di rete o di posta si ritenta più tardi.
-function mailFailureMessage(error: unknown, lingua: 'it' | 'en' | 'es'): string {
+function mailFailureMessage(error: unknown, lingua: Lingua): string {
   const code = errorCode(error)
   return code === 'auth_offline' ? loginFailureMessage(code, lingua) : loginFailureMessage('auth_slow', lingua)
 }
@@ -484,6 +486,23 @@ function OfflineSaloneView() {
   )
 }
 
+function SceltaLinguaAccesso() {
+  const frasi = useFrasi()
+  const { lingua, scegli } = useLingua()
+  const [aperta, setAperta] = useState(false)
+  return (
+    <>
+      <button type="button" aria-haspopup="dialog" aria-label={`${frasi.linguaTua}: ${NOMI_LINGUA[lingua]}`} onClick={() => setAperta(true)} style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <Languages size={14} strokeWidth={2} aria-hidden />
+        {NOMI_LINGUA[lingua]}
+      </button>
+      <Dialog open={aperta} title={frasi.linguaTua} onClose={() => setAperta(false)}>
+        <SceltaLista label={frasi.linguaTua} value={lingua} onChange={scegli} options={OPZIONI_LINGUA} />
+      </Dialog>
+    </>
+  )
+}
+
 export function LoginPage() {
   const session = useSession()
   const location = useLocation()
@@ -512,6 +531,7 @@ export function LoginPage() {
         ) : (
           <EnterView key={email} initialEmail={email} onCreate={() => setMode('create')} />
         )}
+        <SceltaLinguaAccesso />
       </div>
     </PhoneShell>
   )

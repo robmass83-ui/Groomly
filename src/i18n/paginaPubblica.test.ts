@@ -8,10 +8,11 @@ describe('lingua delle pagine pubbliche', () => {
     expect(linguaPagina('en', 'it-IT')).toBe('en')
     expect(linguaPagina('es', 'en-GB')).toBe('es')
     expect(linguaPagina('it', 'en')).toBe('it')
-    expect(linguaPagina('fr', 'it-IT')).toBe('it')
-    expect(linguaPagina('fr', 'de-DE')).toBe('en')
+    expect(linguaPagina('fr', 'it-IT')).toBe('fr')
+    expect(linguaPagina('pt', 'it-IT')).toBe('it')
+    expect(linguaPagina('pt', 'sv-SE')).toBe('en')
     expect(linguaPagina(null, 'es-ES')).toBe('es')
-    expect(linguaPagina('', 'fr')).toBe('en')
+    expect(linguaPagina('', 'sv')).toBe('en')
   })
 
   it('ogni pagina pubblica ha la riga delle tre lingue', () => {

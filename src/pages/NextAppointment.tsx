@@ -1,5 +1,6 @@
 import { isSameDay } from 'date-fns'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import type { Lingua } from '../i18n/lingua'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { formatBookedWhen, formatDuration, nextAppointment, sumDuration } from '../lib/appointments'
 import type { Appointment, Dog } from '../types/models'
@@ -8,7 +9,7 @@ function clock(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function nextLabel(start: Date, now: Date, oggi: string, quando: string, lingua: 'it' | 'en' | 'es'): string {
+function nextLabel(start: Date, now: Date, oggi: string, quando: string, lingua: Lingua): string {
   const time = clock(start)
   if (isSameDay(start, now)) return oggi.replace('{{ora}}', time)
   return quando.replace('{{quando}}', formatBookedWhen(start, lingua))

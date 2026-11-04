@@ -1,12 +1,12 @@
 import { oraRoma } from './disponibilita'
+import { LOCALE_INTL, linguaValida, type Lingua } from '../i18n/lingua'
 
-const LOCALE_CONFERMA = { it: 'it-IT', en: 'en-GB', es: 'es-ES' } as const
-const CONNETTORE_CONFERMA = { it: 'alle', en: 'at', es: 'a las' } as const
+const CONNETTORE_CONFERMA = { it: 'alle', en: 'at', es: 'a las', fr: 'at', de: 'at' } as const // LINGUE: da tradurre
 
-export function quandoConferma(lingua: 'it' | 'en' | 'es', inizio: Date): string {
+export function quandoConferma(lingua: Lingua, inizio: Date): string {
   if (Number.isNaN(inizio.getTime())) return ''
-  const codice = lingua === 'en' || lingua === 'es' ? lingua : 'it'
-  const giorno = new Intl.DateTimeFormat(LOCALE_CONFERMA[codice], {
+  const codice = linguaValida(lingua) ?? 'it'
+  const giorno = new Intl.DateTimeFormat(LOCALE_INTL[codice], {
     timeZone: 'Europe/Rome',
     weekday: 'long',
     day: 'numeric',
@@ -29,6 +29,15 @@ const COPIA = {
       titolo: 'Cita confirmada',
       frase: 'La cita está confirmada. Se ruega llegar puntuales y, si hay un problema, contactar con la peluquería. Puedes cerrar esta página.',
     },
+    // LINGUE: da tradurre
+    fr: {
+      titolo: 'Appointment confirmed',
+      frase: 'The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon. You can close this page.',
+    },
+    de: {
+      titolo: 'Appointment confirmed',
+      frase: 'The appointment is confirmed. Please arrive on time and, if there is a problem, contact the grooming salon. You can close this page.',
+    },
   },
   liberato: {
     it: {
@@ -43,11 +52,23 @@ const COPIA = {
       titolo: 'Hueco liberado',
       frase: 'El hueco está libre. Si quieres otro horario, escribe de nuevo al salón.',
     },
+    // LINGUE: da tradurre
+    fr: {
+      titolo: 'Slot released',
+      frase: 'The slot is free. If you want another time, write to the salon again.',
+    },
+    de: {
+      titolo: 'Slot released',
+      frase: 'The slot is free. If you want another time, write to the salon again.',
+    },
   },
   non_valido: {
     it: { titolo: 'Link non valido', frase: 'Questo link non è valido.' },
     en: { titolo: 'Invalid link', frase: 'This link is not valid.' },
     es: { titolo: 'Enlace no válido', frase: 'Este enlace no es válido.' },
+    // LINGUE: da tradurre
+    fr: { titolo: 'Invalid link', frase: 'This link is not valid.' },
+    de: { titolo: 'Invalid link', frase: 'This link is not valid.' },
   },
 } as const
 
@@ -56,22 +77,28 @@ const DOMANDA = {
     it: { titolo: 'Confermi l’appuntamento?', frase: 'Tocca il pulsante per confermare. Aprire il link non basta.', bottone: 'Conferma' },
     en: { titolo: 'Confirm the appointment?', frase: 'Tap the button to confirm. Opening the link is not enough.', bottone: 'Confirm' },
     es: { titolo: '¿Confirmas la cita?', frase: 'Pulsa el botón para confirmar. Abrir el enlace no basta.', bottone: 'Confirmar' },
+    // LINGUE: da tradurre
+    fr: { titolo: 'Confirm the appointment?', frase: 'Tap the button to confirm. Opening the link is not enough.', bottone: 'Confirm' },
+    de: { titolo: 'Confirm the appointment?', frase: 'Tap the button to confirm. Opening the link is not enough.', bottone: 'Confirm' },
   },
   rifiuta: {
     it: { titolo: 'Rifiuti questo orario?', frase: 'Tocca il pulsante per liberare il posto. Aprire il link non basta.', bottone: 'Rifiuta' },
     en: { titolo: 'Decline this time?', frase: 'Tap the button to release the slot. Opening the link is not enough.', bottone: 'Decline' },
     es: { titolo: '¿Rechazas este horario?', frase: 'Pulsa el botón para liberar el hueco. Abrir el enlace no basta.', bottone: 'Rechazar' },
+    // LINGUE: da tradurre
+    fr: { titolo: 'Decline this time?', frase: 'Tap the button to release the slot. Opening the link is not enough.', bottone: 'Decline' },
+    de: { titolo: 'Decline this time?', frase: 'Tap the button to release the slot. Opening the link is not enough.', bottone: 'Decline' },
   },
 } as const
 
 const SPUNTA =
   '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" style="display:block;margin:0 0 16px"><circle cx="24" cy="24" r="22" fill="none" stroke="#4A9FCB" stroke-width="2.5"/><path fill="none" stroke="#2C4560" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M14 25l6 6 14-14"/></svg>'
 
-type LinguaEsito = 'it' | 'en' | 'es'
+type LinguaEsito = Lingua
 type TipoEsito = 'conferma' | 'liberato' | 'non_valido'
 
 function linguaEsito(lingua: LinguaEsito): LinguaEsito {
-  return lingua === 'en' || lingua === 'es' ? lingua : 'it'
+  return linguaValida(lingua) ?? 'it'
 }
 
 function tipoEsito(tipo: TipoEsito): TipoEsito {

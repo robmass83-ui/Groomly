@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import type { Lingua } from '../src/i18n/lingua'
 import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { render, screen } from '@testing-library/react'
@@ -98,7 +99,7 @@ function indietro(): string[] {
     .filter((nome) => /indietro|back|atrás|atras|impostazioni|settings|ajustes/i.test(nome))
 }
 
-async function apri(percorso: string, lingua: 'it' | 'en' | 'es') {
+async function apri(percorso: string, lingua: Lingua) {
   localStorage.setItem('groomly.lingua', lingua)
   let errore = ''
   let vista

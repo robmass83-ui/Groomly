@@ -13,7 +13,7 @@ describe('configPianiDopo', () => {
     expect(configPianiDopo(CONFIG_PIANI_DEFAULT, { provaSelfService: true, offertaEarlyAdopter: { it: '  Prezzo di favore ' } })).toEqual({
       ...CONFIG_PIANI_DEFAULT,
       provaSelfService: true,
-      offertaEarlyAdopter: { it: 'Prezzo di favore', en: '', es: '' },
+      offertaEarlyAdopter: { it: 'Prezzo di favore', en: '', es: '', fr: '', de: '' },
     })
     expect(configPianiDopo({ ...CONFIG_PIANI_DEFAULT, annuncioPagamentiIl: '2027-01-01T00:00:00.000Z' }, { annuncioPagamentiIl: null }).annuncioPagamentiIl).toBeNull()
     expect(configPianiDopo(CONFIG_PIANI_DEFAULT, { revenueCat: { chiaveSdk: 'goog_abc' } }).revenueCat).toEqual({ chiaveSdk: 'goog_abc', offeringId: 'groomly_standard' })
@@ -22,7 +22,7 @@ describe('configPianiDopo', () => {
   it('rifiuta campi sconosciuti, tipi sbagliati e testi troppo lunghi', () => {
     expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { mostraPiani: true })).toThrow('Impostazione non valida')
     expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { provaSelfService: 'si' })).toThrow('Impostazione non valida')
-    expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { offertaEarlyAdopter: { fr: 'x' } })).toThrow('Impostazione non valida')
+    expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { offertaEarlyAdopter: { pt: 'x' } })).toThrow('Impostazione non valida')
     expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { offertaEarlyAdopter: { it: 'x'.repeat(501) } })).toThrow('Impostazione non valida')
     expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { revenueCat: { chiaveSdk: 'x'.repeat(201) } })).toThrow('Impostazione non valida')
     expect(() => configPianiDopo(CONFIG_PIANI_DEFAULT, { revenueCat: { offeringId: '' } })).toThrow('Impostazione non valida')

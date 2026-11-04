@@ -17,9 +17,13 @@ const DIVERSE = new Set<string>(
 const PAROLA = new RegExp(`\\b(${PAROLE_ITALIANE.join('|')})\\b`)
 
 export function letteraliVisibili(source: string): string[] {
-  const pulito = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\])\/\/.*$/gm, '$1')
+  const pulito = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:\\])\/\/.*$/gm, '$1')
+    // I log restano in italiano: li legge solo chi lavora sul codice.
+    .replace(/^.*\b(?:console|logger)\.\w+\(.*$/gm, '')
   const trovati: string[] = []
-  const re = /(['"])((?:\\.|(?!\1)[^\\])*)\1/g
+  const re = /(['"`])((?:\\.|(?!\1)[^\\])*)\1/g
   let match: RegExpExecArray | null
   while ((match = re.exec(pulito))) {
     const testo = match[2].replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\"/g, '"')
@@ -40,12 +44,37 @@ export function fileTsx(dir: string, out: string[] = []): string[] {
   return out
 }
 
+/** Cataloghi e tabelle con le lingue affiancate, liste di parole, pagine per soli operatori: qui l'italiano sta di casa. */
+export const FILE_AMMESSI = new Set([
+  'src/i18n/it.ts', 'src/i18n/en.ts', 'src/i18n/es.ts', 'src/i18n/fr.ts', 'src/i18n/de.ts',
+  'src/i18n/frasiFisse.ts', 'src/i18n/debitoLingue.ts', 'src/i18n/emailHtml.ts', 'src/i18n/errori.ts', 'src/i18n/listino.ts', 'src/i18n/report.ts',
+  'src/i18n/servizioVisibile.ts', 'src/lib/italianoSchermo.ts', 'src/lib/htmlEsito.ts', 'src/lib/paginaPubblica.ts',
+  'src/lib/messaggiManuali.ts', 'src/lib/avvisoPiano.ts', 'src/components/beta/testi.ts',
+  'functions/src/beta/emailBeta.ts', 'functions/src/abbonamenti/emailAnnuncio.ts', 'functions/src/piano/emailEliminazione.ts',
+  'src/pages/DevKitPage.tsx', 'src/pages/DevBetaPage.tsx',
+])
+
+/** Tutti i sorgenti `.ts` e `.tsx`, salvo i test. */
+export function fileSorgente(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name)
+    if (statSync(path).isDirectory()) {
+      if (name !== 'test' && name !== 'node_modules') fileSorgente(path, out)
+    } else if (/\.tsx?$/.test(name) && !name.includes('.test.') && !name.endsWith('.d.ts')) out.push(path)
+  }
+  return out
+}
+
 export function importaItalianoFisso(source: string): boolean {
   return /from ['"](?:\.\.\/)+i18n\/it['"]/.test(source)
 }
 
+// Nei `.ts` una parola sola in minuscolo è il valore salvato di un campo (`'piccola'`, `'completato'`), non una frase.
+const CODICE_DATI = /^[a-zàèéìòù]+$/
+
 export function frasiNelFile(path: string): string[] {
   const source = readFileSync(path, 'utf8')
   const importo = importaItalianoFisso(source) ? ['importa il catalogo italiano'] : []
-  return [...importo, ...letteraliVisibili(source)]
+  const letterali = letteraliVisibili(source)
+  return [...importo, ...(path.endsWith('.ts') ? letterali.filter((testo) => !CODICE_DATI.test(testo)) : letterali)]
 }

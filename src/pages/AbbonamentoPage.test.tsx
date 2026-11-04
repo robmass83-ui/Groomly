@@ -429,7 +429,7 @@ describe('Abbonamento durante la beta', () => {
   it("l'offerta fondatori solo per gli early adopter e con il testo", async () => {
     await apri('/impostazioni/abbonamento', 'pro', undefined, inBeta({
       traccia: { exBeta: true, betaPiano: 'pro', betaDal: tra(-20), betaFinoAl: tra(10), earlyAdopter: true },
-      configPiani: { ...CONFIG_PIANI_DEFAULT, offertaEarlyAdopter: { it: '−30% per il primo anno', en: '', es: '' } },
+      configPiani: { ...CONFIG_PIANI_DEFAULT, offertaEarlyAdopter: { it: '−30% per il primo anno', en: '', es: '', fr: '', de: '' } },
     }))
     expect(await screen.findByText('Offerta fondatori')).toBeInTheDocument()
     expect(screen.getByText('−30% per il primo anno')).toBeInTheDocument()

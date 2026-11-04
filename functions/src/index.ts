@@ -1438,7 +1438,7 @@ function chiavePlaces(): string {
 }
 
 function linguaPlaces(value: unknown): string {
-  return value === 'en' || value === 'es' ? value : 'it'
+  return linguaValida(value) ?? 'it'
 }
 
 // Conta la richiesta di oggi per questo utente; oltre il limite giornaliero risponde resource-exhausted.

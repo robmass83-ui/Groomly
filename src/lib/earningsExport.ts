@@ -1,8 +1,8 @@
 import { addDays, addMonths, format, startOfMonth, startOfWeek } from 'date-fns'
-import { enGB, es as esDate, it as itDate } from 'date-fns/locale'
 import type { SettingsMain } from '../data/local/settings'
 import type { Lingua } from '../i18n/lingua'
 import { frasiReport } from '../i18n/report'
+import { opzioniDate } from './format'
 import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import type { Appointment, Dog, Service } from '../types/models'
 import { localDayKey, startOfLocalDay, sumDuration } from './appointments'
@@ -53,10 +53,7 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100
 }
 
-function dateOpts(lingua: Lingua) {
-  const locale = lingua === 'en' ? enGB : lingua === 'es' ? esDate : itDate
-  return { locale, weekStartsOn: 1 as const }
-}
+const dateOpts = opzioniDate
 
 function shortMonth(date: Date, lingua: Lingua = 'it'): string {
   return format(date, 'MMM', dateOpts(lingua)).replace(/\.$/, '')

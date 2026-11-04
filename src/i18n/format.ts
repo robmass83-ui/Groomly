@@ -1,17 +1,17 @@
 import { format } from 'date-fns'
-import { enGB, es, it } from 'date-fns/locale'
-import type { Lingua } from './lingua'
+import { de, enGB, es, fr, it } from 'date-fns/locale'
+import { LOCALE_INTL as intl, type Lingua } from './lingua'
 
-const locali = { it, en: enGB, es }
-const intl = { it: 'it-IT', en: 'en-GB', es: 'es-ES' } as const
+const locali = { it, en: enGB, es, fr, de }
+// Lo spazio insecabile tiene insieme le cifre in francese e l'importo col simbolo.
+const MIGLIAIA: Record<Lingua, string> = { it: '.', en: ',', es: '.', fr: '\u00A0', de: '.' }
 
 function corpoEuro(lingua: Lingua, importo: number): string {
   const negativo = importo < 0
   const assoluto = Math.abs(importo)
   const intero = Math.abs(assoluto - Math.round(assoluto)) < 1e-9
   const [parteIntera, decimali] = assoluto.toFixed(intero ? 0 : 2).split('.')
-  const migliaia = lingua === 'en' ? ',' : '.'
-  const raggruppato = parteIntera.replace(/\B(?=(\d{3})+(?!\d))/g, migliaia)
+  const raggruppato = parteIntera.replace(/\B(?=(\d{3})+(?!\d))/g, MIGLIAIA[lingua])
   const testo = intero ? raggruppato : `${raggruppato}${lingua === 'en' ? '.' : ','}${decimali}`
   return negativo ? `-${testo}` : testo
 }
@@ -19,6 +19,7 @@ function corpoEuro(lingua: Lingua, importo: number): string {
 export function euro(lingua: Lingua, importo: number): string {
   const formatted = corpoEuro(lingua, importo)
   if (lingua === 'es') return `${formatted} €`
+  if (lingua === 'fr' || lingua === 'de') return `${formatted}\u00A0€`
   if (lingua === 'en') return `€${formatted}`
   return `€ ${formatted}`
 }
@@ -28,7 +29,7 @@ export function meseCorto(lingua: Lingua, data: Date): string {
 }
 
 export function dataCorta(lingua: Lingua, data: Date): string {
-  const raw = format(data, 'd MMM', { locale: locali[lingua], weekStartsOn: 1 })
+  const raw = format(data, lingua === 'de' ? 'd. MMM' : 'd MMM', { locale: locali[lingua], weekStartsOn: 1 })
   return lingua === 'it' ? raw : raw.replace(/\.$/, '')
 }
 
@@ -43,7 +44,7 @@ export function meseAnno(lingua: Lingua, data: Date): string {
 }
 
 export function dataBreve(lingua: Lingua, data: Date): string {
-  const raw = format(data, 'EEEE d MMMM', { locale: locali[lingua], weekStartsOn: 1 })
+  const raw = format(data, lingua === 'de' ? 'EEEE, d. MMMM' : 'EEEE d MMMM', { locale: locali[lingua], weekStartsOn: 1 })
   return raw.charAt(0).toLocaleUpperCase(intl[lingua]) + raw.slice(1)
 }
 
@@ -52,11 +53,14 @@ export function dataConOra(lingua: Lingua, data: Date): string {
   const ora = format(data, 'HH:mm')
   if (lingua === 'en') return `${giorno} at ${ora}`
   if (lingua === 'es') return `${giorno} a las ${ora}`
+  if (lingua === 'fr') return `${giorno} à ${ora}`
+  if (lingua === 'de') return `${giorno} um ${ora}`
   return `${giorno} alle ${ora}`
 }
 
 export function dataEstesa(lingua: Lingua, data: Date): string {
   if (lingua === 'es') return format(data, "d 'de' MMMM 'de' yyyy", { locale: es, weekStartsOn: 1 })
+  if (lingua === 'de') return format(data, 'd. MMMM yyyy', { locale: de, weekStartsOn: 1 })
   return format(data, 'd MMMM yyyy', { locale: locali[lingua], weekStartsOn: 1 })
 }
 

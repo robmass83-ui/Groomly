@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import '@fontsource/poppins/800.css'
-import { Archive, Bell, BookOpen, Check, ChevronRight, Cloud, Crown, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
+import { Archive, Bell, BookOpen, ChevronRight, Cloud, Crown, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -42,7 +42,9 @@ import { usePlus } from '../hooks/usePlus'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
-import type { Lingua } from '../i18n/lingua'
+import { NOMI_LINGUA, OPZIONI_LINGUA, linguaValida } from '../i18n/lingua'
+import { puoScrivereLinguaClienti } from '../i18n/scritturaLingua'
+import { SceltaLista } from '../components/ui/SceltaLista'
 import { vedeIncassi, voceTeam } from '../lib/salonAccess'
 import { useFileSrc } from '../hooks/useFileSrc'
 import { useSettings } from '../hooks/useSettings'
@@ -153,47 +155,6 @@ function GroupLabel({ children }: { children: string }) {
   return (
     <div style={{ margin: '8px 2px 0', fontSize: 10, fontWeight: 750, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--tx3)' }}>
       {children}
-    </div>
-  )
-}
-
-function SceltaLista<T extends string>({ label, value, onChange, options }: {
-  label: string
-  value: T
-  onChange: (value: T) => void
-  options: { value: T; label: string }[]
-}) {
-  return (
-    <div role="radiogroup" aria-label={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {options.map((option) => {
-        const selected = option.value === value
-        return (
-          <button
-            key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => onChange(option.value)}
-            style={{
-              minHeight: 48,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              borderRadius: 12,
-              border: selected ? '2px solid var(--pri)' : '1px solid var(--line)',
-              background: selected ? 'var(--pri-s)' : 'var(--surf)',
-              color: 'var(--tx)',
-              font: 'inherit',
-              fontWeight: 650,
-              padding: '0 12px',
-              textAlign: 'left',
-            }}
-          >
-            <span style={{ flex: 1 }}>{option.label}</span>
-            {selected ? <Check size={16} strokeWidth={2} aria-hidden /> : null}
-          </button>
-        )
-      })}
     </div>
   )
 }
@@ -324,6 +285,7 @@ export function SettingsPage() {
   const tornandoRef = useRef(false)
   const [temaOpen, setTemaOpen] = useState(false)
   const [linguaOpen, setLinguaOpen] = useState(false)
+  const [linguaClientiOpen, setLinguaClientiOpen] = useState(false)
   const restoreRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -778,11 +740,8 @@ export function SettingsPage() {
             : null
   const headline = businessHeadline(settings.business, frasi.authIva)
   const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt, now, lingua)
-  const opzioniLingua: { value: Lingua; label: string }[] = [
-    { value: 'it', label: 'Italiano' },
-    { value: 'en', label: 'English' },
-    { value: 'es', label: 'Español' },
-  ]
+  const linguaClienti = linguaValida(settings.linguaClienti) ?? 'it'
+  const vedeLinguaClienti = puoScrivereLinguaClienti(account?.role ?? 'titolare')
   const anello = avanzamentoSalone(passi)
   const telefoni = Object.fromEntries(dogs.map((dog) => [dog.id, dog.contact.phone ?? '']))
   const avvisiNuovi = codaDomani(appointments, telefoni, now, settings.avvisiInviati ?? {}).length
@@ -1018,10 +977,20 @@ export function SettingsPage() {
             <button type="button" aria-haspopup="dialog" onClick={() => setLinguaOpen(true)} style={rowButton}>
               <MenuIcon tone="prim"><Languages size={13} strokeWidth={2} aria-hidden /></MenuIcon>
               <span style={{ flex: 1 }}>{frasi.linguaTua}</span>
-              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{opzioniLingua.find((opzione) => opzione.value === lingua)?.label ?? 'Italiano'}</span>
+              <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{NOMI_LINGUA[lingua]}</span>
               <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
             </button>
           </SRow>
+          {vedeLinguaClienti ? (
+            <SRow>
+              <button type="button" aria-haspopup="dialog" onClick={() => setLinguaClientiOpen(true)} style={rowButton}>
+                <MenuIcon tone="prim"><Languages size={13} strokeWidth={2} aria-hidden /></MenuIcon>
+                <span style={{ flex: 1 }}>{frasi.linguaClienti}</span>
+                <span style={{ color: 'var(--tx2)', fontWeight: 650 }}>{NOMI_LINGUA[linguaClienti]}</span>
+                <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
+              </button>
+            </SRow>
+          ) : null}
           <SRow>
             <Link to="/impostazioni/notifiche" className="tocco" aria-label={avvisiNuovi > 0 ? `${frasi.impNotifiche}. ${frasi.hubAvvisiNuovi}` : undefined} style={{ ...menuLink, minHeight: 44, position: 'relative' }}>
               <MenuIcon tone="prim"><Bell size={13} strokeWidth={2} aria-hidden /></MenuIcon>
@@ -1166,7 +1135,16 @@ export function SettingsPage() {
       </Dialog>
       <Dialog open={linguaOpen} title={frasi.linguaTua} onClose={() => setLinguaOpen(false)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaMessaggiDettaglio}</p>
-        <SceltaLista label={frasi.linguaDispositivo} value={lingua} onChange={scegli} options={opzioniLingua} />
+        <SceltaLista label={frasi.linguaDispositivo} value={lingua} onChange={scegli} options={OPZIONI_LINGUA} />
+      </Dialog>
+      <Dialog open={linguaClientiOpen} title={frasi.linguaClienti} onClose={() => setLinguaClientiOpen(false)}>
+        <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.meta, lineHeight: 1.4 }}>{frasi.linguaClientiDettaglio}</p>
+        <SceltaLista
+          label={frasi.linguaClienti}
+          value={linguaClienti}
+          onChange={(scelta) => { save({ ...settingsRef.current, linguaClienti: scelta }) }}
+          options={OPZIONI_LINGUA}
+        />
       </Dialog>
       <Dialog open={copie !== null} title={frasi.bakDriveCopie} onClose={() => { if (!copieBusy) setCopie(null) }}>
         {copie?.map((copia) => {

@@ -1,3 +1,4 @@
+import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import type { Request, Response } from 'express'
 import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
@@ -13,8 +14,8 @@ function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function lingua(value: unknown): 'it' | 'en' | 'es' {
-  return value === 'en' || value === 'es' ? value : 'it'
+function lingua(value: unknown): Lingua {
+  return linguaValida(value) ?? 'it'
 }
 
 export async function paginaPubblicaHttp(req: Request, res: Response): Promise<void> {

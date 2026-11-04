@@ -2,19 +2,26 @@ import type { VoceCatalogo } from './catalogoPrenotazione'
 import { orariCompilati, type Fascia, type Giorno, type OrariSettimana } from './orari'
 import { specieAccettate, type SpeciePrenotabile } from './prenotazionePubblica'
 import { logoSicuro } from './logoPubblico'
+import type { Lingua } from '../i18n/lingua'
 
-export type LinguaPagina = 'it' | 'en' | 'es'
+export type LinguaPagina = Lingua
 
 const GIORNI: Record<LinguaPagina, readonly string[]> = {
   it: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'],
   en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
   es: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+  // LINGUE: da tradurre
+  fr: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+  de: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 }
 
 const COPY: Record<LinguaPagina, { prenota: string; gestito: string; privacy: string; lingue: string; spento: string; prezzi: string }> = {
   it: { prenota: 'Prenota un appuntamento', gestito: 'Gestito con', privacy: 'Privacy', lingue: 'Lingua', spento: 'Questo salone non accetta prenotazioni online.', prezzi: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.' },
   en: { prenota: 'Book an appointment', gestito: 'Run with', privacy: 'Privacy', lingue: 'Language', spento: 'This salon is not taking online bookings.', prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.' },
   es: { prenota: 'Reserva una cita', gestito: 'Gestionado con', privacy: 'Privacidad', lingue: 'Idioma', spento: 'Este salón no acepta reservas online.', prezzi: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.' },
+  // LINGUE: da tradurre
+  fr: { prenota: 'Book an appointment', gestito: 'Run with', privacy: 'Privacy', lingue: 'Language', spento: 'This salon is not taking online bookings.', prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.' },
+  de: { prenota: 'Book an appointment', gestito: 'Run with', privacy: 'Privacy', lingue: 'Language', spento: 'This salon is not taking online bookings.', prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.' },
 }
 
 function firmaFasce(fasce: unknown): string {
@@ -100,6 +107,9 @@ const ASSENTE: Record<LinguaPagina, { titolo: string; testo: string }> = {
   it: { titolo: 'Indirizzo non trovato', testo: 'Questo link non porta a nessun salone. Controlla di averlo scritto bene, o chiedi al salone il link giusto.' },
   en: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
   es: { titolo: 'Dirección no encontrada', testo: 'Este enlace no lleva a ningún salón. Comprueba que está bien escrito o pide al salón el enlace correcto.' },
+  // LINGUE: da tradurre
+  fr: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
+  de: { titolo: 'Address not found', testo: 'This link does not lead to any salon. Check it is spelled right, or ask the salon for the right link.' },
 }
 
 /** Lo slug non corrisponde a nessun salone: niente scheda finta né riquadro delle prenotazioni, solo cosa fare. */

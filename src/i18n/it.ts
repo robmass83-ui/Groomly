@@ -972,7 +972,7 @@ export const it = {
   schedaAltriContatti: 'Altri contatti',
   schedaNoteElenco: 'Note',
   linguaDispositivo: 'Lingua del dispositivo',
-  linguaMessaggiDettaglio: 'Groomly usa questa lingua. In Italia si propone l’italiano e in Inghilterra l’inglese. Puoi cambiarla.',
+  linguaMessaggiDettaglio: 'Groomly usa questa lingua. All’inizio segue quella del telefono. Puoi cambiarla.',
   metricheDettaglio: 'Dati anonimi su come usi Groomly, per migliorarla. Nessun nome di cliente.',
   funzioniBase: 'Funzioni base',
   funzioniPro: 'Funzioni Plus',
@@ -1967,4 +1967,7 @@ export const it = {
   b4SpegniTesto: 'Si torna come in beta. Chi ha già pagato tiene il piano fino a scadenza.',
   b4Controllo: 'Controllo in corso…',
   b4ErroreAdmin: 'Operazione non riuscita',
+  // Lingue T1
+  linguaClienti: 'Lingua dei clienti',
+  linguaClientiDettaglio: 'Groomly scrive ai tuoi clienti in questa lingua quando non conosce la loro.',
 } as const

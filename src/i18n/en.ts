@@ -974,7 +974,7 @@ export const en = {
   schedaAltriContatti: 'Other contacts',
   schedaNoteElenco: 'Notes',
   linguaDispositivo: 'Device language',
-  linguaMessaggiDettaglio: 'Groomly uses this language. In Italy it suggests Italian, and in England it suggests English. You can change it.',
+  linguaMessaggiDettaglio: 'Groomly uses this language. At first it follows your phone. You can change it.',
   metricheDettaglio: 'Anonymous data on how you use Groomly, so we can improve it. No client names.',
   funzioniBase: 'Basic features',
   funzioniPro: 'Plus features',
@@ -1969,4 +1969,7 @@ export const en = {
   b4SpegniTesto: 'Back to how it was in beta. Whoever already paid keeps the plan until it ends.',
   b4Controllo: 'Checking…',
   b4ErroreAdmin: 'Operation failed',
+  // Lingue T1
+  linguaClienti: 'Client language',
+  linguaClientiDettaglio: 'Groomly writes to your clients in this language when it doesn’t know theirs.',
 } as const satisfies Record<keyof typeof italiano, string>

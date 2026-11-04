@@ -59,7 +59,7 @@ export function DevBetaPage() {
   const valori = useMemo(() => {
     const adesso = new Date()
     const { pro, invito } = scenario(scena, piano, adesso)
-    const configPiani = { ...CONFIG_PIANI_DEFAULT, showPrezziInBeta: prezzi, offertaEarlyAdopter: { it: 'Prezzo fondatori: −30% sul primo anno', en: 'Founders’ price: −30% for the first year', es: 'Precio fundadores: −30% el primer año' } }
+    const configPiani = { ...CONFIG_PIANI_DEFAULT, showPrezziInBeta: prezzi, offertaEarlyAdopter: { it: 'Prezzo fondatori: −30% sul primo anno', en: 'Founders’ price: −30% for the first year', es: 'Precio fundadores: −30% el primer año', fr: '', de: '' } }
     const pianoValore = pianoFinto({ livelloNome: livelloElenco(pro, adesso), configPiani }, pro, adesso)
     const stato = faseBeta({ invito, stato: statoPiano(pro, adesso), traccia: pro ?? {}, adesso })
     const avvisi = avvisiBeta(stato, adesso, {})

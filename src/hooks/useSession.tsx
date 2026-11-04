@@ -8,6 +8,8 @@ import { dimenticaInvito } from '../data/local/invitoInSospeso'
 import { dimenticaDestinazione } from '../data/local/dopoAccesso'
 import { segnaVerificaInviata } from '../data/local/verificaInviata'
 import { titolareDaRegistrazione } from '../lib/validazioni'
+import { leggiLinguaAttiva } from '../i18n/linguaLocale'
+import { primoAvvio } from '../i18n/scritturaLingua'
 import { clearSignInHint, readSignInHint, writeSignInHint } from '../data/local/signInHint'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
@@ -170,8 +172,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           const { firstName, lastName, email, password, salonName, vatNumber, address = '' } = values
           const created = await createAccountRepo(email, password, { firstName, lastName })
           const settings = getSettings(created.uid)
+          const { linguaClienti } = primoAvvio({ nuovo: true, lingua: leggiLinguaAttiva(), ruolo: 'titolare' })
           writeJson(storageKeys.settings(created.uid), {
             ...settings,
+            ...(linguaClienti ? { linguaClienti } : {}),
             business: { ...settings.business, salonName, name: salonName, vatNumber, address, titolare: titolareDaRegistrazione(firstName, lastName), taxCode: '', paese: paeseDellIva(vatNumber, paeseIndovinato()) ?? paeseIndovinato() },
           })
           setGate({ kind: 'in', account: created })

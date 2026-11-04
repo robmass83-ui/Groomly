@@ -14,7 +14,7 @@ import { dueSoon } from '../lib/cycle'
 import { reminderText } from '../lib/reminderText'
 import { PianoProvider, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
-import { LinguaProvider, useFrasi } from '../i18n/LinguaContext'
+import { LinguaProvider, useFrasi, useLingua } from '../i18n/LinguaContext'
 import { CompleanniAvviso } from './CompleanniAvviso'
 import { OrarioScadutoAvviso } from './OrarioScadutoAvviso'
 import { DriveInvioAuto } from './DriveInvioAuto'
@@ -132,6 +132,18 @@ function DailyBackup() {
   return null
 }
 
+/** Il server scrive al titolare nella lingua dell'app: l'account la segue anche quando la decide il telefono. */
+function LinguaAccount() {
+  const { gate, entry } = useSession()
+  const { lingua } = useLingua()
+  const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : null
+  useEffect(() => {
+    if (!uid || !firebaseEnabled()) return
+    void import('../data/firebase/client').then((mod) => mod.allineaLinguaAccount(uid, lingua)).catch(() => undefined)
+  }, [uid, lingua])
+  return null
+}
+
 function SaveFailedToast() {
   const toast = useToast()
   const frasi = useFrasi()
@@ -144,6 +156,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <SessionProvider>
       <SettingsProvider>
         <LinguaProvider>
+        <LinguaAccount />
         <MonthlyReminder />
         <CompleanniAvviso />
         <OrarioScadutoAvviso />

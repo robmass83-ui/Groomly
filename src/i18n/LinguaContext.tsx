@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { de } from './de'
 import { en } from './en'
 import { es } from './es'
+import { fr } from './fr'
 import { it } from './it'
-import { leggiLinguaAttiva, scriviLinguaLocale } from './linguaLocale'
+import { leggiLinguaAttiva, passaggioLingua, scriviLinguaLocale } from './linguaLocale'
 import type { Lingua } from './lingua'
 
-const cataloghi = { it, en, es }
+const cataloghi = { it, en, es, fr, de }
 
 type Api = {
   lingua: Lingua
@@ -15,7 +17,10 @@ type Api = {
 const Contesto = createContext<Api>({ lingua: 'it', scegli: () => undefined })
 
 export function LinguaProvider({ children }: { children: ReactNode }) {
-  const [lingua, setLingua] = useState<Lingua>(() => leggiLinguaAttiva())
+  const [lingua, setLingua] = useState<Lingua>(() => {
+    passaggioLingua()
+    return leggiLinguaAttiva()
+  })
   // Lettori di schermo e sillabazione leggono la lingua della pagina.
   useEffect(() => {
     document.documentElement.lang = lingua

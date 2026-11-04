@@ -11,7 +11,7 @@ vi.mock('../../hooks/useSession', () => ({ useSession: () => ({ gate: { kind: 'i
 vi.mock('../../hooks/usePiano', () => ({
   usePiano: () => ({
     abbonamentiAttivi: forzato.attivi,
-    acquisto: { chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '' }, pagamentiDal: forzato.dal },
+    acquisto: { chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '', fr: '', de: '' }, pagamentiDal: forzato.dal },
   }) as Partial<PianoValore>,
 }))
 

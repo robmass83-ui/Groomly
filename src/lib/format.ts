@@ -1,12 +1,11 @@
 import { type Locale } from 'date-fns'
-import { enGB, es, it } from 'date-fns/locale'
+import { de, enGB, es, fr, it } from 'date-fns/locale'
 import { dataBreve, euro } from '../i18n/format'
-import type { Lingua } from '../i18n/lingua'
+import { LOCALE_INTL as INTL, type Lingua } from '../i18n/lingua'
 
-const LOCALI: Record<Lingua, Locale> = { it, en: enGB, es }
-const INTL: Record<Lingua, string> = { it: 'it-IT', en: 'en-GB', es: 'es-ES' }
+const LOCALI: Record<Lingua, Locale> = { it, en: enGB, es, fr, de }
 
-/** Locale date-fns della lingua; la settimana parte dal lunedì in tutte e tre. */
+/** Locale date-fns della lingua; la settimana parte dal lunedì in tutte le lingue. */
 export function opzioniDate(lingua: Lingua): { locale: Locale; weekStartsOn: 1 } {
   return { locale: LOCALI[lingua], weekStartsOn: 1 }
 }

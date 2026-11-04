@@ -1,5 +1,5 @@
 import { format, isSameDay } from 'date-fns'
-import type { Lingua } from '../i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
 import { t, type Chiave } from '../i18n/t'
 import type { AgeCategory, Appointment, ClientType, Dog, DogSize, DogStatus, Sex, Species, Temperament } from '../types/models'
 import { nextAppointment, startOfLocalDay } from './appointments'
@@ -104,8 +104,7 @@ export function dogMeta(dog: Dog): string {
 }
 
 function capitalize(value: string, lingua: Lingua): string {
-  const intl = lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT'
-  return value.charAt(0).toLocaleUpperCase(intl) + value.slice(1)
+  return value.charAt(0).toLocaleUpperCase(LOCALE_INTL[lingua]) + value.slice(1)
 }
 
 export function dogThirdLine(dog: Dog, appointments: Appointment[], now: Date, daysBefore: number, lingua: Lingua = 'it'): { text: string; tone: 'warn' | 'tx3' } {

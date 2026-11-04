@@ -340,6 +340,6 @@ describe('Admin Manager: beta', () => {
     await user.click(screen.getByRole('radio', { name: 'en' }))
     expect(screen.getByText('Vuoto: si usa l’italiano')).toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Salva' })[0])
-    expect(client.config).toHaveBeenLastCalledWith({ offertaEarlyAdopter: { it: 'Prezzo fondatori', en: '', es: '' } })
+    expect(client.config).toHaveBeenLastCalledWith({ offertaEarlyAdopter: { it: 'Prezzo fondatori', en: '', es: '', fr: '', de: '' } })
   })
 })

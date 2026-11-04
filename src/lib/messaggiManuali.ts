@@ -19,6 +19,15 @@ const MODELLI: Record<Lingua, Record<'pronto' | 'auguri', string>> = {
     pronto: '{{saluto}} hemos terminado con {{cane}} y ya te está esperando. Puedes pasar a recogerlo, ¡hasta ahora!',
     auguri: '{{saluto}} ¡feliz cumpleaños a {{cane}} de parte de todos nosotros! Esperamos veros pronto.',
   },
+  // LINGUE: da tradurre
+  fr: {
+    pronto: '{{saluto}} {{cane}} is all done and waiting for you. You can come and pick them up, see you soon!',
+    auguri: '{{saluto}} happy birthday to {{cane}} from all of us! We hope to see you both soon.',
+  },
+  de: {
+    pronto: '{{saluto}} {{cane}} is all done and waiting for you. You can come and pick them up, see you soon!',
+    auguri: '{{saluto}} happy birthday to {{cane}} from all of us! We hope to see you both soon.',
+  },
 }
 
 export function firmaMessaggio(lingua: Lingua): string {

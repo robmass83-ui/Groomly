@@ -66,7 +66,7 @@ describe('BetaInvitoPage', () => {
   })
 
   it("l'offerta early adopter compare solo con il testo in config", async () => {
-    await monta(invitato(), { configPiani: { ...CONFIG_PIANI_DEFAULT, offertaEarlyAdopter: { it: 'Prezzo fondatori: −30% per sempre', en: '', es: '' } } })
+    await monta(invitato(), { configPiani: { ...CONFIG_PIANI_DEFAULT, offertaEarlyAdopter: { it: 'Prezzo fondatori: −30% per sempre', en: '', es: '', fr: '', de: '' } } })
     expect(await screen.findByText('Prezzo fondatori: −30% per sempre')).toBeInTheDocument()
   })
 

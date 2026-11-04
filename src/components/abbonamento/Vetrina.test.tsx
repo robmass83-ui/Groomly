@@ -50,7 +50,7 @@ function pianoDa(doc: ProMain | undefined, abbonamentiAttivi = false): PianoValo
     prova: async () => undefined,
     avvisa: async () => undefined,
     pronto: true,
-    acquisto: { chiaveSdk: 'goog_x', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '' }, pagamentiDal: null },
+    acquisto: { chiaveSdk: 'goog_x', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '', fr: '', de: '' }, pagamentiDal: null },
   }
 }
 

@@ -15,7 +15,7 @@ import { useFileSrc } from '../hooks/useFileSrc'
 import { etichetteListino } from '../i18n/listino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
-import { linguaValida, type Lingua } from '../i18n/lingua'
+import { LINGUE, NOMI_LINGUA, linguaValida, type Lingua } from '../i18n/lingua'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { openPdfBlob } from '../lib/openDocument'
@@ -29,7 +29,6 @@ import { TYPE } from '../theme/theme'
 import type { PriceSheet } from '../types/priceSheet'
 
 const PREVIEW_W = 236
-const NOMI_LINGUA: Record<Lingua, string> = { it: 'Italiano', en: 'English', es: 'Español' }
 
 type Action = 'share' | 'download' | 'print'
 
@@ -402,7 +401,7 @@ export function PriceSheetExportPage() {
       ) : null}
       <Dialog open={linguaAperta} title={frasi.linguaListino} onClose={() => setLinguaAperta(false)}>
         <div role="radiogroup" aria-label={frasi.linguaListino} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {(['it', 'en', 'es'] as const).map((codice) => {
+          {LINGUE.map((codice) => {
             const selected = codice === linguaFoglio
             return (
               <button

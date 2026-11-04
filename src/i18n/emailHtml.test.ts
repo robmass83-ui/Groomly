@@ -4,14 +4,16 @@ import type { Lingua } from './lingua'
 
 const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 const SENZA_PULSANTI: TipoEmail[] = ['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri']
-const LINGUE: Lingua[] = ['it', 'en', 'es']
+// LINGUE: da tradurre. Quando le email hanno fr e de, qui si usa LINGUE di lingua.ts.
+type LinguaEmail = Exclude<Lingua, 'fr' | 'de'>
+const LINGUE: LinguaEmail[] = ['it', 'en', 'es']
 const SERVIZI: TipoEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
-const SILENZIO: Record<Lingua, string> = {
+const SILENZIO: Record<LinguaEmail, string> = {
   it: 'Non voglio più ricevere queste email',
   en: "I don't want to receive these emails any more",
   es: 'No quiero recibir más estos correos',
 }
-const RECENSIONE: Record<Lingua, string> = {
+const RECENSIONE: Record<LinguaEmail, string> = {
   it: 'una recensione su Google ci aiuta tanto e richiede un minuto',
   en: 'a Google review helps us a lot and only takes a minute',
   es: 'una reseña en Google nos ayuda mucho y solo lleva un minuto',
@@ -27,7 +29,7 @@ const PIENI = {
   rispondi: true,
 }
 
-const FRASI: Record<TipoEmail, Record<Lingua, { oggetto: string; frase: string }> | null> = {
+const FRASI: Record<TipoEmail, Record<LinguaEmail, { oggetto: string; frase: string }> | null> = {
   verifica: null,
   reset: null,
   invito: null,
@@ -93,7 +95,7 @@ const FRASI: Record<TipoEmail, Record<Lingua, { oggetto: string; frase: string }
   },
 }
 
-const CORNICI: Record<Lingua, Array<{ tipo: TipoEmail; oggetto: string }>> = {
+const CORNICI: Record<LinguaEmail, Array<{ tipo: TipoEmail; oggetto: string }>> = {
   it: [
     { tipo: 'conferma', oggetto: 'Appuntamento confermato' },
     { tipo: 'proposta', oggetto: 'Un nuovo orario' },

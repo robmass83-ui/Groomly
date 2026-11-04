@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { linguaDelTelefono } from './lingua'
-import { linguaDalLuogo } from './linguaLuogo'
-import { leggiLinguaAttiva, scriviLinguaLocale } from './linguaLocale'
+import { linguaDalLuogo, linguaVecchiaRegola } from './linguaLuogo'
+import { leggiLinguaAttiva, leggiLinguaSalvata, passaggioLingua, scriviLinguaLocale } from './linguaLocale'
 
 describe('lingua dal luogo', () => {
   it('mappa Italia, Inghilterra e Spagna e ignora gli altri fusi', () => {
@@ -17,6 +16,13 @@ describe('lingua dal luogo', () => {
     expect(linguaDalLuogo(null)).toBeNull()
     expect(linguaDalLuogo(undefined)).toBeNull()
   })
+
+  it('la vecchia regola conosce solo tre lingue', () => {
+    expect(linguaVecchiaRegola('it-IT', 'Europe/London')).toBe('en')
+    expect(linguaVecchiaRegola('fr-FR', 'Europe/Paris')).toBe('en')
+    expect(linguaVecchiaRegola('de-DE', 'Europe/Rome')).toBe('it')
+    expect(linguaVecchiaRegola('es-ES', 'UTC')).toBe('es')
+  })
 })
 
 describe('lingua attiva', () => {
@@ -24,29 +30,51 @@ describe('lingua attiva', () => {
     localStorage.clear()
   })
 
-  it('la lingua salvata vince sul luogo e sul telefono', () => {
+  it('la lingua salvata vince sul telefono', () => {
     scriviLinguaLocale('es')
-    expect(leggiLinguaAttiva('it-IT', 'Europe/London')).toBe('es')
+    expect(leggiLinguaAttiva('it-IT')).toBe('es')
   })
 
-  it('senza scelta usa il luogo', () => {
-    expect(leggiLinguaAttiva('it-IT', 'Europe/London')).toBe('en')
-    expect(leggiLinguaAttiva('en-GB', 'Europe/Rome')).toBe('it')
-    expect(leggiLinguaAttiva('it-IT', 'Europe/Madrid')).toBe('es')
-    expect(leggiLinguaAttiva('it-IT', 'Atlantic/Canary')).toBe('es')
-    expect(leggiLinguaAttiva('en-US', 'Africa/Ceuta')).toBe('es')
+  it('senza scelta usa il telefono, poi l’inglese', () => {
+    expect(leggiLinguaAttiva('it-IT')).toBe('it')
+    expect(leggiLinguaAttiva('fr-CA')).toBe('fr')
+    expect(leggiLinguaAttiva('de-AT')).toBe('de')
+    expect(leggiLinguaAttiva('pt-BR')).toBe('en')
+    expect(leggiLinguaAttiva(null)).toBe('en')
+  })
+})
+
+describe('passaggio per chi ha già l’app', () => {
+  beforeEach(() => {
+    localStorage.clear()
   })
 
-  it('un fuso sconosciuto usa la lingua del telefono', () => {
-    expect(leggiLinguaAttiva('it-IT', 'Africa/Cairo')).toBe('it')
-    expect(leggiLinguaAttiva('it-IT', 'UTC')).toBe('it')
-    expect(leggiLinguaAttiva('it-IT', '')).toBe('it')
-    expect(leggiLinguaAttiva('es-ES', 'Africa/Cairo')).toBe('es')
-    expect(leggiLinguaAttiva('fr', 'UTC')).toBe('en')
+  it('chi non ha mai scelto tiene la lingua che vedeva, anche se il telefono dice altro', () => {
+    localStorage.setItem('groomly.lastSignIn', '{}')
+    passaggioLingua('fr-FR', 'Europe/Paris')
+    expect(leggiLinguaSalvata()).toBe('en')
+    expect(leggiLinguaAttiva('fr-FR')).toBe('en')
   })
 
-  it('il fuso predefinito è quello di Intl', () => {
-    const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
-    expect(leggiLinguaAttiva('fr-FR')).toBe(linguaDalLuogo(fuso) ?? linguaDelTelefono('fr-FR'))
+  it('riconosce l’app già usata anche dai dati dell’account', () => {
+    localStorage.setItem('groomly.users.u1.dogs', '[]')
+    passaggioLingua('en-GB', 'Europe/Rome')
+    expect(leggiLinguaSalvata()).toBe('it')
+  })
+
+  it('una scelta già fatta non cambia', () => {
+    localStorage.setItem('groomly.session', 'u1')
+    scriviLinguaLocale('es')
+    passaggioLingua('it-IT', 'Europe/Rome')
+    expect(leggiLinguaSalvata()).toBe('es')
+  })
+
+  it('un’installazione nuova segue il telefono e resta nuova anche dopo l’accesso', () => {
+    passaggioLingua('fr-FR', 'Europe/Rome')
+    expect(leggiLinguaSalvata()).toBeNull()
+    localStorage.setItem('groomly.session', 'u1')
+    passaggioLingua('fr-FR', 'Europe/Rome')
+    expect(leggiLinguaSalvata()).toBeNull()
+    expect(leggiLinguaAttiva('fr-FR')).toBe('fr')
   })
 })

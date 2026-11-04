@@ -12,7 +12,7 @@ import { callImpostaConfigPiani } from '../../data/firebase/client'
 import { callAnnunciaPagamenti, callImpostaMostraPiani, type ConfigGlobale } from '../../data/firebase/adminClient'
 import { dataCorta } from '../../i18n/format'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
-import { CHIAVE_SDK_MAX, OFFERING_ID_MAX, OFFERTA_MAX, type ConfigPiani, type LinguaOfferta } from '../../lib/configPiani'
+import { CHIAVE_SDK_MAX, LINGUE_OFFERTA, OFFERING_ID_MAX, OFFERTA_MAX, type ConfigPiani, type LinguaOfferta } from '../../lib/configPiani'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, Nota, RIGA } from './comuni'
 import { PannelloAccensione } from './PannelloAccensione'
@@ -139,7 +139,7 @@ export function PianiPagamenti({ config }: { config: ConfigGlobale | null }) {
           label={frasi.amOfferta}
           value={linguaOfferta}
           onChange={setLinguaOfferta}
-          options={[{ value: 'it', label: 'it' }, { value: 'en', label: 'en' }, { value: 'es', label: 'es' }]}
+          options={LINGUE_OFFERTA.map((value) => ({ value, label: value }))}
         />
         <textarea
           aria-label={`${frasi.amOfferta} (${linguaOfferta})`}

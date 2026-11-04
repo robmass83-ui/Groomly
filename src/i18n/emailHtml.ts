@@ -1,5 +1,5 @@
 import { oraRoma } from '../lib/disponibilita'
-import type { Lingua } from './lingua'
+import { LOCALE_INTL, type Lingua } from './lingua'
 
 export type TipoEmail =
   | 'verifica'
@@ -45,55 +45,73 @@ const OGGETTO_VERIFICA: Record<Lingua, string> = {
   it: 'Benvenuto su Groomly, conferma la tua email',
   en: 'Welcome to Groomly, please confirm your email',
   es: 'Bienvenido a Groomly, confirma tu correo',
+  // LINGUE: da tradurre
+  fr: 'Welcome to Groomly, please confirm your email',
+  de: 'Welcome to Groomly, please confirm your email',
 }
 
 const OGGETTO_RESET: Record<Lingua, string> = {
   it: 'Reimposta la tua password',
   en: 'Reset your password',
   es: 'Restablece tu contraseña',
+  // LINGUE: da tradurre
+  fr: 'Reset your password',
+  de: 'Reset your password',
 }
 
 const OGGETTO_INVITO_VUOTO: Record<Lingua, string> = {
   it: 'Sei invitato su Groomly',
   en: 'You’re invited to Groomly',
   es: 'Te invitan a Groomly',
+  // LINGUE: da tradurre
+  fr: 'You’re invited to Groomly',
+  de: 'You’re invited to Groomly',
 }
 
 const BOTTONE_ACCOUNT: Record<'verifica' | 'reset' | 'invito', Record<Lingua, string>> = {
-  verifica: { it: 'Conferma l’email', en: 'Confirm email', es: 'Confirmar el correo' },
-  reset: { it: 'Reimposta la password', en: 'Reset password', es: 'Restablecer la contraseña' },
-  invito: { it: 'Accetta l’invito', en: 'Accept invitation', es: 'Aceptar la invitación' },
+  verifica: { it: 'Conferma l’email', en: 'Confirm email', es: 'Confirmar el correo', fr: 'Confirm email', de: 'Confirm email' }, // LINGUE: da tradurre
+  reset: { it: 'Reimposta la password', en: 'Reset password', es: 'Restablecer la contraseña', fr: 'Reset password', de: 'Reset password' }, // LINGUE: da tradurre
+  invito: { it: 'Accetta l’invito', en: 'Accept invitation', es: 'Aceptar la invitación', fr: 'Accept invitation', de: 'Accept invitation' }, // LINGUE: da tradurre
 }
 
 const NOTA_RISPOSTA: Record<Lingua, string> = {
   it: 'Hai una domanda? Rispondi a questa email, arriva direttamente al salone.',
   en: 'Any questions? Just reply to this email and it will go straight to the salon.',
   es: '¿Tienes alguna pregunta? Responde a este correo y llegará directamente a la peluquería.',
+  // LINGUE: da tradurre
+  fr: 'Any questions? Just reply to this email and it will go straight to the salon.',
+  de: 'Any questions? Just reply to this email and it will go straight to the salon.',
 }
 
 const NOTA_PAGINA: Record<Lingua, string> = {
   it: 'Puoi inviare una nuova richiesta dalla pagina del salone.',
   en: "You can send a new request from the salon's page.",
   es: 'Puedes enviar una nueva solicitud desde la página de la peluquería.',
+  // LINGUE: da tradurre
+  fr: "You can send a new request from the salon's page.",
+  de: "You can send a new request from the salon's page.",
 }
 
 const SILENZIO: Record<Lingua, string> = {
   it: 'Non voglio più ricevere queste email',
   en: "I don't want to receive these emails any more",
   es: 'No quiero recibir más estos correos',
+  // LINGUE: da tradurre
+  fr: "I don't want to receive these emails any more",
+  de: "I don't want to receive these emails any more",
 }
 
-const CONFERMO: Record<Lingua, string> = { it: 'Confermo', en: 'Confirm', es: 'Confirmo' }
-const NON_POSSO: Record<Lingua, string> = { it: 'Non posso', en: "I can't make it", es: 'No puedo' }
-const RECENSIONE_BOTTONE: Record<Lingua, string> = { it: 'Lascia una recensione', en: 'Leave a review', es: 'Dejar una reseña' }
-const ATTESA_BOTTONE: Record<Lingua, string> = { it: 'Prenota il posto', en: 'Book this slot', es: 'Reservar el hueco' }
+const CONFERMO: Record<Lingua, string> = { it: 'Confermo', en: 'Confirm', es: 'Confirmo', fr: 'Confirm', de: 'Confirm' } // LINGUE: da tradurre
+const NON_POSSO: Record<Lingua, string> = { it: 'Non posso', en: "I can't make it", es: 'No puedo', fr: "I can't make it", de: "I can't make it" } // LINGUE: da tradurre
+const RECENSIONE_BOTTONE: Record<Lingua, string> = { it: 'Lascia una recensione', en: 'Leave a review', es: 'Dejar una reseña', fr: 'Leave a review', de: 'Leave a review' } // LINGUE: da tradurre
+const ATTESA_BOTTONE: Record<Lingua, string> = { it: 'Prenota il posto', en: 'Book this slot', es: 'Reservar el hueco', fr: 'Book this slot', de: 'Book this slot' } // LINGUE: da tradurre
 
 const SALONE_VUOTO: Record<RuoloSalone, Record<Lingua, string>> = {
-  soggetto: { it: 'il salone', en: 'the salon', es: 'la peluquería' },
-  di: { it: 'del salone', en: 'of the salon', es: 'de la peluquería' },
-  a: { it: 'al salone', en: 'to the salon', es: 'a la peluquería' },
-  da: { it: 'dal salone', en: 'from the salon', es: 'de la peluquería' },
-  dopoDi: { it: 'dal salone', en: 'at the salon', es: 'en la peluquería' },
+  soggetto: { it: 'il salone', en: 'the salon', es: 'la peluquería', fr: 'the salon', de: 'the salon' }, // LINGUE: da tradurre
+  di: { it: 'del salone', en: 'of the salon', es: 'de la peluquería', fr: 'of the salon', de: 'of the salon' }, // LINGUE: da tradurre
+  a: { it: 'al salone', en: 'to the salon', es: 'a la peluquería', fr: 'to the salon', de: 'to the salon' }, // LINGUE: da tradurre
+  da: { it: 'dal salone', en: 'from the salon', es: 'de la peluquería', fr: 'from the salon', de: 'from the salon' }, // LINGUE: da tradurre
+  dopoDi: { it: 'dal salone', en: 'at the salon', es: 'en la peluquería', fr: 'at the salon', de: 'at the salon' }, // LINGUE: da tradurre
 }
 
 export function etichettaRuolo(lingua: Lingua, ruolo: 'socio' | 'collaboratore'): string {
@@ -137,22 +155,31 @@ const SPECIE_MAIL: Record<Lingua, Record<string, string>> = {
   it: { cane: 'cane', gatto: 'gatto', altro: 'altro animale' },
   en: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
   es: { cane: 'perro', gatto: 'gato', altro: 'otro animal' },
+  // LINGUE: da tradurre
+  fr: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
+  de: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
 }
 
 const TAGLIA_MAIL: Record<Lingua, Record<string, string>> = {
   it: { piccola: 'taglia piccola', media: 'taglia media', grande: 'taglia grande' },
   en: { piccola: 'small size', media: 'medium size', grande: 'large size' },
   es: { piccola: 'talla pequeña', media: 'talla mediana', grande: 'talla grande' },
+  // LINGUE: da tradurre
+  fr: { piccola: 'small size', media: 'medium size', grande: 'large size' },
+  de: { piccola: 'small size', media: 'medium size', grande: 'large size' },
 }
 
 const PREZZI_MAIL: Record<Lingua, string> = {
   it: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.',
   en: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
   es: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.',
+  // LINGUE: da tradurre
+  fr: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
+  de: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
 }
 
 function giornoMail(lingua: Lingua, data: Date): string {
-  const locale = lingua === 'en' ? 'en-GB' : lingua === 'es' ? 'es-ES' : 'it-IT'
+  const locale = LOCALE_INTL[lingua]
   const parti = new Intl.DateTimeFormat(locale, {
     timeZone: 'Europe/Rome',
     weekday: 'long',
@@ -461,6 +488,19 @@ const POSTO_LIBERO: Record<Lingua, { titolo: string; frase: string; fretta: stri
     frase: 'Mira el calendario de la peluquería para ver si sigue libre.',
     fretta: 'Date prisa, antes de perder esta posibilidad.',
     link: 'Mirar el calendario',
+  },
+  // LINGUE: da tradurre
+  fr: {
+    titolo: 'A place has opened up',
+    frase: 'Check the salon calendar for availability.',
+    fretta: 'Hurry, before you lose this chance.',
+    link: 'Check the calendar',
+  },
+  de: {
+    titolo: 'A place has opened up',
+    frase: 'Check the salon calendar for availability.',
+    fretta: 'Hurry, before you lose this chance.',
+    link: 'Check the calendar',
   },
 }
 

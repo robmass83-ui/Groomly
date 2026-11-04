@@ -35,6 +35,9 @@ import { AppError } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
+import type { Lingua } from '../../i18n/lingua'
+import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
+import { primoAvvio } from '../../i18n/scritturaLingua'
 import type { SceltaSalonePersonale } from '../../lib/pausaSalone'
 import { livelloElenco } from '../../lib/funzioniPiano'
 import { fonteDi, tracciaBetaDi } from '../../lib/piano'
@@ -2338,6 +2341,19 @@ export async function allineaEmailAccount(user: { uid: string; email: string | n
   }
 }
 
+/** Push ed email al titolare seguono questo campo. Un errore non blocca nulla: si riprova all'avvio dopo. */
+export async function allineaLinguaAccount(uid: string, lingua: Lingua): Promise<void> {
+  try {
+    const salvata = accountDoc?.uid === uid ? accountDoc.data : (await readAccount(uid)).data
+    if (!salvata || salvata.lingua === lingua) return
+    const { doc, updateDoc } = await loadFirestore()
+    await updateDoc(doc(await database(), 'accounts', uid), { lingua })
+    if (accountDoc?.uid === uid) accountDoc = { uid, data: { ...accountDoc.data, lingua } }
+  } catch {
+    // Si riprova al prossimo avvio.
+  }
+}
+
 /** Al rientro nell'app: rilegge l'utente (il link di conferma può essere stato aperto altrove) e allinea l'email. */
 export async function allineaEmailDopoRientro(): Promise<LocalAccount | null> {
   const user = (await auth()).currentUser
@@ -2415,8 +2431,11 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
   }
   const account = { ...newOwnerAccount(user.uid, { firstName: input.firstName, lastName: input.lastName, email: user.email ?? '' }) }
   const base = blankSettings('auto', new Date().toISOString())
+  // L'email di verifica parte subito e legge la lingua dall'account.
+  const { lingua, linguaClienti } = primoAvvio({ nuovo: true, lingua: leggiLinguaAttiva(), ruolo: 'titolare' })
   const settings: SettingsMain = {
     ...base,
+    ...(linguaClienti ? { linguaClienti } : {}),
     business: {
       ...base.business,
       salonName: input.salonName.trim(),
@@ -2430,7 +2449,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
   }
   let accountWritten = false
   try {
-    await putDoc(['accounts', user.uid], { ...account, termini: { accettati: true, at: new Date().toISOString() } })
+    await putDoc(['accounts', user.uid], { ...account, lingua, termini: { accettati: true, at: new Date().toISOString() } })
     accountWritten = true
     bindSalon(user.uid)
     const present = keepExisting ? await readDoc(salonDocPath('settings', 'main'), true) : null
@@ -2440,7 +2459,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     forgetAccount()
     throw new AppError('Salvataggio non riuscito', 'storage_write')
   }
-  accountDoc = { uid: user.uid, data: account }
+  accountDoc = { uid: user.uid, data: { ...account, lingua } }
   accountDaRileggere = false
 }
 

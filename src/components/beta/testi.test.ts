@@ -9,8 +9,8 @@ describe('testi della beta', () => {
   })
 
   it("l'offerta ripiega sull'italiano", () => {
-    expect(testoOfferta({ it: ' −30% ', en: '', es: 'x' }, 'en')).toBe('−30%')
-    expect(testoOfferta({ it: '−30%', en: '', es: 'x' }, 'es')).toBe('x')
+    expect(testoOfferta({ it: ' −30% ', en: '', es: 'x', fr: '', de: '' }, 'en')).toBe('−30%')
+    expect(testoOfferta({ it: '−30%', en: '', es: 'x', fr: '', de: '' }, 'es')).toBe('x')
   })
 
   it('i messaggi noti del server diventano la frase nella lingua dell’app', () => {
