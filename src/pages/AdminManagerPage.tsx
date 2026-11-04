@@ -43,9 +43,9 @@ import {
   type ContatoriAdmin,
   type FeedbackLetto,
   type Filtri,
+  type InvitoAdmin,
   type RigaLista,
 } from '../lib/adminManager'
-import type { InvitoBeta } from '../lib/betaInvito'
 import { leggiRevisione, scriviRevisione, type SegnoSuggerimento } from '../lib/revisioneSuggerimenti'
 import { accountSummary, salonSummary, type SalonDirectory } from '../lib/salonDirectory'
 import { isOperator } from '../lib/salonPath'
@@ -99,7 +99,7 @@ export function AdminManagerPage() {
   const [note, setNote] = useState<SuggerimentoArrivato[]>([])
   const [notePronte, setNotePronte] = useState(false)
   const [segni, setSegni] = useState<Record<string, SegnoSuggerimento>>(leggiRevisione)
-  const [inviti, setInviti] = useState<InvitoBeta[]>([])
+  const [inviti, setInviti] = useState<InvitoAdmin[]>([])
   const [feedback, setFeedback] = useState<FeedbackLetto[]>([])
   const [feedbackPronti, setFeedbackPronti] = useState(false)
   const [erroreFeedback, setErroreFeedback] = useState(false)

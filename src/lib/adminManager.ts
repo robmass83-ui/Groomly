@@ -210,6 +210,22 @@ export function daFareOggi(input: {
   return voci.slice(0, MAX_DA_FARE)
 }
 
+export type EstensioneBeta = { il: string; giorni: number; scadeIl: string }
+/** Invito letto dall'operatore: in più le estensioni che B1 tiene nel documento. */
+export type InvitoAdmin = InvitoBeta & { estensioni?: EstensioneBeta[] }
+
+/** Estensioni di `betaInviti/{id}` (aggiunta di B1), lettura difensiva. */
+export function estensioniDi(doc: unknown): EstensioneBeta[] {
+  const grezzo = doc && typeof doc === 'object' ? (doc as Record<string, unknown>).estensioni : null
+  if (!Array.isArray(grezzo)) return []
+  return grezzo.flatMap((voce) => {
+    if (!voce || typeof voce !== 'object') return []
+    const v = voce as Record<string, unknown>
+    if (typeof v.il !== 'string' || typeof v.scadeIl !== 'string' || typeof v.giorni !== 'number' || !Number.isFinite(v.giorni)) return []
+    return [{ il: v.il, giorni: v.giorni, scadeIl: v.scadeIl }]
+  })
+}
+
 export type CausaPiano =
   | { tipo: 'vip' }
   | { tipo: 'beta'; dal: string | null; fino: string | null }
@@ -312,7 +328,9 @@ export type ContatoriAdmin = {
   inviti: Record<StatoInvitoBeta, number>
   avvisami: Record<string, number>
   feedback: { totali: number; pagheresti: Record<Pagheresti, number> }
-  /** Facoltativo (non nel contratto A1): attività e città per salone. Null se il server non lo manda. */
+  /** Saloni con la beta in corso (aggiunta di B1); null se il server non lo manda. */
+  inBeta: number | null
+  /** Attività (e città, se arriva) per salone: da `ultimoAccesso` di B1 o da `perSalone`. Null se il server non manda nessuno dei due. */
   perSalone: Record<string, InfoSalone> | null
 }
 
@@ -339,15 +357,21 @@ export function contatoriDi(data: unknown): ContatoriAdmin {
     if (typeof n === 'number' && Number.isFinite(n) && n > 0) avvisami[chiave] = n
   }
   let perSalone: Record<string, InfoSalone> | null = null
-  if (d.perSalone && typeof d.perSalone === 'object') {
+  if (d.ultimoAccesso && typeof d.ultimoAccesso === 'object') {
     perSalone = {}
+    for (const [id, quando] of Object.entries(d.ultimoAccesso as Record<string, unknown>)) {
+      perSalone[id] = typeof quando === 'string' && Number.isFinite(Date.parse(quando)) ? { ultimaAttivita: quando } : {}
+    }
+  }
+  if (d.perSalone && typeof d.perSalone === 'object') {
+    perSalone = perSalone ?? {}
     for (const [id, info] of Object.entries(d.perSalone as Record<string, unknown>)) {
       if (!info || typeof info !== 'object') continue
       const i = info as Record<string, unknown>
       const letta: InfoSalone = {}
       if (typeof i.ultimaAttivita === 'string') letta.ultimaAttivita = i.ultimaAttivita
       if (typeof i.citta === 'string' && i.citta.trim() !== '') letta.citta = i.citta.trim()
-      perSalone[id] = letta
+      perSalone[id] = { ...perSalone[id], ...letta }
     }
   }
   return {
@@ -357,6 +381,7 @@ export function contatoriDi(data: unknown): ContatoriAdmin {
     inviti: conteggi(STATI_INVITO_BETA, d.inviti),
     avvisami,
     feedback: { totali: numero(feedback.totali), pagheresti: conteggi(PAGHERESTI, feedback.pagheresti) },
+    inBeta: typeof d.inBeta === 'number' && Number.isFinite(d.inBeta) && d.inBeta >= 0 ? d.inBeta : null,
     perSalone,
   }
 }

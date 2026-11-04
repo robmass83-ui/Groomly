@@ -144,7 +144,7 @@ export function PanoramicaAdmin({
           </div>
           <div style={{ display: 'flex' }}>
             <Numero valore={contatori.inviti.invitato} etichetta={frasi.amInvitati} onClick={() => apri('beta', 'invitato')} />
-            <Numero valore={contatori.inviti.accettato} etichetta={frasi.amInBeta} onClick={() => apri('beta', 'accettato')} />
+            <Numero valore={contatori.inBeta ?? contatori.inviti.accettato} etichetta={frasi.amInBeta} onClick={() => apri('beta', 'accettato')} />
             <Numero valore={contatori.feedback.totali} etichetta={frasi.amTabFeedback} onClick={() => apri('feedback')} />
             <Numero valore={contatori.feedback.pagheresti.si} etichetta={frasi.amPagherebbero} colore="#4FCB8F" onClick={() => apri('feedback')} />
           </div>

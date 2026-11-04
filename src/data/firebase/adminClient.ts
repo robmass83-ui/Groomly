@@ -1,6 +1,6 @@
-import { invitoBetaDi, type InvitoBeta } from '../../lib/betaInvito'
+import { invitoBetaDi } from '../../lib/betaInvito'
 import { leggiConfigPiani, type ConfigPiani } from '../../lib/configPiani'
-import { contatoriDi, feedbackBetaDi, type ContatoriAdmin, type FeedbackLetto } from '../../lib/adminManager'
+import { contatoriDi, estensioniDi, feedbackBetaDi, type ContatoriAdmin, type FeedbackLetto, type InvitoAdmin } from '../../lib/adminManager'
 import { callCallableData, database, loadFirestore } from './client'
 import { firebaseEnabled } from './enabled'
 import { AppError } from '../errors'
@@ -63,26 +63,31 @@ export async function callAnnunciaPagamenti(data: string): Promise<{ ok: true; e
 
 export const LIMITE_FEEDBACK_ADMIN = 400
 
-export async function elencoInvitiBeta(): Promise<InvitoBeta[]> {
+function invitoAdminDi(salonId: string, data: Record<string, unknown>): InvitoAdmin | null {
+  const invito = invitoBetaDi({ salonId, ...data })
+  return invito ? { ...invito, estensioni: estensioniDi(data) } : null
+}
+
+export async function elencoInvitiBeta(): Promise<InvitoAdmin[]> {
   if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
   const db = await database()
   const { collection, getDocs } = await loadFirestore()
   const snap = await getDocs(collection(db, 'betaInviti'))
   return snap.docs.flatMap((doc) => {
-    const invito = invitoBetaDi({ salonId: doc.id, ...doc.data() })
+    const invito = invitoAdminDi(doc.id, doc.data())
     return invito ? [invito] : []
   })
 }
 
 /** Inviti passati di un salone, dal più recente. */
-export async function storicoInvitoBeta(salonId: string): Promise<InvitoBeta[]> {
+export async function storicoInvitoBeta(salonId: string): Promise<InvitoAdmin[]> {
   if (!firebaseEnabled()) throw new AppError('Connessione assente', 'auth_offline')
   const db = await database()
   const { collection, getDocs } = await loadFirestore()
   const snap = await getDocs(collection(db, 'betaInviti', salonId, 'storico'))
   return snap.docs
     .flatMap((doc) => {
-      const invito = invitoBetaDi({ salonId, ...doc.data() })
+      const invito = invitoAdminDi(salonId, doc.data())
       return invito ? [invito] : []
     })
     .sort((a, b) => b.invitatoIl.localeCompare(a.invitatoIl))

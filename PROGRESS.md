@@ -282,6 +282,6 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Dettaglio salone: piano effettivo e perché, barra dei giorni, Azioni (estendi, revoca, early adopter, invita, revoca invito + le card piano di oggi, Regala 30 giorni, Elimina con ELIMINA) · Storico · Feedback.
 - File: `src/pages/AdminManagerPage.tsx`, `src/components/admin/*`, `src/lib/adminManager.ts`, `src/data/firebase/adminClient.ts`, `src/lib/percorsoAdmin.ts`, `EtichettaBeta`. `UsersPage.tsx` tolto; i suoi 23 test sono in `AdminManagerPage.test.tsx`, più `AdminManagerBeta.test.tsx` (10).
 - Callable usate (le implementa B1, qui simulate nei test): `invitaBeta`, `revocaBeta`, `estendiBeta`, `segnaEarlyAdopter`, `contatoriAdmin`, `impostaMostraPiani`; `annunciaPagamenti` (B4).
-- **Da segnalare all'unione:** campo facoltativo `perSalone` in `contatoriAdmin` (scelta a di Roberto) per attività e città; i token `--plus-*`/`--sal-*` di B3 rendono superflua la copia in `STILE_ADMIN`.
+- Allineato a B1: attività da `ultimoAccesso`, «In beta» da `inBeta`, estensioni degli inviti nello storico; la città resta nascosta (nessun dato). **All'unione:** i token `--plus-*`/`--sal-*` di B3 rendono superflua la copia in `STILE_ADMIN`.
 - Controllo grafico a 360×640 in chiaro e scuro con dati finti (Playwright): nessuno scroll orizzontale. Suite `src`: solo il fallimento noto `driveInvio`. I test delle functions non girano nel worktree (manca `functions/node_modules`). Niente APK, niente merge.
 

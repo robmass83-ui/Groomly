@@ -17,10 +17,11 @@ import {
   perchePiano,
   type FeedbackLetto,
   type InfoSalone,
+  type InvitoAdmin,
   type SalonRow,
   type StatoBeta,
 } from '../../lib/adminManager'
-import type { InvitoBeta, MotivoRifiutoBeta } from '../../lib/betaInvito'
+import type { MotivoRifiutoBeta } from '../../lib/betaInvito'
 import type { LivelloElenco } from '../../lib/funzioniPiano'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
@@ -64,7 +65,7 @@ function nomeMotivo(frasi: Frasi, motivo: MotivoRifiutoBeta | null, altro: strin
 
 type VoceStorico = { quando: string; testo: string; colore: string }
 
-export function vociStorico(frasi: Frasi, inviti: readonly InvitoBeta[], fineBeta: string | null, data: (iso: string) => string): VoceStorico[] {
+export function vociStorico(frasi: Frasi, inviti: readonly InvitoAdmin[], fineBeta: string | null, data: (iso: string) => string): VoceStorico[] {
   const voci: VoceStorico[] = []
   inviti.forEach((invito, indice) => {
     const nome = invito.piano === 'pro' ? 'Plus' : 'Salon'
@@ -72,6 +73,9 @@ export function vociStorico(frasi: Frasi, inviti: readonly InvitoBeta[], fineBet
     if (invito.stato === 'accettato' && invito.rispostoIl) {
       voci.push({ quando: invito.rispostoIl, testo: frasi.amStAccettato, colore: 'var(--ok)' })
       if (indice === 0 && fineBeta) voci.push({ quando: invito.rispostoIl, testo: frasi.amStBetaFino.replace('{{data}}', data(fineBeta)), colore: '#7B3FE4' })
+    }
+    for (const e of invito.estensioni ?? []) {
+      voci.push({ quando: e.il, testo: frasi.amStEsteso.replace('{{n}}', String(e.giorni)).replace('{{data}}', data(e.scadeIl)), colore: '#7B3FE4' })
     }
     if (invito.stato === 'rifiutato' && invito.rispostoIl) {
       voci.push({ quando: invito.rispostoIl, testo: frasi.amStRifiutato.replace('{{motivo}}', nomeMotivo(frasi, invito.motivoRifiuto, invito.altroRifiuto)), colore: 'var(--bad)' })
@@ -109,13 +113,13 @@ export function SchedaSalone({
   livello: LivelloElenco
   pianoAttuale: PianoLocale
   beta: StatoBeta
-  invito: InvitoBeta | undefined
+  invito: InvitoAdmin | undefined
   info: InfoSalone
   feedback: readonly FeedbackLetto[]
   problema: string
   vista: VistaScheda
   onVista: (vista: VistaScheda) => void
-  caricaStorico: () => Promise<InvitoBeta[]>
+  caricaStorico: () => Promise<InvitoAdmin[]>
   onGo: () => void
   onAttiva: (piano: 'pro' | 'salone') => void
   onRegala: () => void
@@ -136,7 +140,7 @@ export function SchedaSalone({
   const [testoRevoca, setTestoRevoca] = useState('')
   const [occupato, setOccupato] = useState(false)
   const [early, setEarly] = useState<boolean | null>(null)
-  const [storico, setStorico] = useState<InvitoBeta[] | null>(null)
+  const [storico, setStorico] = useState<InvitoAdmin[] | null>(null)
   const earlyAcceso = early ?? row.traccia.earlyAdopter === true
   const carica = useRef(caricaStorico)
   carica.current = caricaStorico

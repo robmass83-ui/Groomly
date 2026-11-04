@@ -1753,6 +1753,7 @@ export const it = {
   amRevocaInvitoTesto: 'L’invito a {{salone}} non vale più.',
   amStInvito: 'Invito {{piano}} · {{n}} giorni',
   amStAccettato: 'Ha accettato',
+  amStEsteso: 'Beta estesa di {{n}} giorni, fino al {{data}}',
   amStRifiutato: 'Ha rifiutato: {{motivo}}',
   amStScaduto: 'L’invito è scaduto',
   amStRevocato: 'Revocato',

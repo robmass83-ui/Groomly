@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { InvitoBeta } from './betaInvito'
 import {
   contatoriDi,
+  estensioniDi,
   daFareOggi,
   feedbackBetaDi,
   filtraSaloni,
@@ -139,6 +140,13 @@ describe('perchePiano', () => {
   })
 })
 
+describe('estensioniDi', () => {
+  it('legge le estensioni di B1 e scarta quelle malformate', () => {
+    expect(estensioniDi({ estensioni: [{ il: 'a', giorni: 30, scadeIl: 'b' }, { il: 'x' }, null] })).toEqual([{ il: 'a', giorni: 30, scadeIl: 'b' }])
+    expect(estensioniDi({})).toEqual([])
+  })
+})
+
 describe('feedbackBetaDi', () => {
   it('legge un feedback valido e scarta quelli malformati', () => {
     const buono = { salonId: 's', uid: 'u', piano: 'pro', voto: 5, funzioni: { export: 'utile', boh: 'utile', team: 'forse' }, nonVa: 'x', manca: '', pagheresti: 'forse', quanto: '10-20', ricontatto: true, fineBeta: false, versioneApp: '1', creatoIl: '2026-11-03T10:00:00.000Z' }
@@ -187,8 +195,15 @@ describe('contatoriDi e vociAvvisami', () => {
     expect(c.avvisami).toEqual({ prenotazioni: 6, 'piano-salone': 2 })
     expect(c.feedback.pagheresti).toEqual({ si: 2, forse: 0, no: 0 })
     expect(c.perSalone).toEqual({ a: { ultimaAttivita: '2026-11-03T00:00:00.000Z', citta: 'Bari' } })
+    expect(c.inBeta).toBeNull()
     expect(contatoriDi(null).saloni.totali).toBe(0)
     expect(contatoriDi({}).perSalone).toBeNull()
+  })
+
+  it('legge inBeta e ultimoAccesso di B1 come attività per salone', () => {
+    const c = contatoriDi({ inBeta: 4, ultimoAccesso: { a: '2026-11-03T00:00:00.000Z', b: null, c: 'boh' } })
+    expect(c.inBeta).toBe(4)
+    expect(c.perSalone).toEqual({ a: { ultimaAttivita: '2026-11-03T00:00:00.000Z' }, b: {}, c: {} })
   })
 
   it('ordina gli Avvisami dal più chiesto, massimo 6, col piano di ogni funzione', () => {

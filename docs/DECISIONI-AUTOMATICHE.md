@@ -408,7 +408,7 @@ Spec `docs/superpowers/specs/2026-11-04-beta-admin-ui-design.md`, piano `docs/su
 ### Domanda a Roberto: attività e città per salone
 - Domanda: la spec vuole i filtri «Attivi 7 gg / Inattivi», la pillola «Attivo oggi» e la città, ma nessun dato per salone li fornisce (la directory ha nome, titolare e piano; `contatoriAdmin` solo i totali).
 - Opzioni: (a) leggere un campo facoltativo se B1 lo aggiunge, altrimenti nasconderli; (b) calcolarli dal client con molte letture; (c) toglierli.
-- Scelta di Roberto: **a**. Il client legge `perSalone?: Record<salonId, { ultimaAttivita?: string; citta?: string }>` nell'esito di `contatoriAdmin`; senza, filtri attività, pillola e città non compaiono. **È un'aggiunta al contratto: da proporre a B1 all'unione.**
+- Scelta di Roberto: **a**. B1 ha poi aggiunto a `contatoriAdmin` `ultimoAccesso: Record<salonId, ISO|null>` e `inBeta`: il client usa `ultimoAccesso` per i filtri di attività e la pillola, e `inBeta` per il numero «In beta». La città non arriva da nessuna parte e resta nascosta (il client accetta anche un eventuale `perSalone` con `citta`). Lo storico mostra anche le `estensioni` che B1 tiene negli inviti.
 
 ### Scelte minori (B2)
 - Wrapper operatore in `src/data/firebase/adminClient.ts`; in `client.ts` sono solo esportati `callCallableData`, `database`, `loadFirestore`, e `listSalonDirectory` porta anche la traccia beta di `pro/main` (`traccia`), che serve per «In beta», la fine e l'early adopter.

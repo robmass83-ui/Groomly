@@ -203,6 +203,19 @@ describe('Admin Manager: beta', () => {
     expect(screen.getByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
   })
 
+  it('con ultimoAccesso di B1 compaiono i filtri di attività e la pillola nel dettaglio', async () => {
+    admin.contatori.mockResolvedValue({ inBeta: 7, ultimoAccesso: { ada: tra(0), leo: tra(-45), eva: null } })
+    const user = userEvent.setup()
+    await apri()
+    expect(await screen.findByRole('button', { name: 'In beta: 7' })).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(await screen.findByRole('button', { name: /^Attivi 7 gg 1/ }))
+    expect(screen.getByRole('button', { name: 'Bauci, Ada Neri' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Pelo, Leo Verdi' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
+    expect(await screen.findByText('Attivo oggi')).toBeInTheDocument()
+  })
+
   it('Regala 30 giorni a tutti i selezionati dopo la conferma', async () => {
     const user = userEvent.setup()
     await apri('/impostazioni/admin-manager?tab=saloni')
@@ -218,7 +231,7 @@ describe('Admin Manager: beta', () => {
   })
 
   it('Dettaglio: perché, estendi, revoca, early adopter e storico', async () => {
-    admin.inviti.mockResolvedValue([invito('eva', { stato: 'accettato', rispostoIl: tra(-57) })])
+    admin.inviti.mockResolvedValue([{ ...invito('eva', { stato: 'accettato', rispostoIl: tra(-57) }), estensioni: [{ il: tra(-10), giorni: 30, scadeIl: tra(3) }] }])
     admin.storico.mockResolvedValue([invito('eva', { stato: 'rifiutato', invitatoIl: tra(-90), rispostoIl: tra(-88), motivoRifiuto: 'complicato' })])
     const user = userEvent.setup()
     await apri('/impostazioni/admin-manager?tab=saloni&id=eva')
@@ -246,6 +259,7 @@ describe('Admin Manager: beta', () => {
     await user.click(screen.getByRole('radio', { name: 'Storico' }))
     expect(await screen.findByText('Ha accettato')).toBeInTheDocument()
     expect(screen.getByText('Ha rifiutato: È troppo complicato')).toBeInTheDocument()
+    expect(screen.getByText(/^Beta estesa di 30 giorni, fino al/)).toBeInTheDocument()
     expect(admin.storico).toHaveBeenCalledWith('eva')
   })
 

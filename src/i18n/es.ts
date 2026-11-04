@@ -1755,6 +1755,7 @@ export const es = {
   amRevocaInvitoTesto: 'La invitación a {{salone}} ya no vale.',
   amStInvito: 'Invitación {{piano}} · {{n}} días',
   amStAccettato: 'Ha aceptado',
+  amStEsteso: 'Beta ampliada {{n}} días, hasta el {{data}}',
   amStRifiutato: 'Ha rechazado: {{motivo}}',
   amStScaduto: 'La invitación caducó',
   amStRevocato: 'Revocado',
