@@ -45,6 +45,7 @@ import { chiudiProveScadute } from './piano/chiudiProve'
 import { fermaCodaRiga, giraInvioCoda, inviaSubitoRiga } from './piano/giraCoda'
 import { eseguiCopie } from './piano/copieCloud'
 import { impostaTourPer } from './config/impostaTour'
+import { impostaConfigPianiPer } from './config/impostaConfigPiani'
 import { decisioneLimite, dettaglioDa, dettaglioPossibile, suggerimentiDa, suggerimentoPossibile } from './indirizzi/places'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
@@ -899,6 +900,14 @@ export const impostaTourBenvenuto = onCall(pianoCall, async (request) => {
   return impostaTourPer({
     ...tokenOperatore(request.auth),
     acceso: field(request.data, 'acceso') === true,
+  })
+})
+
+export const impostaConfigPiani = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return impostaConfigPianiPer({
+    ...tokenOperatore(request.auth),
+    modifiche: request.data,
   })
 })
 

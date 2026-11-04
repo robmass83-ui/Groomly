@@ -282,6 +282,24 @@ service cloud.firestore {
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
 
+    // Programma beta: inviti, feedback e limiti li scrivono solo le Cloud Functions per operatori o titolari.
+    // L'invito lo legge solo il titolare del salone (non socio, non collaboratore); lo storico e i feedback solo gli operatori.
+    match /betaInviti/{salonId} {
+      allow read: if isOperator() || (owns(salonId) && memberRole() == 'titolare');
+      allow write: if false;
+      match /storico/{id} {
+        allow read: if isOperator();
+        allow write: if false;
+      }
+    }
+    match /betaFeedback/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+    match /betaFeedbackLimiti/{id} {
+      allow read, write: if false;
+    }
+
     match /config/{docId} {
       allow read: if signedIn();
       allow write: if false;

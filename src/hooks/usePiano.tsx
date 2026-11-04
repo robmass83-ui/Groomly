@@ -4,7 +4,8 @@ import { firebaseEnabled } from '../data/firebase/enabled'
 import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
-import { aprePaywall, provaConcessa, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
+import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
+import { provaSelfServiceConcessa } from '../lib/configPiani'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
@@ -156,7 +157,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       tour: leggiConfigTour(config),
       stato,
       provaUsata: pro?.provaUsata === true,
-      provaConcessa: provaConcessa(comePro(pro), adesso),
+      provaConcessa: provaSelfServiceConcessa(config, comePro(pro), adesso),
       paywall,
       esitoProva,
       messaggioProva,

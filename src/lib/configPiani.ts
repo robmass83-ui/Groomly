@@ -1,0 +1,76 @@
+import { OFFERING_ID } from './idAbbonamenti'
+import { provaConcessa, type ProMain } from './piano'
+
+// Impostazioni del programma beta e dei pagamenti, nel blocco `piani` di config/globale.
+// Le scrive solo la callable operatore impostaConfigPiani; mostraPiani e abbonamentiAttivi restano in radice.
+export type LinguaOfferta = 'it' | 'en' | 'es'
+
+export interface ConfigPiani {
+  provaSelfService: boolean
+  showPrezziInBeta: boolean
+  offertaEarlyAdopter: Record<LinguaOfferta, string>
+  // Chiave pubblica dell'SDK Android ('goog_…'): non è un segreto.
+  revenueCat: { chiaveSdk: string; offeringId: string }
+  annuncioPagamentiIl: string | null
+}
+
+export type ModificheConfigPiani = Partial<{
+  provaSelfService: boolean
+  showPrezziInBeta: boolean
+  offertaEarlyAdopter: Partial<Record<LinguaOfferta, string>>
+  revenueCat: Partial<ConfigPiani['revenueCat']>
+  annuncioPagamentiIl: string | null
+}>
+
+export const LINGUE_OFFERTA: readonly LinguaOfferta[] = ['it', 'en', 'es']
+export const OFFERTA_MAX = 500
+export const CHIAVE_SDK_MAX = 200
+export const OFFERING_ID_MAX = 100
+
+export const CONFIG_PIANI_DEFAULT: ConfigPiani = {
+  provaSelfService: false,
+  showPrezziInBeta: false,
+  offertaEarlyAdopter: { it: '', en: '', es: '' },
+  revenueCat: { chiaveSdk: '', offeringId: OFFERING_ID },
+  annuncioPagamentiIl: null,
+}
+
+function oggetto(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+export function dataIsoValida(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return false
+  return !Number.isNaN(new Date(value).getTime())
+}
+
+export function leggiConfigPiani(globale: unknown): ConfigPiani {
+  const piani = oggetto(oggetto(globale).piani)
+  const offerta = oggetto(piani.offertaEarlyAdopter)
+  const rc = oggetto(piani.revenueCat)
+  const d = CONFIG_PIANI_DEFAULT
+  const testoO = (value: unknown, ripiego: string) => (typeof value === 'string' ? value : ripiego)
+  return {
+    provaSelfService: piani.provaSelfService === true,
+    showPrezziInBeta: piani.showPrezziInBeta === true,
+    offertaEarlyAdopter: {
+      it: testoO(offerta.it, d.offertaEarlyAdopter.it),
+      en: testoO(offerta.en, d.offertaEarlyAdopter.en),
+      es: testoO(offerta.es, d.offertaEarlyAdopter.es),
+    },
+    revenueCat: {
+      chiaveSdk: testoO(rc.chiaveSdk, d.revenueCat.chiaveSdk),
+      offeringId: typeof rc.offeringId === 'string' && rc.offeringId !== '' ? rc.offeringId : d.revenueCat.offeringId,
+    },
+    annuncioPagamentiIl: dataIsoValida(piani.annuncioPagamentiIl) ? piani.annuncioPagamentiIl : null,
+  }
+}
+
+export function provaSelfServiceAccesa(globale: unknown): boolean {
+  return leggiConfigPiani(globale).provaSelfService
+}
+
+// Cosa vede l'app: «Prova gratis» solo se l'operatore l'ha accesa e il salone non ha mai avuto Plus (stessa regola del server).
+export function provaSelfServiceConcessa(globale: unknown, doc: ProMain | undefined, adesso: Date): boolean {
+  return provaSelfServiceAccesa(globale) && provaConcessa(doc, adesso)
+}

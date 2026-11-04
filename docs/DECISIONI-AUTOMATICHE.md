@@ -351,3 +351,27 @@ Verifica sul codice del 25/10/2026, `main` a `41e6ea1`, prima di scrivere il pia
 - `APP_VERSION` passa a 1.1.97 una volta sola, alla fine, se `npm test` e `npm run build` sono verdi. `versionCode` 10197. APK `github` firmato con la chiave debug di oggi. AAB `play` con la chiave fuori dal repo, non caricato. `hosting/release.json` resta 1.1.96. Nessuna `gh release`.
 - Deploy di functions e hosting sì, se i test sono verdi e `release.json` non è stato alzato. L’APK nuovo non si copia in `hosting/groomly.apk`. Le regole Firestore non si pubblicano se il file non cambia. Se cambia, solo dopo la prova sull’emulatore con la forma dei salvataggi della versione pubblicata.
 - `mostraPiani` e `abbonamentiAttivi` restano false. App Check resta spento. Nessun dato di Laura, di `salon/shared` o di Troddioni.
+
+# Beta Plus/Salone — A1 Fondamenta (4 novembre 2026)
+
+Spec: `docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md`. Scelte di Roberto nel brainstorm: fonte `beta`; early adopter automatico all'accettazione (e modificabile a mano); una callable `impostaConfigPiani` con blocco `piani`. Qui sotto le scelte prese da sole.
+
+## D51. Fonte del piano in un punto solo
+- `FONTI_PIANO` e `fonteDi` in `src/lib/piano.ts`; le cinque copie scritte a mano (`scriviPiano`, `chiudiProve`, `impostaPianoManuale`, `client.ts`, `UsersPage`) ora le usano.
+- Perché: aggiungere `beta` in sei posti e dimenticarne uno avrebbe fatto sparire la fonte in admin o nella chiusura.
+
+## D52. Traccia beta e prova
+- Campi `exBeta`, `betaPiano`, `betaDal`, `betaFinoAl`, `earlyAdopter` in `pro/main`. Restano perché ogni scrittura usa `merge` e `campiBase` non li nomina (test su `pianoScaduto` e `chiudiProve`).
+- Un ex beta non ha la prova self-service (`provaConcessa` falso con `exBeta` o fonte `beta`).
+- Durata beta da 1 a 365 giorni (`campiBeta` lancia fuori intervallo).
+
+## D53. Inviti, feedback, contatori
+- `betaInviti/{salonId}` in radice (uno per salone, storico in `storico/`), invito valido 14 giorni. Lo legge solo il titolare, non soci e collaboratori; storico solo operatori.
+- `betaFeedback` raccolta dedicata (non categoria dei Suggerimenti), scritta solo dalla callable `inviaFeedbackBeta`, massimo 5 al giorno per salone (`betaFeedbackLimiti`).
+- Avvisami contati da una callable operatore `contatoriAdmin` (ondata B), regole di `interesse` invariate.
+
+## D54. Config e ID
+- `config/globale.piani`: `provaSelfService`, `showPrezziInBeta` (false), offerta early adopter in it/en/es (max 500), RevenueCat `chiaveSdk` (pubblica, max 200) e `offeringId`, `annuncioPagamentiIl` (ISO o null). `mostraPiani`/`abbonamentiAttivi` restano in radice per le APK installate.
+- `impostaConfigPiani` rifiuta tutto se un solo campo è sconosciuto o non valido.
+- ID: abbonamenti `groomly_plus`, `groomly_salone`, `groomly_posto_extra` con piani base `mensile`/`annuale`; offerta `early-adopter`; entitlement `plus` e `salone`; offering `groomly_standard` con pacchetti `plus_mensile` … `posto_extra_annuale` (ID unici nell'offering).
+- Prova self-service: il server la rifiuta («Prova non disponibile») se `provaSelfService` non è vera; l'app non mostra «Prova gratis» (`usePiano.provaConcessa`). «Regala 30 giorni» dell'operatore invariato.

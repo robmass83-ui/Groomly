@@ -169,8 +169,9 @@ describe('paywall avvisami', () => {
 
   it('provaConcessa segue la regola: Go puro sì, Plus sospeso e omaggio no', async () => {
     let onPro: (data: Record<string, unknown> | null) => void = () => undefined
-    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void) => {
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, config?: (data: Record<string, unknown> | null) => void) => {
       onPro = pro
+      config?.({ piani: { provaSelfService: true } })
       return () => undefined
     })
     bindSalon('salon-1')
@@ -184,6 +185,23 @@ describe('paywall avvisami', () => {
     expect(screen.getByText('concessa:false')).toBeInTheDocument()
     act(() => { onPro({ piano: 'pro', stato: 'attivo', fonte: 'omaggio', scadeIl: null }) })
     expect(screen.getByText('concessa:false')).toBeInTheDocument()
+  })
+
+  it('con provaSelfService spenta nessuno ha la prova, nemmeno un Go puro', async () => {
+    let onConfig: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, config?: (data: Record<string, unknown> | null) => void) => {
+      pro(null)
+      onConfig = config ?? (() => undefined)
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    render(<PianoProvider><ProvaConcessa /></PianoProvider>)
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    expect(screen.getByText('concessa:false')).toBeInTheDocument()
+    act(() => { onConfig({ mostraPiani: true, piani: { provaSelfService: false } }) })
+    expect(screen.getByText('concessa:false')).toBeInTheDocument()
+    act(() => { onConfig({ mostraPiani: true, piani: { provaSelfService: true } }) })
+    expect(screen.getByText('concessa:true')).toBeInTheDocument()
   })
 
   it('Avvisami scrive l’interesse della funzione', async () => {
@@ -226,7 +244,7 @@ describe('paywall avvisami', () => {
     const user = userEvent.setup()
     render(<ConFinestra><Apri feature="export" /></ConFinestra>)
     await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
-    act(() => { onConfig({ mostraPiani: true }) })
+    act(() => { onConfig({ mostraPiani: true, piani: { provaSelfService: true } }) })
     await user.click(screen.getByRole('button', { name: 'Apri' }))
     await user.click(screen.getByRole('button', { name: 'Prova Plus gratis per 30 giorni' }))
     expect(await screen.findByText('La prova Plus è attiva per 30 giorni. Puoi usare le funzioni Plus.')).toBeInTheDocument()
@@ -265,7 +283,7 @@ describe('paywall avvisami', () => {
   }
 
   it('con i piani nascosti il titolare vede comunque Prova gratis e Avvisami', async () => {
-    await apriConConfig({ mostraPiani: false }, true)
+    await apriConConfig({ mostraPiani: false, piani: { provaSelfService: true } }, true)
     expect(await screen.findByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
   })
@@ -278,6 +296,12 @@ describe('paywall avvisami', () => {
 
   it('un collaboratore non vede la prova nel paywall', async () => {
     sessione.ruolo = 'collaboratore'
+    await apriConConfig({ mostraPiani: true, piani: { provaSelfService: true } }, true)
+    expect(await screen.findByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
+  })
+
+  it('con la prova self-service spenta il paywall mostra solo Avvisami', async () => {
     await apriConConfig({ mostraPiani: true }, true)
     expect(await screen.findByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
