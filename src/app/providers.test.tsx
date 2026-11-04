@@ -68,6 +68,9 @@ vi.mock('../hooks/usePiano', () => ({
   PianoProvider: ({ children }: { children: unknown }) => children,
   usePiano: () => ({ pronto: false, stato: null }),
 }))
+vi.mock('../components/beta/BetaProvider', () => ({
+  BetaProvider: ({ children }: { children: unknown }) => children,
+}))
 vi.mock('../i18n/LinguaContext', () => ({
   LinguaProvider: ({ children }: { children: unknown }) => children,
   useFrasi: () => ({ authSalvataggio: '' }),

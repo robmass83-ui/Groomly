@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { useEffect, useRef, type ReactNode } from 'react'
+import { BetaProvider } from '../components/beta/BetaProvider'
 import { ToastProvider, useToast } from '../components/layout/Toast'
 import { firebaseEnabled, notifySaveFailed, readsLocal, subscribeSaveFailed } from '../data/firebase/enabled'
 import { readJson, storageKeys } from '../data/local/storage'
@@ -150,8 +151,10 @@ export function Providers({ children }: { children: ReactNode }) {
           <SaveFailedToast />
           <DriveInvioAuto />
           <PianoProvider>
-            <DailyBackup />
-            {children}
+            <BetaProvider>
+              <DailyBackup />
+              {children}
+            </BetaProvider>
           </PianoProvider>
         </ToastProvider>
         </LinguaProvider>
