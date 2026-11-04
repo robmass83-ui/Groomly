@@ -307,3 +307,31 @@ describe('paywall avvisami', () => {
     expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
   })
 })
+
+describe('traccia beta e config piani', () => {
+  function Beta() {
+    const piano = usePiano()
+    return <span>{`exBeta:${piano.traccia.exBeta === true}|prezzi:${piano.configPiani.showPrezziInBeta}|offerta:${piano.configPiani.offertaEarlyAdopter.it}`}</span>
+  }
+
+  it('espone la traccia del piano e il blocco piani della config', async () => {
+    clearSalon()
+    let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+    let onConfig: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockReset()
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, config?: (data: Record<string, unknown> | null) => void) => {
+      onPro = pro
+      onConfig = config ?? (() => undefined)
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    render(<PianoProvider><Beta /></PianoProvider>)
+    expect(screen.getByText('exBeta:false|prezzi:false|offerta:')).toBeInTheDocument()
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => {
+      onPro({ piano: 'base', stato: 'scaduto', exBeta: true, betaPiano: 'pro' })
+      onConfig({ piani: { showPrezziInBeta: true, offertaEarlyAdopter: { it: '-30% per sempre' } } })
+    })
+    expect(screen.getByText('exBeta:true|prezzi:true|offerta:-30% per sempre')).toBeInTheDocument()
+  })
+})

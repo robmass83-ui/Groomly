@@ -235,7 +235,7 @@ export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
 }
 
-async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
+export async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
   await attachEmulators('functions', functions)
@@ -752,7 +752,7 @@ async function auth(): Promise<Auth> {
 
 let firestoreNs: Promise<typeof import('firebase/firestore')> | null = null
 
-function loadFirestore(): Promise<typeof import('firebase/firestore')> {
+export function loadFirestore(): Promise<typeof import('firebase/firestore')> {
   if (!firestoreNs) {
     firestoreNs = import('firebase/firestore').catch((error: unknown) => {
       firestoreNs = null
@@ -828,7 +828,7 @@ async function svuotaCacheRimasta(db: Firestore): Promise<void> {
   }
 }
 
-async function database(): Promise<Firestore> {
+export async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const app = await firebaseApp()
