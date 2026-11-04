@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
-import { createAccount } from '../data/local/auth'
+import * as firebaseClient from '../data/firebase/client'
+import { createAccount, getAccount } from '../data/local/auth'
 import { getSettings } from '../data/local/settings'
 import { storageKeys } from '../data/local/storage'
 
@@ -24,6 +25,7 @@ const suggerisci = vi.fn()
 const dettaglio = vi.fn()
 const cambiaPwd = vi.hoisted(() => ({ errore: null as unknown }))
 const cambiaEmailSpia = vi.hoisted(() => vi.fn())
+const inviaVerificaSpia = vi.hoisted(() => vi.fn())
 vi.mock('../data/firebase/client', async (importOriginal) => {
   const originale = await importOriginal<typeof import('../data/firebase/client')>()
   return {
@@ -33,6 +35,7 @@ vi.mock('../data/firebase/client', async (importOriginal) => {
     return originale.cambiaPassword(...a)
   },
   cambiaEmailAccesso: (...a: unknown[]) => { cambiaEmailSpia(...a); return Promise.resolve() },
+  sendVerification: () => inviaVerificaSpia(),
   callSuggerisciIndirizzi: (...a: unknown[]) => suggerisci(...a),
   callDettaglioIndirizzo: (...a: unknown[]) => dettaglio(...a),
   }
@@ -55,6 +58,7 @@ beforeEach(() => {
   suggerisci.mockReset()
   dettaglio.mockReset()
   cambiaEmailSpia.mockReset()
+  inviaVerificaSpia.mockReset()
   suggerisci.mockResolvedValue([{ placeId: 'abc', principale: 'Via Renoir 8', secondario: 'Quartu Sant’Elena CA, Italia' }])
   dettaglio.mockResolvedValue({ indirizzo: 'Via Renoir, 8, 09045 Quartu Sant’Elena CA, Italia', placeId: 'abc' })
 })
@@ -340,5 +344,62 @@ describe('titolare, email e telefono controllati', () => {
     const dialog = await apriToelettatura(user)
     await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
     await waitFor(() => expect(getSettings(account.uid).business.salonName).toBe('Pelo Bello'))
+  })
+})
+
+describe('scheda Sicurezza, verifica email', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  it.each([
+    [true, 'La tua email è già verificata'],
+    [false, 'Email inviata'],
+  ])('con alreadyVerified %s il toast dice «%s»', async (giaVerificata, testo) => {
+    vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-key')
+    const account = { uid: 'u1', email: 'maria@salone.it', passwordHash: '', salt: '', iterations: 0, createdAt: '2026-10-17T00:00:00.000Z', firstName: 'Maria', lastName: 'Rossi', salonId: 'u1', legacy: false }
+    vi.spyOn(firebaseClient, 'watchAuth').mockImplementation(async (onAccount) => { onAccount(account); return () => undefined })
+    vi.spyOn(firebaseClient, 'lastEmailVerified').mockReturnValue(true)
+    vi.spyOn(firebaseClient, 'listenDogs').mockResolvedValue(() => undefined)
+    vi.spyOn(firebaseClient, 'listenAppointments').mockResolvedValue(() => undefined)
+    vi.spyOn(firebaseClient, 'listenServices').mockResolvedValue(() => undefined)
+    vi.spyOn(firebaseClient, 'listenSettings').mockResolvedValue(() => undefined)
+    vi.spyOn(firebaseClient, 'runCloudDailyBackup').mockResolvedValue(undefined)
+    inviaVerificaSpia.mockResolvedValue({ alreadyVerified: giaVerificata })
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
+    await user.click(await screen.findByRole('button', { name: /Verifica email/ }))
+    expect(await screen.findByText(testo)).toBeInTheDocument()
+  })
+})
+
+describe('il tuo nome', () => {
+  it('mostra nome e cognome dell’account e li cambia', async () => {
+    await createAccount('maria@salone.it', 'segretissimo', { firstName: 'Maria', lastName: 'Rossi' })
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    await user.click(await screen.findByRole('button', { name: /Il tuo nome.*Maria Rossi/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Il tuo nome' })
+    await user.clear(within(dialog).getByLabelText('Nome'))
+    await user.type(within(dialog).getByLabelText('Nome'), 'Ada')
+    await user.clear(within(dialog).getByLabelText('Cognome'))
+    await user.type(within(dialog).getByLabelText('Cognome'), 'Neri')
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('button', { name: /Il tuo nome.*Ada Neri/ })).toBeInTheDocument()
+    expect(getAccount()?.firstName).toBe('Ada')
+    expect(getAccount()?.lastName).toBe('Neri')
+  })
+
+  it('un nome di soli spazi dà «Campo obbligatorio» e non salva', async () => {
+    await createAccount('maria@salone.it', 'segretissimo', { firstName: 'Maria', lastName: 'Rossi' })
+    const user = userEvent.setup({ delay: null })
+    render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=personali" />)
+    await user.click(await screen.findByRole('button', { name: /Il tuo nome/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Il tuo nome' })
+    fireEvent.change(within(dialog).getByLabelText('Nome'), { target: { value: '   ' } })
+    await user.click(within(dialog).getByRole('button', { name: 'Salva' }))
+    expect(await within(dialog).findByText('Campo obbligatorio')).toBeInTheDocument()
+    expect(getAccount()?.firstName).toBe('Maria')
   })
 })

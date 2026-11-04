@@ -367,8 +367,103 @@ describe('tour Prepariamo il salone', () => {
     await user.click(screen.getByRole('button', { name: 'Salta' }))
     expect(await screen.findByRole('heading', { name: 'Il salone è quasi pronto!' })).toBeInTheDocument()
     await waitFor(() => expect(tour(uid)?.stato).toBe('visto'))
+    // la verifica email non è un passo del tour: non compare nel riepilogo
+    expect(screen.queryByText('Verifica email')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Entra in Groomly' }))
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(tour(uid)).toEqual({ stato: 'visto', saltati: ['logo', 'sede', 'listino', 'backup', 'fiscale'] })
+  })
+})
+
+// Con la cronologia vera del browser: il tasto indietro torna al passo prima.
+function apriNelBrowser() {
+  window.history.replaceState(null, '', '/benvenuto')
+  render(<App isDev={false} />)
+}
+
+async function indietro() {
+  await act(async () => {
+    window.history.back()
+    await new Promise((r) => setTimeout(r, 20))
+  })
+}
+
+describe('tour: conteggio e tasto indietro', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.restoreAllMocks()
+    caricamento.nonPronto = false
+    caricamento.stantio = false
+    driveLeggi.mockResolvedValue({ collegato: false, email: null })
+  })
+
+  it('il benvenuto dice il numero vero dei passi', async () => {
+    await nuovoSalone()
+    apri()
+    expect(await screen.findByText(/^5 piccole cose e Groomly lavora al massimo per te/)).toBeInTheDocument()
+  })
+
+  it('finché i passi non sono pronti il benvenuto non dice un numero', async () => {
+    await nuovoSalone()
+    caricamento.nonPronto = true
+    apri()
+    expect(await screen.findByText(/^Qualche piccola cosa e Groomly/)).toBeInTheDocument()
+  })
+
+  it('indietro torna al passo prima, poi al benvenuto', async () => {
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apriNelBrowser()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await screen.findByText('Prepariamo il salone · 1 di 5')
+    await user.click(screen.getByRole('button', { name: 'Salta' }))
+    await screen.findByText('Prepariamo il salone · 2 di 5')
+    await indietro()
+    expect(await screen.findByText('Prepariamo il salone · 1 di 5')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Il tuo logo' })).toBeInTheDocument()
+    await indietro()
+    expect(await screen.findByRole('button', { name: 'Iniziamo' })).toBeInTheDocument()
+  })
+
+  it('dopo una ricarica a metà tour, tornando indietro fino al benvenuto si vede il benvenuto', async () => {
+    await nuovoSalone()
+    const user = userEvent.setup()
+    window.history.replaceState(null, '', '/benvenuto')
+    const prima = render(<App isDev={false} />)
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await user.click(await screen.findByRole('button', { name: 'Salta' }))
+    await screen.findByText('Prepariamo il salone · 2 di 5')
+    prima.unmount()
+    render(<App isDev={false} />)
+    await screen.findByText('Prepariamo il salone · 1 di 5')
+    await indietro()
+    await indietro()
+    expect(await screen.findByRole('button', { name: 'Iniziamo' })).toBeInTheDocument()
+  })
+
+  it('in ripresa indietro dal primo passo esce dal tour', async () => {
+    const uid = await nuovoSalone()
+    writeJson(storageKeys.settings(uid), { ...getSettings(uid), tourBenvenuto: { stato: 'in-corso', saltati: [] } })
+    window.history.replaceState(null, '', '/impostazioni')
+    window.history.pushState(null, '', '/benvenuto')
+    render(<App isDev={false} />)
+    await screen.findByText('Prepariamo il salone · 1 di 5')
+    await indietro()
+    await waitFor(() => expect(window.location.pathname).toBe('/impostazioni'))
+    expect(screen.queryByText(/Caricamento/)).not.toBeInTheDocument()
+  })
+
+  it('Lo facciamo dopo dal benvenuto tornato indietro porta in Home senza lasciare passi nella cronologia', async () => {
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apriNelBrowser()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await user.click(await screen.findByRole('button', { name: 'Salta' }))
+    await screen.findByText('Prepariamo il salone · 2 di 5')
+    await indietro()
+    await indietro()
+    await user.click(await screen.findByRole('button', { name: 'Lo facciamo dopo' }))
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
   })
 })

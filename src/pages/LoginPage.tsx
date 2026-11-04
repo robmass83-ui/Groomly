@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useForm, type Resolver, type UseFormRegisterReturn } from 'react-hook-form'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import type { z } from 'zod'
 import { AppError } from '../data/errors'
 import { firebaseEnabled } from '../data/firebase/enabled'
@@ -16,6 +16,7 @@ import { t } from '../i18n/t'
 import { loginFailureMessage } from '../lib/authAction'
 import { linkLegale } from '../lib/distribuzione'
 import { apriEsterno } from '../lib/openDocument'
+import { secondiDaAspettare, verificaInviataIl } from '../data/local/verificaInviata'
 import { RESEND_WAIT_SECONDS, confirmEmailCopy, passwordResetMessage, resendWaitCopy } from '../lib/authGate'
 import { etichettaIva, paeseIndovinato } from '../lib/paese'
 import { loginSchemaPer, registrationSchema, registrationSchemaPer } from '../lib/schemas'
@@ -117,7 +118,6 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
-  const navigate = useNavigate()
   const [perInvito] = useState(() => invitoInSospeso() !== null)
   const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<CreateInput, unknown, CreateValues>({
     resolver: resolverCreazione(lingua, perInvito),
@@ -129,7 +129,6 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
     setTaken(false)
     try {
       await session.createAccount(values)
-      navigate('/')
     } catch (error) {
       const code = errorCode(error)
       setTaken(code === 'auth_email_taken')
@@ -207,7 +206,6 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
-  const navigate = useNavigate()
   const schema = loginSchemaPer(lingua)
   const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<EnterValues>({
     resolver: zodResolver(schema),
@@ -218,7 +216,6 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
   async function onSubmit(values: EnterValues) {
     try {
       await session.login(values.email, values.password)
-      navigate('/')
     } catch (error) {
       setError('root', { message: loginFailureMessage(errorCode(error), lingua) })
     }
@@ -293,10 +290,10 @@ function ConfirmView() {
   const { lingua } = useLingua()
   const session = useSession()
   const { esci, foglio: foglioEsci, occupato: esciOccupato } = useEsci()
-  const navigate = useNavigate()
   const [pending, setPending] = useState<'check' | 'resend' | null>(null)
   const [notice, setNotice] = useState<{ text: string; alert: boolean } | null>(null)
-  const [wait, setWait] = useState(RESEND_WAIT_SECONDS)
+  const emailConto = session.gate.kind === 'in' ? session.gate.account.email : ''
+  const [wait, setWait] = useState(() => secondiDaAspettare(verificaInviataIl(emailConto), Date.now()))
   const waiting = wait > 0
 
   useEffect(() => {
@@ -310,20 +307,18 @@ function ConfirmView() {
   useEffect(() => {
     function onVisible() {
       if (document.visibilityState !== 'visible') return
-      void session.reloadVerification().then((confirmed) => {
-        if (confirmed) navigate('/')
-      }).catch(() => undefined)
+      // confermata: è il passaggio da /login all'app a portare alla pagina giusta
+      void session.reloadVerification().catch(() => undefined)
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [session, navigate])
+  }, [session])
 
   async function confirmed() {
     setPending('check')
     setNotice(null)
     try {
-      if (await session.reloadVerification()) navigate('/')
-      else setNotice({ text: frasi.authLink, alert: false })
+      if (!(await session.reloadVerification())) setNotice({ text: frasi.authLink, alert: false })
     } catch (error) {
       setNotice({ text: mailFailureMessage(error, lingua), alert: true })
     } finally {
@@ -337,7 +332,7 @@ function ConfirmView() {
     try {
       const sent = await session.resendVerification()
       if (sent?.alreadyVerified) {
-        if (await session.reloadVerification()) navigate('/')
+        await session.reloadVerification()
         return
       }
       setWait(RESEND_WAIT_SECONDS)

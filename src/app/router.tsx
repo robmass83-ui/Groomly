@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, type ReactElement } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import {
   Navigate,
   useLocation,
@@ -6,6 +6,8 @@ import {
   type RouteObject,
 } from 'react-router-dom'
 import { useSession } from '../hooks/useSession'
+import { destinazioneRicordata, dimenticaDestinazione, ricordaDestinazione, segnaEntrato } from '../data/local/dopoAccesso'
+import { invitoInSospeso } from '../data/local/invitoInSospeso'
 import { useDataRefresh } from '../lib/dataRefresh'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { appointmentBackTarget, isSheetPath, readBackground, splitTarget } from '../lib/sheetRoute'
@@ -61,8 +63,13 @@ import { TourPage } from '../pages/TourPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
+  const { pathname, search } = useLocation()
   if (gate.kind === 'pending') return null
-  if (gate.kind !== 'in' || entry.kind !== 'home') return <Navigate to="/login" replace />
+  if (gate.kind !== 'in' || entry.kind !== 'home') {
+    ricordaDestinazione(pathname + search)
+    return <Navigate to="/login" replace />
+  }
+  segnaEntrato()
   return <StaffLock>{children}</StaffLock>
 }
 
@@ -208,6 +215,17 @@ function LoginSwitch() {
   const { gate, entry } = useSession()
   if (gate.kind === 'pending') return null
   // Chi è entrato ma deve confermare l'email o riparare il salone resta qui, anche se autenticato.
-  if (gate.kind === 'in' && entry.kind === 'home') return <Navigate to="/" replace />
+  if (gate.kind === 'in' && entry.kind === 'home') return <VersoDestinazione />
   return <LoginPage />
+}
+
+// Unica strada da /login verso l'app: dopo accesso, registrazione o conferma (anche da sola, all'avvio) porta alla pagina chiesta.
+function VersoDestinazione() {
+  // un invito in sospeso vince sulla pagina ricordata, come in RimandoInvito
+  const [destinazione] = useState(() => {
+    const token = invitoInSospeso()
+    return token ? `/invito/${token}` : destinazioneRicordata()
+  })
+  useEffect(() => dimenticaDestinazione(), [])
+  return <Navigate to={destinazione} replace />
 }
