@@ -86,6 +86,16 @@ describe('login', () => {
     expect(logo.compareDocumentPosition(heading)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
+  it('dal Login si sceglie fra le cinque lingue', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await user.click(screen.getByRole('button', { name: 'Lingua: Italiano' }))
+    const scelta = await screen.findByRole('radiogroup', { name: 'Lingua' })
+    expect(within(scelta).getAllByRole('radio').map((voce) => voce.textContent)).toEqual(['Italiano', 'English', 'Español', 'Français', 'Deutsch'])
+    await user.click(within(scelta).getByRole('radio', { name: 'Deutsch' }))
+    expect(localStorage.getItem('groomly.lingua')).toBe('de')
+  })
+
   it('crea l’account e al rimontaggio resta in Home', async () => {
     const user = userEvent.setup()
     const view = render(<App memory isDev={false} />)
@@ -105,6 +115,7 @@ describe('login', () => {
     await user.click(screen.getByRole('button', { name: 'Crea account' }))
     await screen.findByRole('heading', { name: 'Groomly' })
     const account = getAccount()!
+    expect(getSettings(account.uid).linguaClienti).toBe('it')
     expect(account).toMatchObject({ firstName: 'Maria', lastName: 'Rossi', email: 'maria@salone.it', salonId: account.uid })
     expect(getSettings(account.uid).business).toMatchObject({
       salonName: 'Il Cane Felice',
