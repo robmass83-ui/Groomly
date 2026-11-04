@@ -9,6 +9,7 @@ import type { PianoValore } from '../hooks/usePiano'
 import type { LivelloElenco } from '../lib/funzioniPiano'
 import { statoDaLivello } from '../lib/funzioniPiano'
 import { statoPiano } from '../lib/piano'
+import { CONFIG_PIANI_DEFAULT } from '../lib/configPiani'
 
 const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
 vi.mock('../hooks/usePiano', async () => {
@@ -152,11 +153,12 @@ describe('Abbonamento', () => {
     }
   })
 
-  it('con gli abbonamenti spenti Avvisami apre «In arrivo»', async () => {
+  it('con gli abbonamenti spenti Avvisami conferma «Ti avviseremo appena disponibile»', async () => {
     const user = userEvent.setup()
     await apri('/impostazioni/abbonamento/salone', 'base', undefined, { abbonamentiAttivi: false })
     await user.click(await screen.findByRole('button', { name: 'Avvisami' }))
-    expect(await screen.findByRole('dialog', { name: 'In arrivo' })).toHaveTextContent('Presto potrai abbonarti direttamente dall’app.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Ti avviseremo appena disponibile')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('un abbonato Plus vede Attivo e gli interruttori Plus', async () => {
@@ -386,5 +388,79 @@ describe('footer fisso della pagina del piano', () => {
     await apri('/impostazioni/abbonamento', 'salone', 'collaboratore', { stato })
     await screen.findByRole('heading', { name: 'Abbonamento' })
     expect(screen.queryByText(/Pagamento non riuscito/)).toBeNull()
+  })
+})
+
+describe('Abbonamento durante la beta', () => {
+  const GIORNO = 24 * 60 * 60 * 1000
+  const tra = (giorni: number) => new Date(Date.now() + giorni * GIORNO).toISOString()
+  const inBeta = (extra: Partial<PianoValore> = {}): Partial<PianoValore> => ({
+    abbonamentiAttivi: false,
+    stato: statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'beta', scadeIl: tra(10) }, new Date()),
+    traccia: { exBeta: true, betaPiano: 'pro', betaDal: tra(-20), betaFinoAl: tra(10) },
+    ...extra,
+  })
+
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+  })
+
+  it('testata con BETA e giorni, date, barra, feedback e il piano segnato «in beta»', async () => {
+    await apri('/impostazioni/abbonamento', 'pro', undefined, inBeta())
+    expect(await screen.findByText('BETA · 10 giorni')).toBeInTheDocument()
+    expect(screen.getByText(/^Beta gratuita dal .+ al .+\. Nessun rinnovo: poi torni a Go con tutti i tuoi dati\.$/)).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: '10 giorni rimasti' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Invia feedback beta/ })).toHaveAttribute('href', '/impostazioni/beta/feedback')
+    expect(screen.getByRole('link', { name: /Groomly Plus/ })).toHaveTextContent('Il tuo piano ora · in beta')
+    expect(screen.queryByText('Offerta fondatori')).not.toBeInTheDocument()
+  })
+
+  it("con gli abbonamenti spenti i prezzi non si vedono, salvo l'interruttore della beta", async () => {
+    await apri('/impostazioni/abbonamento', 'pro', undefined, inBeta())
+    expect(await screen.findByRole('link', { name: /Groomly Salon/ })).toHaveTextContent('In arrivo')
+    expect(screen.queryByText(/19,99 €/)).not.toBeInTheDocument()
+    cleanup()
+    localStorage.clear()
+    await apri('/impostazioni/abbonamento', 'pro', undefined, inBeta({ configPiani: { ...CONFIG_PIANI_DEFAULT, showPrezziInBeta: true } }))
+    expect(await screen.findByRole('link', { name: /Groomly Salon/ })).toHaveTextContent(/19,99 €/)
+  })
+
+  it("l'offerta fondatori solo per gli early adopter e con il testo", async () => {
+    await apri('/impostazioni/abbonamento', 'pro', undefined, inBeta({
+      traccia: { exBeta: true, betaPiano: 'pro', betaDal: tra(-20), betaFinoAl: tra(10), earlyAdopter: true },
+      configPiani: { ...CONFIG_PIANI_DEFAULT, offertaEarlyAdopter: { it: '−30% per il primo anno', en: '', es: '' } },
+    }))
+    expect(await screen.findByText('Offerta fondatori')).toBeInTheDocument()
+    expect(screen.getByText('−30% per il primo anno')).toBeInTheDocument()
+  })
+
+  it('la scheda «Il tuo piano» delle Impostazioni mostra BETA, la data e la barra; sotto, il feedback', async () => {
+    await apri('/impostazioni', 'pro', undefined, inBeta())
+    const scheda = await screen.findByRole('link', { name: /^Abbonamento, Il tuo piano, BETA, Beta gratuita · fino al / })
+    expect(within(scheda).getByText('BETA')).toBeInTheDocument()
+    expect(within(scheda).getByText('10 gg')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Invia feedback beta/ })).toBeInTheDocument()
+  })
+
+  it('il collaboratore vede la scheda in beta ma non la riga feedback', async () => {
+    await apri('/impostazioni', 'pro', 'collaboratore', inBeta())
+    expect(await screen.findByRole('link', { name: /^Abbonamento, Il tuo piano, BETA/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Invia feedback beta/ })).not.toBeInTheDocument()
+  })
+
+  it('un ex beta da 10 giorni vede ancora la riga feedback, da 31 no', async () => {
+    const finita = (giorni: number): Partial<PianoValore> => ({
+      abbonamentiAttivi: false,
+      stato: statoPiano({ piano: 'pro', stato: 'scaduto', fonte: 'beta', scadeIl: tra(-giorni) }, new Date()),
+      traccia: { exBeta: true, betaPiano: 'pro', betaDal: tra(-giorni - 30), betaFinoAl: tra(-giorni) },
+    })
+    await apri('/impostazioni', 'base', undefined, finita(10))
+    expect(await screen.findByRole('link', { name: /Invia feedback beta/ })).toBeInTheDocument()
+    cleanup()
+    localStorage.clear()
+    await apri('/impostazioni', 'base', undefined, finita(31))
+    await screen.findByRole('link', { name: /^Abbonamento/ })
+    expect(screen.queryByRole('link', { name: /Invia feedback beta/ })).not.toBeInTheDocument()
   })
 })

@@ -213,7 +213,7 @@ export function SchedaSalone({
           <span style={{ fontWeight: 800, ...USER_TEXT }}>
             {beta === 'in-beta' ? frasi.amInBetaRiga.replace('{{piano}}', pianoBeta === 'plus' ? 'Plus' : 'Salon') : nomeLivello(frasi, livello)}
           </span>
-          {beta === 'in-beta' ? <EtichettaBeta piano={pianoBeta} /> : null}
+          {beta === 'in-beta' ? <EtichettaBeta piano={pianoBeta === 'plus' ? 'pro' : 'salone'} /> : null}
         </div>
         <span style={AIUTO}><strong>{frasi.amPerche}</strong> {testoCausa()}</span>
         {fine ? (

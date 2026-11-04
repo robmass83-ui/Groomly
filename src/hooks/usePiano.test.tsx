@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindSalon, clearSalon } from '../data/firebase/salonRoot'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { PaywallPiano, PianoProvider, usePiano } from './usePiano'
+import { ToastProvider } from '../components/layout/Toast'
 import { haAccesso, type FeatureKey } from '../lib/piano'
 
 const { scriviInteresse, callAvviaProva, listenDocumentoPiano } = vi.hoisted(() => ({
@@ -28,14 +29,16 @@ vi.mock('./useSession', () => ({ useUidSessione: () => 'u9', useRuoloSessione: (
 
 function ConFinestra({ children }: { children: ReactNode }) {
   return (
-    <PianoProvider>
-      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <Routes>
-          <Route path="/" element={<>{children}<PaywallPiano /></>} />
-          <Route path="/impostazioni/abbonamento/:piano" element={<p>pagina piano</p>} />
-        </Routes>
-      </MemoryRouter>
-    </PianoProvider>
+    <ToastProvider>
+      <PianoProvider>
+        <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <Routes>
+            <Route path="/" element={<>{children}<PaywallPiano /></>} />
+            <Route path="/impostazioni/abbonamento/:piano" element={<p>pagina piano</p>} />
+          </Routes>
+        </MemoryRouter>
+      </PianoProvider>
+    </ToastProvider>
   )
 }
 
@@ -210,6 +213,7 @@ describe('paywall avvisami', () => {
     await user.click(screen.getByRole('button', { name: 'Apri' }))
     await user.click(screen.getByRole('button', { name: 'Avvisami' }))
     expect(scriviInteresse).toHaveBeenCalledWith('export')
+    expect(screen.getByRole('status')).toHaveTextContent('Ti avviseremo appena disponibile')
   })
 
   it('la prova apre il foglio sullo schermo e lo lascia aperto con l’esito', async () => {
@@ -305,5 +309,33 @@ describe('paywall avvisami', () => {
     await apriConConfig({ mostraPiani: true }, true)
     expect(await screen.findByRole('button', { name: 'Avvisami' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Prova Plus gratis per 30 giorni' })).not.toBeInTheDocument()
+  })
+})
+
+describe('traccia beta e config piani', () => {
+  function Beta() {
+    const piano = usePiano()
+    return <span>{`exBeta:${piano.traccia?.exBeta === true}|prezzi:${piano.configPiani?.showPrezziInBeta}|offerta:${piano.configPiani?.offertaEarlyAdopter.it}`}</span>
+  }
+
+  it('espone la traccia del piano e il blocco piani della config', async () => {
+    clearSalon()
+    let onPro: (data: Record<string, unknown> | null) => void = () => undefined
+    let onConfig: (data: Record<string, unknown> | null) => void = () => undefined
+    listenDocumentoPiano.mockReset()
+    listenDocumentoPiano.mockImplementation(async (pro: (data: Record<string, unknown> | null) => void, config?: (data: Record<string, unknown> | null) => void) => {
+      onPro = pro
+      onConfig = config ?? (() => undefined)
+      return () => undefined
+    })
+    bindSalon('salon-1')
+    render(<PianoProvider><Beta /></PianoProvider>)
+    expect(screen.getByText('exBeta:false|prezzi:false|offerta:')).toBeInTheDocument()
+    await waitFor(() => expect(listenDocumentoPiano).toHaveBeenCalled(), { timeout: 2000 })
+    act(() => {
+      onPro({ piano: 'base', stato: 'scaduto', exBeta: true, betaPiano: 'pro' })
+      onConfig({ piani: { showPrezziInBeta: true, offertaEarlyAdopter: { it: '-30% per sempre' } } })
+    })
+    expect(screen.getByText('exBeta:true|prezzi:true|offerta:-30% per sempre')).toBeInTheDocument()
   })
 })

@@ -1,35 +1,36 @@
 import { FlaskConical } from 'lucide-react'
+import type { CSSProperties } from 'react'
 
-// Etichetta BETA (spec admin-manager § 8). La possiede B3: questa è identica e all'unione vale la sua.
-// I colori ripiegano sui valori chiari finché i token --plus-* e --sal-* non sono in tokens.css.
-export function EtichettaBeta({ piano, piena = false }: { piano: 'plus' | 'salone'; piena?: boolean }) {
-  const plus = piano === 'plus'
-  const colori = piena
-    ? { color: '#fff', background: 'rgba(255,255,255,.22)', border: '1.5px solid transparent' }
-    : plus
-      ? { color: 'var(--plus-ink, #5A2BC0)', background: 'var(--plus-s, #F0E9FD)', border: '1.5px solid var(--plus-ink, #5A2BC0)' }
-      : { color: 'var(--sal-ink, #7A5600)', background: 'var(--sal-s, #FBF1D6)', border: '1.5px solid var(--sal-ink, #7A5600)' }
+const COLORI = {
+  pro: { testo: 'var(--plus-ink)', fondo: 'var(--plus-s)', bordo: '#7B3FE4' },
+  salone: { testo: 'var(--sal-ink)', fondo: 'var(--sal-s)', bordo: '#C99200' },
+} as const
+
+// Pillola «BETA» comune ad Admin Manager e app (spec admin-manager-design, sezione 8).
+// Piena: sulle sfumature del piano (scheda «Il tuo piano», testata Abbonamento), bianca al 22% senza bordo.
+export function EtichettaBeta({ piano, piena = false, testo = 'BETA' }: { piano: 'pro' | 'salone'; piena?: boolean; testo?: string }) {
+  const colori = COLORI[piano]
+  const stile: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 3,
+    height: 18,
+    padding: '0 6px',
+    borderRadius: 5,
+    border: piena ? 'none' : `1.5px solid ${colori.bordo}`,
+    background: piena ? 'rgba(255,255,255,.22)' : colori.fondo,
+    color: piena ? '#fff' : colori.testo,
+    fontSize: 10,
+    fontWeight: 800,
+    letterSpacing: '.08em',
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+    flex: 'none',
+  }
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 3,
-        height: 18,
-        boxSizing: 'border-box',
-        padding: '0 5px',
-        borderRadius: 5,
-        fontSize: 10,
-        fontWeight: 800,
-        letterSpacing: '.08em',
-        lineHeight: 1,
-        whiteSpace: 'nowrap',
-        flex: 'none',
-        ...colori,
-      }}
-    >
-      <FlaskConical size={10} strokeWidth={2.5} aria-hidden />
-      BETA
+    <span data-etichetta-beta={piena ? 'piena' : piano} style={stile}>
+      <FlaskConical size={10} strokeWidth={2.4} aria-hidden />
+      {testo}
     </span>
   )
 }

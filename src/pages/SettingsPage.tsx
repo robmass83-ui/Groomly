@@ -12,6 +12,8 @@ import { Info as InfoButton } from '../components/ui/Info'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
 import { SchedaAbbonamento } from '../components/abbonamento/SchedaAbbonamento'
+import { useBeta } from '../components/beta/BetaProvider'
+import { RigaFeedbackBeta } from '../components/beta/RigaFeedbackBeta'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
 import { SectionTitle } from '../components/ui/SectionTitle'
@@ -288,7 +290,8 @@ export function SettingsPage() {
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
   const sistema = useAvvisiSistema(uid ?? '')
-  const avvisiDaLeggere = nonLetti(sistema.avvisi, sistema.lettiFino)
+  // Gli avvisi della beta (invito, promemoria, fine) li calcola l'app e contano nella campanella.
+  const avvisiDaLeggere = nonLetti(sistema.avvisi, sistema.lettiFino) + useBeta().nonLetti
   const { passi, driveEmail, aggiornaDrive } = usePassiSalone()
   const drive = useCollegaDrive(aggiornaDrive)
   const { busy: driveBusy, busyRef: driveBusyRef, proposta: driveProposta } = drive
@@ -888,6 +891,8 @@ export function SettingsPage() {
           </Link>
           <SchedaAbbonamento stile={vedeIncassi(account?.role) ? scorciatoia : { ...scorciatoia, gridColumn: '1 / -1' }} stileBollino={bollinoAngolo} titolare={titolare} />
         </div>
+
+        <RigaFeedbackBeta />
 
         {collaboratore ? null : (
           <Card>

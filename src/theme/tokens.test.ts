@@ -95,4 +95,9 @@ describe.each(temi)('colori del testo, tema %s', (_nome, vars) => {
       expect(rapporto(`var(${t})`, 'var(--card)', vars), t).toBeGreaterThanOrEqual(4.5)
     }
   })
+
+  it('etichetta BETA: --plus-ink su --plus-s e --sal-ink su --sal-s', () => {
+    expect(rapporto('var(--plus-ink)', 'var(--plus-s)', vars)).toBeGreaterThanOrEqual(4.5)
+    expect(rapporto('var(--sal-ink)', 'var(--sal-s)', vars)).toBeGreaterThanOrEqual(4.5)
+  })
 })

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import type { InvitoBeta } from '../lib/betaInvito'
-import type { FeedbackLetto } from '../lib/adminManager'
+import type { FeedbackLetto, InvitoAdmin } from '../lib/adminManager'
 import { CONFIG_PIANI_DEFAULT } from '../lib/configPiani'
 
 const GIORNO = 86_400_000
@@ -13,7 +13,7 @@ const tra = (giorni: number) => new Date(Date.now() + giorni * GIORNO).toISOStri
 
 const admin = vi.hoisted(() => ({
   contatori: vi.fn(async (): Promise<unknown> => ({})),
-  inviti: vi.fn(async (): Promise<InvitoBeta[]> => []),
+  inviti: vi.fn(async (): Promise<InvitoAdmin[]> => []),
   feedback: vi.fn(async (): Promise<FeedbackLetto[]> => []),
   storico: vi.fn(async (_id: string): Promise<InvitoBeta[]> => []),
   invita: vi.fn(async (_input: unknown) => ({ invitati: [] as string[], saltati: [] as { salonId: string; motivo: 'vip' }[] })),

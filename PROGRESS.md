@@ -293,3 +293,30 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Allineato a B1: attività da `ultimoAccesso`, «In beta» da `inBeta`, estensioni degli inviti nello storico; la città resta nascosta (nessun dato). **All'unione:** i token `--plus-*`/`--sal-*` di B3 rendono superflua la copia in `STILE_ADMIN`.
 - Controllo grafico a 360×640 in chiaro e scuro con dati finti (Playwright): nessuno scroll orizzontale. Suite `src`: solo il fallimento noto `driveInvio`. I test delle functions non girano nel worktree (manca `functions/node_modules`). Niente APK, niente merge.
 
+
+## Beta Plus/Salone — B3 App del salone (4 novembre)
+- Ramo `claude/beta-b3-salone-5fc9bd`, **non unito**, niente APK. Spec `docs/superpowers/specs/2026-11-04-beta-salone-ui-design.md`, piano `docs/superpowers/plans/2026-11-04-beta-salone-ui.md`.
+- Scelte di Roberto:
+  - nella vetrina dello stesso piano, con un invito aperto, «Apri l'invito» al posto di Avvisami;
+  - la domanda di fine beta si apre da sola una volta.
+- Fatto:
+  - `BetaProvider`, che ascolta `betaInviti/{salonId}` solo per il titolare, con le funzioni pure `faseBeta`/`avvisiBeta`;
+  - `betaClient.ts` (`rispondiInvitoBeta`, `inviaFeedbackBeta`, `listenInvitoBeta`);
+  - card dell'invito in Home e avvisi beta in cima agli Avvisi, contati nella campanella;
+  - pagine `/impostazioni/beta`, `/impostazioni/beta/feedback` e `/impostazioni/beta/fine`;
+  - `EtichettaBeta` e `BarraGiorni` con i token `--plus-*`/`--sal-*`;
+  - scheda «Il tuo piano» e pagina Abbonamento in beta, riga «Invia feedback beta»;
+  - vetrine «In arrivo · Avvisami» con il toast; anche il paywall mostra il toast;
+  - testi it/en/es nel blocco `// Beta B3`.
+- `PianoValore` ha due campi facoltativi nuovi: `traccia` e `configPiani`. `PianoContext` ora è esportato (serve all'anteprima). Esportati anche `callCallableData`, `database` e `loadFirestore` di `client.ts`, e `FUNZIONI` di `Vetrina.tsx`.
+- Anteprima solo in sviluppo: `/dev/beta?scena=nessuna|invito|beta|ultimo|finita|revocata|scaduto&piano=pro|salone&pagina=home|avvisi|invito|impostazioni|abbonamento|feedback|fine|vetrina|vetrina-salone`. Serve un account locale (`npm run dev` senza `.env`). Controllo grafico fatto a 360×640, chiaro e scuro, con Playwright senza finestra.
+- Test:
+  - i test nuovi passano tutti; il server è simulato, perché B1 non è in questo ramo;
+  - nella suite resta solo il fallimento noto di `src/lib/driveInvio.test.ts`.
+- Al merge:
+  - va unito con B1 (le callable vere) e collaudato sugli emulatori;
+  - B2 trova `EtichettaBeta` in `src/components/abbonamento/`.
+- Fuori dal mio ramo: la vetrina Salon dice ancora «Il rinnovo è mensile e puoi disdire» (`abbSaloneCome`). In beta, senza pagamenti, va ripensata alla chiusura.
+- Con B1:
+  - i messaggi `failed-precondition` noti di `rispondiInvitoBeta`/`inviaFeedbackBeta` si traducono in it/en/es (`messaggioErroreBeta`); gli altri passano così come sono;
+  - B1 scrive anche `salons/{id}/avvisi/beta` (con `segnaAvvisoBeta`), ma l'app non lo legge: gli avvisi li calcola da sola. Per la chiusura: valutare se mostrare gli avvisi che solo il server conosce (revoca con testo dell'operatore, estensione, invito ritirato) leggendo quel documento.

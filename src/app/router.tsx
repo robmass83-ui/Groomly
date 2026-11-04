@@ -26,6 +26,7 @@ import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
 import { DogsPage } from '../pages/DogsPage'
 import { DevKitPage } from '../pages/DevKitPage'
+import { DevBetaPage } from '../pages/DevBetaPage'
 import { EarningsPage } from '../pages/EarningsPage'
 import { EarningsReportPage } from '../pages/EarningsReportPage'
 import { StatistichePage } from '../pages/StatistichePage'
@@ -54,6 +55,10 @@ import { PrivacyPage } from '../pages/PrivacyPage'
 import { EliminaAccountPage } from '../pages/EliminaAccountPage'
 import { PianoPage } from '../pages/PianoPagine'
 import { AbbonamentoPage, PianoAbbonamentoPage } from '../pages/AbbonamentoPage'
+import { BetaFeedbackPage } from '../pages/BetaFeedbackPage'
+import { BetaFinePage } from '../pages/BetaFinePage'
+import { BetaInvitoPage } from '../pages/BetaInvitoPage'
+import { AperturaFineBeta } from '../components/beta/AperturaFineBeta'
 import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { isOperator } from '../lib/salonPath'
@@ -136,6 +141,7 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
     <>
       {gate.kind === 'in' && entry.kind === 'home' ? <PushHost /> : null}
       {gate.kind === 'in' && entry.kind === 'home' ? <TourAvvio /> : null}
+      {gate.kind === 'in' && entry.kind === 'home' ? <AperturaFineBeta /> : null}
       {gate.kind === 'in' && entry.kind === 'home' ? <RimandoInvito /> : null}
       <SystemBack />
       <div ref={pageRef} data-testid="page-layer" aria-hidden={covered ? 'true' : undefined} style={{ display: 'contents' }}>
@@ -192,6 +198,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/strumenti', element: <Navigate to="/impostazioni/abbonamento" replace /> },
     { path: '/impostazioni/abbonamento', element: <Guard><AbbonamentoPage /></Guard> },
     { path: '/impostazioni/abbonamento/:piano', element: <Guard><PianoAbbonamentoPage /></Guard> },
+    { path: '/impostazioni/beta', element: <Guard><BetaInvitoPage /></Guard> },
+    { path: '/impostazioni/beta/feedback', element: <Guard><BetaFeedbackPage /></Guard> },
+    { path: '/impostazioni/beta/fine', element: <Guard><BetaFinePage /></Guard> },
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
@@ -202,6 +211,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },
   ]
   if (isDev) pageRoutes.push({ path: '/dev/kit', element: <Guard><DevKitPage /></Guard> })
+  if (isDev) pageRoutes.push({ path: '/dev/beta', element: <Guard><DevBetaPage /></Guard> })
   const sheetRoutes: RouteObject[] = [
     { path: '/appuntamenti/nuovo', element: <Guard><AppointmentPage /></Guard> },
     { path: '/appuntamenti/personale/nuovo', element: <Guard><PersonalAppointmentPage /></Guard> },

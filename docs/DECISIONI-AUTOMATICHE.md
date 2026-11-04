@@ -437,3 +437,15 @@ Spec `docs/superpowers/specs/2026-11-04-beta-admin-ui-design.md`, piano `docs/su
 - Il tab Beta mostra i saloni con un invito, filtrati per stato (Tutti · Invitati · In beta · Rifiutati · Scaduti · Revocati); lo stato è nell'URL (`stato=`).
 - Contatori in memoria per 60 secondi; dopo un invito o un'azione beta si rileggono al ritorno sulla Panoramica.
 - Valori interni che non coincidono con le parole del catalogo (test «frasi fisse»): durata libera `libera`, fonti con l'iniziale maiuscola.
+
+## B3 App del salone (4/11/2026)
+Spec: `docs/superpowers/specs/2026-11-04-beta-salone-ui-design.md`. Scelte di Roberto: «Apri l'invito» nella vetrina dello stesso piano; domanda di fine beta che si apre da sola una volta. Scelte minori prese da B3:
+- Gli avvisi beta (invito, promemoria a 7 giorni, fine a 7 e a 1 giorno, beta finita) li calcola l'app da `betaInviti` e da `pro/main`, perché gli avvisi di sistema sono uguali per tutti i saloni. «Letto» si salva sul telefono. Email e push restano a B1.
+- La domanda di fine non compare dopo una revoca e si apre da sola solo al titolare, dalla Home, una volta per ogni data di fine (un'estensione la riapre).
+- Il modulo aperto dalla domanda di fine parte dal passo 1, con «Pagheresti» già scelto, perché voto e funzioni sono obbligatori. A2 diceva «al passo 4».
+- La riga «Invia feedback beta» la vedono titolare e socio, non il collaboratore. Per un ex beta resta 30 giorni dalla fine, o dalla revoca se è arrivata prima.
+- Il promemoria feedback sparisce dopo un invio da questo telefono.
+- Dopo «No grazie»: toast «Grazie per la risposta» e Home. Il testo di «Altro» è facoltativo; il motivo resta obbligatorio.
+- Nella pagina Abbonamento la testata della beta è una scheda a sfumatura sotto l'intestazione normale, non la `TestataPiano` a tutta larghezza: così la freccia indietro resta quella delle Impostazioni.
+- Prezzi visibili solo con gli abbonamenti accesi o con `showPrezziInBeta`. Altrimenti, nell'elenco piani compare «In arrivo».
+- Le date della beta sono scritte per esteso («4 dicembre»). Nella scheda «Il tuo piano» a mezza riga si usa gg/mm.

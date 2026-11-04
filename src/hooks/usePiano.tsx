@@ -4,13 +4,15 @@ import { firebaseEnabled } from '../data/firebase/enabled'
 import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
-import { aprePaywall, statoPiano, type FeatureKey, type ProMain, type StatoPiano } from '../lib/piano'
-import { provaSelfServiceConcessa } from '../lib/configPiani'
+import { aprePaywall, statoPiano, tracciaBetaDi, type FeatureKey, type ProMain, type StatoPiano, type TracciaBeta } from '../lib/piano'
+import { CONFIG_PIANI_DEFAULT, leggiConfigPiani, provaSelfServiceConcessa, type ConfigPiani } from '../lib/configPiani'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
 import { useRuoloSessione, useUidSessione } from './useSession'
 import { PaywallSheet } from '../components/piano/PaywallSheet'
+import { useToast } from '../components/layout/Toast'
+import { useFrasi } from '../i18n/LinguaContext'
 
 export type PianoValore = {
   mostraPiani: boolean
@@ -33,6 +35,9 @@ export type PianoValore = {
   pronto?: boolean
   // Salone personale in pausa mentre si lavora in un altro; null se non lo è.
   pausa?: PausaSalone | null
+  // Traccia della beta (exBeta, date, early adopter) e blocco piani di config/globale.
+  traccia?: TracciaBeta
+  configPiani?: ConfigPiani
 }
 
 const spento: PianoValore = {
@@ -50,9 +55,11 @@ const spento: PianoValore = {
   prova: async () => undefined,
   avvisa: async () => undefined,
   pausa: null,
+  traccia: {},
+  configPiani: CONFIG_PIANI_DEFAULT,
 }
 
-const PianoContext = createContext<PianoValore>(spento)
+export const PianoContext = createContext<PianoValore>(spento)
 
 export function usePiano(): PianoValore {
   return useContext(PianoContext)
@@ -195,6 +202,8 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       livelloNome: livelloElenco(comePro(pro), adesso),
       pronto: caricato,
       pausa: leggiPausa(pro?.pausa),
+      traccia: tracciaBetaDi(pro),
+      configPiani: leggiConfigPiani(config),
     }
   }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
 
@@ -204,6 +213,8 @@ export function PianoProvider({ children }: { children: ReactNode }) {
 export function PaywallPiano() {
   const piano = usePiano()
   const navigate = useNavigate()
+  const toast = useToast()
+  const frasi = useFrasi()
   const feature = piano.paywall
   const offerta = offertaPiano({ provaConcessa: piano.provaConcessa, abbonamentiAttivi: piano.abbonamentiAttivi, ruolo: useRuoloSessione() })
   return (
@@ -218,6 +229,7 @@ export function PaywallPiano() {
       onAvvisami={() => {
         if (feature) void piano.avvisa(feature)
         piano.chiudiPaywall()
+        toast.show(frasi.vetTiAvviseremo, 'ok')
       }}
       onProva={() => { void piano.prova() }}
       onAbbonati={(percorso) => {

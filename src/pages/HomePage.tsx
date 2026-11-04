@@ -15,6 +15,7 @@ import { Card, Row } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
 import { SectionHeader } from '../components/ui/SectionTitle'
+import { CardInvitoBeta } from '../components/beta/CardInvitoBeta'
 import { StatusPill } from '../components/ui/StatusPill'
 import { conRigaInCoda, inviaRigaAdesso } from '../data/invioCoda'
 import { firebaseEnabled } from '../data/firebase/enabled'
@@ -626,6 +627,7 @@ export function HomePage() {
           pronte={!attesaSalone}
           onApri={(id) => setRichiestaScelta(richieste.find((item) => item.id === id) ?? null)}
         />
+        <CardInvitoBeta />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SectionHeader>{frasi.homeOggi}</SectionHeader>
