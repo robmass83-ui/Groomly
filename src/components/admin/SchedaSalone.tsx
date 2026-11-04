@@ -24,7 +24,7 @@ import type { InvitoBeta, MotivoRifiutoBeta } from '../../lib/betaInvito'
 import type { LivelloElenco } from '../../lib/funzioniPiano'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
-import { AIUTO, BarraGiorniAdmin, MarchioLivello, NOME, type Frasi } from './comuni'
+import { AIUTO, BarraGiorniAdmin, CON_ICONA, MarchioLivello, NOME, type Frasi } from './comuni'
 import { RigaFeedback } from './FeedbackAdmin'
 import type { PianoLocale } from './useAzioniPiano'
 
@@ -131,7 +131,7 @@ export function SchedaSalone({
   const { lingua } = useLingua()
   const data = (iso: string) => dataCorta(lingua, new Date(iso))
   const [dialogo, setDialogo] = useState<'estendi' | 'revoca' | 'revoca-invito' | null>(null)
-  const [piu, setPiu] = useState<'15' | '30' | '60' | 'altro'>('30')
+  const [piu, setPiu] = useState<'15' | '30' | '60' | 'libera'>('30')
   const [piuAltro, setPiuAltro] = useState('')
   const [testoRevoca, setTestoRevoca] = useState('')
   const [occupato, setOccupato] = useState(false)
@@ -166,7 +166,7 @@ export function SchedaSalone({
     return frasi.amCausaGo
   }
 
-  const estensione = piu === 'altro' ? Number(piuAltro) : Number(piu)
+  const estensione = piu === 'libera' ? Number(piuAltro) : Number(piu)
   const estensioneValida = Number.isInteger(estensione) && estensione >= 1 && estensione <= 365
   const baseFine = fineBetaDi(row)
   const nuovaFine = estensioneValida && baseFine ? new Date(Date.parse(baseFine) + estensione * GIORNO) : null
@@ -272,16 +272,16 @@ export function SchedaSalone({
               {beta === 'in-beta' ? (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <Button variant="tonal" style={TONALE_PLUS} onClick={() => { setPiu('30'); setPiuAltro(''); setDialogo('estendi') }}>
+                    <Button variant="tonal" style={{ ...CON_ICONA, ...TONALE_PLUS }} onClick={() => { setPiu('30'); setPiuAltro(''); setDialogo('estendi') }}>
                       <Clock size={16} aria-hidden />{frasi.amEstendi}
                     </Button>
-                    <Button variant="tonal" style={TONALE_REVOCA} onClick={() => { setTestoRevoca(''); setDialogo('revoca') }}>
+                    <Button variant="tonal" style={{ ...CON_ICONA, ...TONALE_REVOCA }} onClick={() => { setTestoRevoca(''); setDialogo('revoca') }}>
                       <Ban size={16} aria-hidden />{frasi.amRevoca}
                     </Button>
                   </div>
                 </>
               ) : beta === 'invitato' ? (
-                <Button variant="tonal" style={{ ...TONALE_REVOCA, width: '100%' }} onClick={() => setDialogo('revoca-invito')}>
+                <Button variant="tonal" style={{ ...CON_ICONA, ...TONALE_REVOCA, width: '100%' }} onClick={() => setDialogo('revoca-invito')}>
                   <Ban size={16} aria-hidden />{frasi.amRevocaInvito}
                 </Button>
               ) : (
@@ -350,13 +350,13 @@ export function SchedaSalone({
           <Button
             variant="secondary"
             aria-label={frasi.perPersona.replace('{{etichetta}}', frasi.prova30).replace('{{nome}}', row.ownerName)}
-            style={{ width: '100%' }}
+            style={{ ...CON_ICONA, width: '100%' }}
             onClick={onRegala}
           >
             <Gift size={16} aria-hidden />{frasi.uteRegalaProva}
           </Button>
           <div style={{ height: 3 }} />
-          <Button variant="bad" style={{ width: '100%' }} onClick={onElimina}>
+          <Button variant="bad" style={{ ...CON_ICONA, width: '100%' }} onClick={onElimina}>
             <Trash2 size={16} aria-hidden />{frasi.uteElimina}
           </Button>
           <span style={{ ...AIUTO, textAlign: 'center' }}>{frasi.uteEliminaAiuto}</span>
@@ -373,10 +373,10 @@ export function SchedaSalone({
             { value: '15', label: '+15' },
             { value: '30', label: '+30' },
             { value: '60', label: frasi.amPiuGiorni.replace('{{n}}', '60') },
-            { value: 'altro', label: frasi.amAltro },
+            { value: 'libera', label: frasi.amAltro },
           ]}
         />
-        {piu === 'altro' ? (
+        {piu === 'libera' ? (
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, fontWeight: 700 }}>
             {frasi.amGiorniAltro}
             <input type="number" inputMode="numeric" min={1} max={365} value={piuAltro} onChange={(e) => setPiuAltro(e.target.value)} style={{ font: 'inherit', padding: 10, border: '1px solid var(--line)', borderRadius: 10, background: 'transparent', color: 'inherit' }} />

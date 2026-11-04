@@ -110,7 +110,7 @@ export function PanoramicaAdmin({
         titolo: frasi.amBetaFinisce.replace('{{salone}}', nomeDi(voce.salonId)).replace('{{data}}', dataCorta(lingua, new Date(voce.data))),
         azione: () => onSalone(voce.salonId),
         extra: (
-          <Button variant="tonal" size="sm" style={{ flex: 'none', color: '#7B3FE4' }} onClick={() => onEstendi30(voce.salonId)}>
+          <Button variant="tonal" size="sm" style={{ flex: 'none', background: 'var(--plus-s, #F0E9FD)', color: 'var(--plus-ink, #5A2BC0)', border: 0 }} onClick={() => onEstendi30(voce.salonId)}>
             {frasi.amPiu30}
           </Button>
         ),
@@ -124,7 +124,7 @@ export function PanoramicaAdmin({
         azione: () => apri('feedback'),
       }
     }
-    return { titolo: frasi.amSuggerimentiDaVedere.replace('{{n}}', String(voce.n)), azione: () => apri('suggerimenti') }
+    return { titolo: voce.n === 1 ? frasi.amSuggerimentoDaVedere : frasi.amSuggerimentiDaVedere.replace('{{n}}', String(voce.n)), azione: () => apri('suggerimenti') }
   }
 
   return (
@@ -178,13 +178,13 @@ export function PanoramicaAdmin({
       {contatori ? (
         <>
           <SectionTitle>{frasi.amInvitiStato}</SectionTitle>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', columnGap: 6 }}>
             {STATI_PILLOLA.map(({ stato, tono, chiave }) => (
               <button
                 key={stato}
                 type="button"
                 onClick={() => apri('beta', stato)}
-                style={{ border: 0, background: 'transparent', padding: '12px 0', minHeight: 44, font: 'inherit', cursor: 'pointer' }}
+                style={{ border: 0, background: 'transparent', padding: 0, minHeight: 44, display: 'inline-flex', alignItems: 'center', font: 'inherit', cursor: 'pointer' }}
               >
                 <StatusPill tone={tono}>{`${String(frasi[chiave])} ${contatori.inviti[stato]}`}</StatusPill>
               </button>
@@ -216,7 +216,7 @@ function BloccoSaloni({ contatori, riepilogoAccount }: { contatori: ContatoriAdm
     <Card style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
         <span style={{ fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{saloni.totali}</span>
-        <span style={{ fontWeight: 700 }}>{frasi.amSaloniN}</span>
+        <span style={{ fontWeight: 700 }}>{frasi.amNSaloni.replace('{{n}}', '').trim()}</span>
       </div>
       {riepilogoAccount ? <span style={AIUTO}>{riepilogoAccount}</span> : null}
       <div style={{ display: 'flex', gap: 12 }}>

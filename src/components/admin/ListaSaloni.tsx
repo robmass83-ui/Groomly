@@ -23,7 +23,8 @@ import type { InvitoBeta, StatoInvitoBeta } from '../../lib/betaInvito'
 import type { LivelloElenco } from '../../lib/funzioniPiano'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
-import { AIUTO, AvatarSalone, MarchioLivello, NOME, RIGA, SFUMATURA_PLUS, SFUMATURA_SALONE } from './comuni'
+import { AIUTO, AvatarSalone, CON_ICONA, MarchioLivello, NOME, RIGA, SFUMATURA_PLUS, SFUMATURA_SALONE } from './comuni'
+import { BOTTOM_NAV_CONTENT_PAD } from '../layout/BottomNav'
 
 export type FiltroInvito = 'tutti' | StatoInvitoBeta
 
@@ -265,7 +266,7 @@ export function BarraSelezione({ n, onAnnulla, onInvita, onRegala }: { n: number
   const frasi = useFrasi()
   const [altro, setAltro] = useState(false)
   return (
-    <div className="am-scuro" style={{ position: 'sticky', bottom: 8, zIndex: 6, borderRadius: 16, padding: 10, color: '#fff', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 10px 24px -10px rgba(0,0,0,.5)' }}>
+    <div className="am-scuro" style={{ position: 'sticky', bottom: `calc(${BOTTOM_NAV_CONTENT_PAD} + 4px)`, zIndex: 6, borderRadius: 16, padding: 10, color: '#fff', display: 'flex', flexDirection: 'column', gap: 8, boxShadow: '0 10px 24px -10px rgba(0,0,0,.5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ flex: 1, fontWeight: 700, ...USER_TEXT }}>{`✓ ${frasi.amSelezionati.replace('{{n}}', String(n))}`}</span>
         <button type="button" onClick={onAnnulla} style={{ border: 0, background: 'transparent', color: '#C9D6EE', font: 'inherit', fontWeight: 700, minHeight: 44, padding: '0 6px' }}>{frasi.uteAnnulla}</button>
@@ -277,7 +278,7 @@ export function BarraSelezione({ n, onAnnulla, onInvita, onRegala }: { n: number
           variant="secondary"
           aria-label={frasi.amAltreAzioni}
           disabled={n === 0}
-          style={{ flex: 'none', width: 48, padding: 0 }}
+          style={{ ...CON_ICONA, flex: 'none', width: 48, padding: 0 }}
           onClick={() => setAltro(true)}
         >
           <MoreHorizontal size={18} aria-hidden />

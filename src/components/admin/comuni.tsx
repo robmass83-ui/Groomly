@@ -26,6 +26,9 @@ export const RIGA: CSSProperties = {
   cursor: 'pointer',
 }
 
+// I Button dell'app non sono flex: per un'icona accanto al testo.
+export const CON_ICONA: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }
+
 export const AIUTO: CSSProperties = { display: 'block', fontSize: 13, color: 'var(--tx3)', ...USER_TEXT }
 export const NOME: CSSProperties = { display: 'block', fontWeight: 700, ...USER_TEXT }
 
@@ -93,5 +96,14 @@ export function Nota({ children }: { children: ReactNode }) {
   return <p style={{ margin: 0, padding: '8px 10px', borderRadius: 10, background: 'var(--surf)', fontSize: 13, color: 'var(--tx2)', ...USER_TEXT }}>{children}</p>
 }
 
-/** Riquadro scuro della beta e della barra d'invito; in tema scuro un po' più chiaro, col bordo. */
-export const STILE_ADMIN = `.am-scuro{background:#141B2B}[data-theme="dark"] .am-scuro{background:#1E2738;box-shadow:inset 0 0 0 1px var(--line2)}`
+/**
+ * Riquadro scuro della beta e della barra d'invito (in tema scuro un po' più chiaro, col bordo).
+ * Più i colori tonali dei piani della spec § 8, valori identici ai token che B3 aggiunge in tokens.css:
+ * vivono solo mentre la pagina è aperta e all'unione si possono togliere.
+ */
+export const STILE_ADMIN = [
+  '.am-scuro{background:#141B2B}',
+  '[data-theme="dark"] .am-scuro{background:#1E2738;box-shadow:inset 0 0 0 1px var(--line2)}',
+  ':root{--plus-s:#F0E9FD;--plus-ink:#5A2BC0;--sal-s:#FBF1D6;--sal-ink:#7A5600}',
+  '[data-theme="dark"]{--plus-s:rgba(183,148,255,.15);--plus-ink:#C9AEFF;--sal-s:rgba(235,185,40,.14);--sal-ink:#F2CC5E}',
+].join('')

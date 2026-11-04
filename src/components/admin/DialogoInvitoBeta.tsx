@@ -1,20 +1,20 @@
 import { Send } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { Sheet } from '../layout/Sheet'
 import { Button } from '../ui/Button'
 import { Segmented } from '../ui/Segmented'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { GIORNI_BETA_MAX, MESSAGGIO_INVITO_MAX } from '../../lib/betaInvito'
 import { USER_TEXT } from '../../theme/text'
-import { Nota, SFUMATURA_PLUS, SFUMATURA_SALONE } from './comuni'
+import { CON_ICONA, Nota, SFUMATURA_PLUS, SFUMATURA_SALONE } from './comuni'
 
-type Durata = '30' | '60' | '90' | 'altro'
+type Durata = '30' | '60' | '90' | 'libera'
 
 export type SceltaInvito = { piano: 'pro' | 'salone'; giorni: number; messaggio: string }
 
 /** Durata valida (1–365 interi) o null. */
 export function giorniScelti(durata: Durata, altro: string): number | null {
-  if (durata !== 'altro') return Number(durata)
+  if (durata !== 'libera') return Number(durata)
   const n = Number(altro)
   return Number.isInteger(n) && n >= 1 && n <= GIORNI_BETA_MAX ? n : null
 }
@@ -66,7 +66,7 @@ export function DialogoInvitoBeta({
           <Button variant="secondary" style={{ flex: 1 }} onClick={onClose}>{frasi.uteAnnulla}</Button>
           <Button
             disabled={giorni === null || n === 0 || occupato}
-            style={{ flex: 1.4, background: piano === 'pro' ? SFUMATURA_PLUS : SFUMATURA_SALONE, color: piano === 'pro' ? '#fff' : '#3A2700', border: 0 }}
+            style={{ ...CON_ICONA, flex: 1.4, background: piano === 'pro' ? SFUMATURA_PLUS : SFUMATURA_SALONE, color: piano === 'pro' ? '#fff' : '#3A2700', border: 0 }}
             onClick={() => { if (giorni !== null) onInvia({ piano, giorni, messaggio: messaggio.trim() }) }}
           >
             <Send size={16} aria-hidden />
@@ -78,6 +78,7 @@ export function DialogoInvitoBeta({
       <p style={{ margin: 0, color: 'var(--tx2)', ...USER_TEXT }}>{sottotitolo}</p>
       <div style={etichetta}>
         {frasi.amPiano}
+        <div style={{ '--pri-solid': piano === 'pro' ? '#7B3FE4' : '#B07F00' } as CSSProperties}>
         <Segmented
           fill
           solid
@@ -86,6 +87,7 @@ export function DialogoInvitoBeta({
           onChange={setPiano}
           options={[{ value: 'pro', label: 'Plus' }, { value: 'salone', label: 'Salon' }]}
         />
+        </div>
       </div>
       <div style={etichetta}>
         {frasi.amDurata}
@@ -98,11 +100,11 @@ export function DialogoInvitoBeta({
             { value: '30', label: frasi.amGiorni.replace('{{n}}', '30') },
             { value: '60', label: frasi.amGiorni.replace('{{n}}', '60') },
             { value: '90', label: frasi.amGiorni.replace('{{n}}', '90') },
-            { value: 'altro', label: frasi.amAltro },
+            { value: 'libera', label: frasi.amAltro },
           ]}
         />
       </div>
-      {durata === 'altro' ? (
+      {durata === 'libera' ? (
         <label style={etichetta}>
           {frasi.amGiorniAltro}
           <input type="number" inputMode="numeric" min={1} max={GIORNI_BETA_MAX} value={altro} onChange={(event) => setAltro(event.target.value)} style={campo} />
