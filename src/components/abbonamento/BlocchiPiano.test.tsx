@@ -145,7 +145,7 @@ describe('blocco Plus, prenotazioni online', () => {
     monta(<BloccoPlus />)
     await user.click(await screen.findByRole('switch', { name: 'Prenotazioni online' }))
     // Il riquadro del link ha la stessa frase: qui conta quella sotto l’interruttore.
-    const frase = within(await screen.findByRole('status')).getByRole('link', { name: 'Per accendere le prenotazioni manca: Logo, Backup impostato.' })
+    const frase = within(await screen.findByRole('status')).getByRole('link', { name: 'Per accendere le prenotazioni manca: Logo, Fai il primo backup.' })
     expect(frase).toHaveAttribute('href', '/impostazioni')
   })
 })

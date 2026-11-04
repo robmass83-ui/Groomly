@@ -71,7 +71,7 @@ describe('link di condivisione delle prenotazioni', () => {
   it('a prenotazioni spente dice quali passi mancano ed è un link a Impostazioni', async () => {
     await salonePocoCompleto(false)
     monta(<LinkCondivisione />)
-    const frase = await screen.findByRole('link', { name: 'Per accendere le prenotazioni manca: Logo, Backup impostato.' })
+    const frase = await screen.findByRole('link', { name: 'Per accendere le prenotazioni manca: Logo, Fai il primo backup.' })
     expect(frase).toHaveAttribute('href', '/impostazioni')
   })
 
