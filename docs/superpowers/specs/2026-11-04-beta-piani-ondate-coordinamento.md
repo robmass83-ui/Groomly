@@ -36,5 +36,15 @@ In `docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md`, sezione «Cont
 | **B3 App del salone** | 2.3 + 3.1 modulo + 3.2 punti di raccolta, secondo la proposta scelta |
 | **B4 Abbonamenti spenti** | Fase 4: SDK RevenueCat, flusso acquisto, controllo pre-accensione, annuncio, spegnimento. Il pannello admin lo fornisce come componente che B2 monta. |
 
+### Confini tra le sessioni B (per evitare conflitti)
+- **Contratti:** sezione «Contratti» di `2026-11-04-beta-fondamenta-design.md` (firme fisse) e `2026-11-04-admin-manager-design.md` (schermate). Se una sessione ha bisogno di cambiare una firma, lo scrive nella sua spec e lo segnala a fine lavoro: non la cambia da sola.
+- **B1** possiede `functions/src/beta/*` (o `functions/src/piano/` per i file nuovi della beta), le email, `impostaMostraPiani`, `contatoriAdmin`. Non tocca `src/` tranne i test delle regole.
+- **B2** possiede `src/pages/AdminManagerPage.tsx`, `src/components/admin/*` e i wrapper client delle callable operatore in un file nuovo `src/data/firebase/adminClient.ts`. Non crea `PannelloAccensione` (è di B4): nella scheda Piani lascia l'interruttore `abbonamentiAttivi` in sola lettura con un segnaposto, che si collega alla chiusura.
+- **B3** possiede `src/components/beta/*`, le pagine `/impostazioni/beta*`, `EtichettaBeta` e `BarraGiorni` in `src/components/abbonamento/`, e i wrapper client del titolare in un file nuovo `src/data/firebase/betaClient.ts`. Tocca le vetrine solo per lo stato «In arrivo · Avvisami».
+- **B4** possiede `src/lib/billing.ts`, l'SDK RevenueCat, `src/components/admin/PannelloAccensione.tsx`, le functions di accensione, controllo, annuncio e spegnimento, e il webhook. In `Vetrina`/`PaywallSheet` aggiunge solo il ramo «acquisto acceso», il più piccolo possibile, perché le vetrine le tocca anche B3.
+- **B2** usa `EtichettaBeta` di B3: se nel suo ramo manca, la crea identica alla sezione 8 della spec di design, nello stesso percorso; all'unione vale quella di B3.
+- **Testi i18n:** ogni sessione aggiunge le sue chiavi in un blocco unico in fondo a `it.ts`/`en.ts`/`es.ts`, con il commento `// Beta B1`, `// Beta B2`… così l'unione è semplice.
+- **Router:** ognuna aggiunge solo le sue rotte.
+
 ## Chiusura (dopo l'ondata B)
 Unione, collaudo completo sugli emulatori (test di chiusura del prompt), traduzioni 5.2, controllo grafico 5.3, pulizia dati di test, consegne (`DA-FARE-ROBERTO.md`, `PRIMA-DEI-PAGAMENTI.md`, guida Admin Manager), release.
