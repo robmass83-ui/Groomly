@@ -54,6 +54,12 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        if (getBridge() != null) getBridge().triggerWindowJSEvent("groomlyResume");
+        // Al primo avvio la pagina non e' ancora caricata: window.Capacitor non esiste, quindi si valuta uno script protetto.
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().evaluateJavascript(
+                "window.Capacitor && window.Capacitor.triggerEvent && window.Capacitor.triggerEvent('groomlyResume', 'window')",
+                null
+            );
+        }
     }
 }

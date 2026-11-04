@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, MoreVertical, Pencil, Phone, Plus, Trash2, ZoomIn } from 'lucide-react'
+import { Calendar, Camera, ChevronDown, ChevronRight, Flower2, HeartOff, Image as Galleria, MoreVertical, Pencil, Phone, Plus, Trash2, ZoomIn } from 'lucide-react'
 import { useEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { avatarForSpecies, TEMPERAMENT_ICONS } from '../assets/icons/icons'
@@ -11,6 +11,7 @@ import { AnimalsReturn } from '../components/layout/AnimalsReturn'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import './schedaEnter.css'
 import { Dialog } from '../components/layout/Dialog'
+import { useScegliFoto } from '../components/ScegliFoto'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
@@ -51,7 +52,6 @@ import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
 import { completeBirthday, completeYear, seniorOf, type DogScreen } from '../lib/dogScreen'
 import { ageText, averageDuration, formatCompactDuration, shortOwner, splitCritical } from '../lib/display'
 import { formatEuro, opzioniDate } from '../lib/format'
-import { guardCaptureClick } from '../lib/photoCapture'
 import { PhotoTooLargeError } from '../lib/photoCodec'
 import { MAX_DOG_PHOTOS, dogPhotoCount } from '../lib/photoLimit'
 import { dogServiceQuoteSchema } from '../lib/schemas'
@@ -463,25 +463,16 @@ function Portrait({ src, species, size = PORTRAIT, radius = 18, variant = 'full'
 
 function FormAvatar({ src, onFile }: { src?: string; onFile: (file: File | undefined) => void }) {
   const frasi = useFrasi()
-  const pickRef = useRef<HTMLInputElement>(null)
-  const toast = useToast()
+  const foto = useScegliFoto({ etichetta: frasi.schedaFoto, onFile })
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <button type="button" aria-label={frasi.schedaFotoCane} onClick={() => pickRef.current?.click()} style={{ position: 'relative', border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT }}>
+      <button type="button" aria-label={frasi.schedaFotoCane} onClick={foto.apri} style={{ position: 'relative', border: 0, padding: 0, background: 'transparent', width: PORTRAIT, height: PORTRAIT }}>
         <Portrait src={src} variant="thumb" />
         <span aria-hidden style={{ position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 999, background: 'var(--pri)', color: 'var(--on-pri)', display: 'grid', placeItems: 'center' }}>
           <Camera size={13} strokeWidth={2} />
         </span>
       </button>
-      <input
-        ref={pickRef}
-        aria-label={frasi.schedaFoto}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
-        onChange={(event) => { onFile(event.target.files?.[0]); event.target.value = '' }}
-      />
+      {foto.elementi}
     </div>
   )
 }
@@ -535,25 +526,13 @@ function clientFact(dog: Dog, lingua: Lingua = 'it'): string {
 
 function ReadPortrait({ src, species, size = PORTRAIT, radius = 18, onFile, onEnlarge }: { src?: string; species?: Species; size?: number; radius?: number; onFile: (file: File | undefined) => void; onEnlarge?: () => void }) {
   const frasi = useFrasi()
-  const pickRef = useRef<HTMLInputElement>(null)
-  const toast = useToast()
+  const foto = useScegliFoto({ etichetta: frasi.schedaFoto, onFile })
   return (
     <>
-      <button type="button" aria-label={frasi.schedaFotoCane} onClick={src && onEnlarge ? onEnlarge : () => pickRef.current?.click()} style={{ border: 0, padding: 0, background: 'transparent', width: size, height: size, flex: 'none' }}>
+      <button type="button" aria-label={frasi.schedaFotoCane} onClick={src && onEnlarge ? onEnlarge : foto.apri} style={{ border: 0, padding: 0, background: 'transparent', width: size, height: size, flex: 'none' }}>
         <Portrait src={src} species={species} size={size} radius={radius} />
       </button>
-      {src ? null : (
-        <input
-          ref={pickRef}
-          aria-hidden="true"
-          tabIndex={-1}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
-          onChange={(event) => onFile(event.target.files?.[0])}
-        />
-      )}
+      {src ? null : foto.elementi}
     </>
   )
 }
@@ -778,7 +757,6 @@ function Thumb({ photo, alt, size }: { photo: string; alt: string; size: number 
 
 function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { gallery: GalleryPhoto[]; profilePhoto?: string; editing: boolean; onGallery: (gallery: GalleryPhoto[], removedId?: string) => void; onError: () => void }) {
   const frasi = useFrasi()
-  const fileRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   const [limit, setLimit] = useState(4)
   const [zoom, setZoom] = useState<string | null>(null)
@@ -800,6 +778,8 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
     }
   }
 
+  const foto = useScegliFoto({ etichetta: frasi.schedaAggiungiGalleria, onFile: (file) => void onFile(file) })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <SectionTitle>{frasi.schedaGalleria}</SectionTitle>
@@ -815,16 +795,8 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
         {hiddenPhotos > 0 ? (
           <button type="button" onClick={() => setLimit(gallery.length)} style={{ width: 50, height: 50, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surf)' }}>{`+${hiddenPhotos}`}</button>
         ) : null}
-        <button type="button" onClick={() => fileRef.current?.click()} style={textAction}>{frasi.schedaAggiungi}</button>
-        <input
-          ref={fileRef}
-          aria-label={frasi.schedaAggiungiGalleria}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
-          onChange={(event) => { void onFile(event.target.files?.[0]); event.target.value = '' }}
-        />
+        <button type="button" onClick={foto.apri} style={textAction}>{frasi.schedaAggiungi}</button>
+        {foto.elementi}
       </div>
       <CenteredPhoto src={zoom} onClose={() => setZoom(null)} />
     </div>
@@ -1072,7 +1044,6 @@ export function DogPage() {
   const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
   const [contactOpen, setContactOpen] = useState(false)
   const [fieldOpen, setFieldOpen] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
   const dogRef = useRef(dog)
   dogRef.current = dog
   const seededId = useRef<string | null>(dog && id === dog.id ? id : null)
@@ -1132,6 +1103,15 @@ export function DogPage() {
     }
     return true
   }
+
+  const fotoProfilo = useScegliFoto({
+    etichetta: frasi.schedaCambiaFoto,
+    onFile: (file) => {
+      void onPhoto(file)
+      setPhotoSheet(false)
+      setPhotoZoom(false)
+    },
+  })
 
   async function onPhoto(file: File | undefined) {
     if (!file) return
@@ -1725,14 +1705,35 @@ export function DogPage() {
       <FieldSheet open={fieldOpen} onClose={() => setFieldOpen(false)} onAdd={(field) => setFields((current) => [...current, field])} />
       <Dialog open={photoSheet} title={frasi.schedaFotoProfilo} onClose={() => setPhotoSheet(false)}>
         {shownPhoto ? <ProfilePreview src={shownPhoto} /> : null}
-        <SchedaChoice
-          label={frasi.schedaCambia}
-          detail={frasi.schedaAltraFoto}
-          ink="var(--pri)"
-          wash="var(--pri-s)"
-          icon={<Camera size={18} strokeWidth={2} />}
-          onClick={() => fileRef.current?.click()}
-        />
+        {fotoProfilo.nativo ? (
+          <>
+            <SchedaChoice
+              label={frasi.fotoScatta}
+              detail={frasi.fotoScattaDettaglio}
+              ink="var(--pri)"
+              wash="var(--pri-s)"
+              icon={<Camera size={18} strokeWidth={2} />}
+              onClick={fotoProfilo.scatta}
+            />
+            <SchedaChoice
+              label={frasi.fotoGalleria}
+              detail={frasi.fotoGalleriaDettaglio}
+              ink="var(--pri)"
+              wash="var(--pri-s)"
+              icon={<Galleria size={18} strokeWidth={2} />}
+              onClick={fotoProfilo.galleria}
+            />
+          </>
+        ) : (
+          <SchedaChoice
+            label={frasi.schedaCambia}
+            detail={frasi.schedaAltraFoto}
+            ink="var(--pri)"
+            wash="var(--pri-s)"
+            icon={<Camera size={18} strokeWidth={2} />}
+            onClick={fotoProfilo.galleria}
+          />
+        )}
         <SchedaChoice
           label={frasi.schedaIngrandisci}
           detail={frasi.schedaApriFoto}
@@ -1744,20 +1745,8 @@ export function DogPage() {
             setPhotoZoom(true)
           }}
         />
-        <input
-          ref={fileRef}
-          aria-label={frasi.schedaCambiaFoto}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
-          onChange={(event) => {
-            void onPhoto(event.target.files?.[0])
-            setPhotoSheet(false)
-            setPhotoZoom(false)
-          }}
-        />
       </Dialog>
+      {fotoProfilo.elementi}
       <CenteredPhoto src={photoZoom && shownPhoto ? shownPhoto : null} onClose={() => setPhotoZoom(false)} />
     </SchedaFrame>
   )

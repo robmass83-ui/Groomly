@@ -25,7 +25,6 @@ import type { Lingua } from '../i18n/lingua'
 import { breakAfterPlus } from '../lib/breakAfterPlus'
 import { prepareListinoPhoto } from '../lib/dogPhoto'
 import { FILE_MAX_BYTES } from '../lib/fileBytes'
-import { guardCaptureClick } from '../lib/photoCapture'
 import { opzioniDate } from '../lib/format'
 import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import { nomeVoceListino } from '../i18n/listino'
@@ -540,7 +539,6 @@ export function ListinoPage() {
           accept="application/pdf,image/*,.pdf"
           multiple
           hidden
-          onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
           onChange={(event) => {
             const picked = Array.from(event.target.files ?? [])
             event.currentTarget.value = ''

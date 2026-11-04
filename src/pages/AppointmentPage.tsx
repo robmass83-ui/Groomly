@@ -10,6 +10,7 @@ import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Dialog } from '../components/layout/Dialog'
 import { Sheet } from '../components/layout/Sheet'
+import { useScegliFoto } from '../components/ScegliFoto'
 import { useToast } from '../components/layout/Toast'
 import { dataBreve, dataCorta, euro } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -51,7 +52,6 @@ import { bumpDataRefresh } from '../lib/dataRefresh'
 import { activeServiceIds } from '../lib/monthly'
 import { acceptedDay, appointmentBackTarget } from '../lib/sheetRoute'
 import { dogPortrait, prepareDogPhoto } from '../lib/dogPhoto'
-import { guardCaptureClick } from '../lib/photoCapture'
 import { FOTO_ALTRO, PhotoTooLargeError } from '../lib/photoCodec'
 import { shortOwner } from '../lib/display'
 import { appointmentKind } from '../lib/personal'
@@ -294,11 +294,9 @@ function WorkThumb({ photo, alt }: { photo: string; alt: string }) {
 
 function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file: File | undefined, kind: 'prima' | 'dopo' | 'auto') => void }) {
   const frasi = useFrasi()
-  const toast = useToast()
-  const denyPhoto = () => toast.show(frasi.schedaPermessoFoto, 'plain')
-  const primaRef = useRef<HTMLInputElement>(null)
-  const dopoRef = useRef<HTMLInputElement>(null)
-  const addRef = useRef<HTMLInputElement>(null)
+  const fotoPrima = useScegliFoto({ etichetta: frasi.appFotoPrima, onFile: (file) => onAdd(file, 'prima') })
+  const fotoDopo = useScegliFoto({ etichetta: frasi.appFotoDopo, onFile: (file) => onAdd(file, 'dopo') })
+  const fotoAggiungi = useScegliFoto({ etichetta: frasi.appAggiungiFoto, onFile: (file) => onAdd(file, 'auto') })
   const prima = photos.find((item) => item.kind === 'prima')
   const dopo = photos.find((item) => item.kind === 'dopo')
   return (
@@ -312,13 +310,13 @@ function PhotoWork({ photos, onAdd }: { photos: AppointmentPhoto[]; onAdd: (file
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <Button type="button" variant="secondary" onClick={() => primaRef.current?.click()}>{frasi.schedaPrima}</Button>
-        <Button type="button" variant="secondary" onClick={() => dopoRef.current?.click()}>{frasi.schedaDopo}</Button>
-        <Button type="button" variant="secondary" onClick={() => addRef.current?.click()}>{frasi.schedaAggiungi}</Button>
+        <Button type="button" variant="secondary" onClick={fotoPrima.apri}>{frasi.schedaPrima}</Button>
+        <Button type="button" variant="secondary" onClick={fotoDopo.apri}>{frasi.schedaDopo}</Button>
+        <Button type="button" variant="secondary" onClick={fotoAggiungi.apri}>{frasi.schedaAggiungi}</Button>
       </div>
-      <input ref={primaRef} aria-label={frasi.appFotoPrima} type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'prima'); event.target.value = '' }} />
-      <input ref={dopoRef} aria-label={frasi.appFotoDopo} type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'dopo'); event.target.value = '' }} />
-      <input ref={addRef} aria-label={frasi.appAggiungiFoto} type="file" accept="image/*" style={{ display: 'none' }} onClick={(event) => guardCaptureClick(event, denyPhoto)} onChange={(event) => { onAdd(event.target.files?.[0], 'auto'); event.target.value = '' }} />
+      {fotoPrima.elementi}
+      {fotoDopo.elementi}
+      {fotoAggiungi.elementi}
     </div>
   )
 }

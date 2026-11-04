@@ -28,7 +28,6 @@ import { servizioDellaRiga } from '../lib/listinoRazza'
 import { prepareLogo } from '../lib/dogPhoto'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { stileLogo } from '../lib/logoForma'
-import { guardCaptureClick } from '../lib/photoCapture'
 import {
   breedsBySize,
   duplicateBreed,
@@ -278,7 +277,6 @@ export function PriceSheetManagePage() {
                 accept="image/*"
                 hidden
                 aria-label={logo ? frasi.accCambiaLogo : frasi.manCaricaLogo}
-                onClick={(event) => guardCaptureClick(event, () => toast.show(frasi.schedaPermessoFoto, 'plain'))}
                 onChange={onLogo}
               />
               {logo ? (
