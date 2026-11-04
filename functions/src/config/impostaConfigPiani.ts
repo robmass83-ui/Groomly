@@ -1,5 +1,4 @@
 import { getFirestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import {
   CHIAVE_SDK_MAX,
   dataIsoValida,
@@ -10,11 +9,12 @@ import {
   type ConfigPiani,
 } from '../../../src/lib/configPiani'
 import { operatoreAutorizzato } from '../../../src/lib/salonPath'
+import { erroreServer } from '../erroriServer'
 
 const CAMPI = new Set(['provaSelfService', 'showPrezziInBeta', 'offertaEarlyAdopter', 'revenueCat', 'annuncioPagamentiIl'])
 
 function nonValido(): never {
-  throw new HttpsError('invalid-argument', 'Impostazione non valida')
+  throw erroreServer('invalid-argument', 'impostazione_non_valida')
 }
 
 function mappa(value: unknown): Record<string, unknown> {
@@ -74,7 +74,7 @@ export async function impostaConfigPianiPer(input: {
   modifiche: unknown
 }): Promise<{ ok: true; piani: ConfigPiani }> {
   if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
-    throw new HttpsError('failed-precondition', 'Accesso negato')
+    throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const db = getFirestore()
   const ref = db.doc('config/globale')

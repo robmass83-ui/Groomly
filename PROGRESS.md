@@ -377,3 +377,13 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 ## 1.1.190 — filtro Avvisami nell'Admin Manager (5 novembre)
 - Tab Saloni: filtri «Avvisami Plus» e «Avvisami Salon», con la scritta nella riga del salone. `contatoriAdmin` ora manda `interesse` per salone. I numeri si caricano anche aprendo il tab Saloni.
 - Pubblicata dal ramo `claude/rel-1-1-190`, partito da `origin/main`: il lavoro delle cinque lingue, ancora solo sulla `main` locale, non è in questa versione.
+
+## Cinque lingue — T5 Server (5 novembre, ramo `claude/blissful-swartz-54ecd9`, non unito)
+- Contratto per T4 e T6 in `docs/superpowers/specs/2026-11-04-lingue-server-design.md`, copia in `D:\Groomly\.claude\lingue-note\contratti-t5.md`.
+- Ogni `HttpsError` passa da `functions/src/erroriServer.ts` e porta `details.codice`; `message` resta italiano per le APK vecchie. Frasi nelle cinque lingue in `src/i18n/errori.ts`, blocco `// Lingue T5`.
+- Email in cinque lingue: `emailHtml`, `emailBeta`, `emailAnnuncio`, `emailEliminazione`, `htmlEsito`. Catene `lingua === 'en'` tolte.
+- Catena clienti: `richiesta.lingua`, `settings.linguaClienti`, `'it'`. `iscritto.lingua` per la lista d'attesa, `dog.lingua` per la coda, riga per riga. `?lang=` nei link delle email.
+- `paginaPubblica.ts` (functions): `?lang=`, browser, inglese, come chiesto da T6.
+- Brevo: nessun template è in uso, niente da tradurre (`docs/DA-FARE-ROBERTO.md`).
+- Non provato su emulatore né con email vere: le frasi fr e de le ha scritte Claude e vanno lette da T7 con `campioneEmail`, ora 75 email.
+- Resta a T4: `src/lib/avvisoPiano.ts` (oggetto dell'email di piano in fr e de), `src/lib/paginaPubblica.ts`, le righe vecchie di `errori.ts`, la lettura di `dog.lingua`. Finché T4 e T6 non sono uniti i client non leggono i codici: il server funziona comunque come prima.

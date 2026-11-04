@@ -1,9 +1,10 @@
 import { FieldValue, getFirestore, type DocumentData, type Firestore } from 'firebase-admin/firestore'
+import { linguaValida } from '../../../src/i18n/lingua'
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { inizioDaDoc, motivoPosto, type MotivoPosto } from '../../../src/lib/listaAttesa'
 import type { RichiestaDoc } from '../../../src/lib/pianoRichiesta'
 import { caneDaDoc, listinoDaDoc, prezziVisita, servizioDaDoc, type ServizioListino } from '../../../src/lib/prezzoListino'
-import { archivioDelCane, documentoCane, idValido } from './gestisciPrenotazione'
+import { archivioDelCane, documentoCane, idValido, type RichiestaSalvata } from './gestisciPrenotazione'
 import type { ProMain } from '../../../src/lib/piano'
 import { listaAttesaAccesa } from './inviaCoda'
 import { appuntamentoOccupato, intervalloAncoraLibero, richiestaOccupata } from './postiLiberi'
@@ -52,6 +53,8 @@ export async function confermaAttesaPer(input: {
   salonId: string
   token: string
   azione: AzioneAttesa
+  /** La lingua della pagina: vale per gli iscritti vecchi, che non ne hanno una. */
+  lingua?: unknown
   adesso: Date
 }, db: Firestore = getFirestore()): Promise<EsitoConferma> {
   const { salonId, token, azione, adesso } = input
@@ -129,11 +132,12 @@ export async function confermaAttesaPer(input: {
     const caneDisdetta = caniSnap.docs.find((cane) => cane.id === testo(visitaDisdetta?.dogId))
     const disdetto = testo(tomba?.nomeCane) || testo(caneDisdetta?.data().name) || testo(visitaDisdetta?.ospiteNome)
 
+    const lingua = linguaValida(iscritto.lingua) ?? linguaValida(input.lingua)
     const caneRef = esistente ? esistente.ref : db.collection(`${base}/dogs`).doc()
     const visitaRef = db.collection(`${base}/appointments`).doc()
     const ms = adesso.getTime()
     if (!esistente) {
-      const richiesta: RichiestaDoc = {
+      const richiesta: RichiestaSalvata = {
         status: 'accettata',
         token: '',
         nome: testo(iscritto.nome),
@@ -146,11 +150,13 @@ export async function confermaAttesaPer(input: {
         foto: [],
         start: inizio.toISOString(),
         end: fine.toISOString(),
+        ...(lingua ? { lingua } : {}),
       }
       tx.set(caneRef, documentoCane(caneRef.id, richiesta, adesso))
     } else if (archivioDelCane(esistente.data().status) === true) {
       tx.update(esistente.ref, { status: 'attivo', archivedAt: FieldValue.delete(), updatedAt: ms })
     }
+    if (esistente && lingua && !linguaValida(esistente.data().lingua)) tx.update(esistente.ref, { lingua })
     tx.set(visitaRef, {
       id: visitaRef.id,
       dogId: caneRef.id,

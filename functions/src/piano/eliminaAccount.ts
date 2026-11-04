@@ -1,7 +1,6 @@
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { linguaValida } from '../../../src/i18n/lingua'
 import { isLauraEmail } from '../../../src/lib/salonPath'
 import { revocaMembroAllUscita } from '../../../src/lib/uscitaMembro'
@@ -9,6 +8,7 @@ import { shouldRestoreAccount } from '../salonInvite'
 import { emailEliminazione } from './emailEliminazione'
 import { riprendiSalone } from './pausaSalone'
 import { pulisciPersona, pulisciRaccolteSalone } from './pulisciSalone'
+import { erroreDaMessaggio, messaggioServer } from '../erroriServer'
 
 export function avvisoAbbonamentoPlay(fonte?: string, stato?: string): boolean {
   return fonte === 'play' && stato === 'attivo'
@@ -24,12 +24,12 @@ export function decisioneEliminazione(input: {
   vip?: boolean
 }): { ok: true; azione: 'salone' | 'membro' } | { ok: false; message: string } {
   if (input.uid === '' || input.salonId === '' || input.salonId === 'shared' || input.richiesto === 'shared') {
-    return { ok: false, message: 'Accesso negato' }
+    return { ok: false, message: messaggioServer('accesso_negato') }
   }
-  if (input.richiesto && input.richiesto !== input.uid) return { ok: false, message: 'Accesso negato' }
+  if (input.richiesto && input.richiesto !== input.uid) return { ok: false, message: messaggioServer('accesso_negato') }
   // VIP è il salone personale: chi lo ha non si elimina, anche mentre lavora in un altro salone.
   if (isLauraEmail(input.email) || input.vip === true) {
-    return { ok: false, message: 'Questo account non si può eliminare' }
+    return { ok: false, message: messaggioServer('account_non_eliminabile') }
   }
   if (input.salonId === input.uid) return { ok: true, azione: 'salone' }
   return { ok: true, azione: 'membro' }
@@ -60,7 +60,7 @@ export async function eliminaAccountPer(
     fonte: typeof pro.fonte === 'string' ? pro.fonte : undefined,
     stato: typeof pro.stato === 'string' ? pro.stato : undefined,
   })
-  if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
+  if (!decisione.ok) throw erroreDaMessaggio('failed-precondition', decisione.message)
   let nomeSalone = ''
   if (decisione.azione === 'salone') {
     const settings = (await db.doc(`salons/${uid}/settings/main`).get()).data() ?? {}

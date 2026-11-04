@@ -77,3 +77,9 @@ $env:JAVA_HOME = "$env:LOCALAPPDATA\jdk21\jdk-21.0.12.1+1"
 ```
 
 L’AAB esce in `android/app/build/outputs/bundle/playRelease/app-play-release.aab`. Non usarlo al posto dell’APK che scarica Laura.
+
+## Brevo e cinque lingue (5 novembre)
+
+**Non devi fare niente per le lingue.** Tutte le email partono dal codice, già in cinque lingue. I template Brevo non vengono usati, nemmeno il 5 (invito nel salone), quindi tradurli non servirebbe.
+
+Facoltativo, per ordine: i template 1-5 sono ancora attivi, solo in italiano, e si possono spegnere nel pannello Brevo. Lasciarli accesi non cambia nulla.

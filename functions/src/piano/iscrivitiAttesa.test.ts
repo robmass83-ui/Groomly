@@ -122,6 +122,20 @@ describe('iscrivitiAttesaPer', () => {
     })
   })
 
+  it('salva la lingua della pagina, ignora un valore sconosciuto e chi si riscrive la aggiorna', async () => {
+    const { db, elenco } = salone()
+    await iscrivitiAttesaPer({ ...base, lingua: 'de' }, db)
+    expect(elenco(`${BASE}/attesa`)[0].lingua).toBe('de')
+    await iscrivitiAttesaPer({ ...base, lingua: 'fr' }, db)
+    expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
+    expect(elenco(`${BASE}/attesa`)[0].lingua).toBe('fr')
+    await iscrivitiAttesaPer({ ...base, lingua: 'pt' }, db)
+    expect(elenco(`${BASE}/attesa`)[0].lingua).toBe('fr')
+    const altro = salone()
+    await iscrivitiAttesaPer({ ...base, lingua: 'pt' }, altro.db)
+    expect(altro.elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('lingua')
+  })
+
   it('non crea offerte, visite, cani né altro: solo il documento della lista', async () => {
     const { db, store } = salone()
     const prima = [...store.keys()]

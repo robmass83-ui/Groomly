@@ -1,8 +1,8 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { appointmentEnd, sumDuration } from '../../../src/lib/fineServizi'
 import { calendarioPrenotabile, fineOccupata, intervalloImpegnoPersonale, intervalloLibero } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
+import { erroreServer } from '../erroriServer'
 
 export function dataDi(value: unknown): Date | null {
   if (value instanceof Date) return value
@@ -110,10 +110,10 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
   const esclusa = opzioni.esclusa ?? ''
   const perSalone = opzioni.perSalone === true
   if (salonId === '' || salonId === 'shared' || salonId.includes('/') || !/^\d{4}-\d{2}-\d{2}$/.test(dal)) {
-    throw new HttpsError('invalid-argument', 'Richiesta non valida')
+    throw erroreServer('invalid-argument', 'richiesta_non_valida')
   }
   // Il controllo «prenotazioni accese» vale solo per il cliente: il salone gestisce le richieste già arrivate.
-  if (!perSalone && !(await salonPrenota(salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
+  if (!perSalone && !(await salonPrenota(salonId))) throw erroreServer('failed-precondition', 'prenotazioni_spente')
   const db = getFirestore()
   const [settingsSnap, appuntamenti, richieste, chiusure] = await Promise.all([
     db.doc(`salons/${salonId}/settings/main`).get(),
@@ -173,5 +173,5 @@ export async function postiLiberiChiamata(
 }
 
 export async function preparaRichiestaPer(_input: { salonId: string; phone: string; esca: string }): Promise<{ ok: true }> {
-  throw new HttpsError('failed-precondition', 'Richiesta non valida')
+  throw erroreServer('failed-precondition', 'richiesta_non_valida')
 }

@@ -8,9 +8,9 @@ import {
 import { chiaveGiornoRoma } from '../../../src/lib/disponibilita'
 import { eFeature, type FeatureKey } from '../../../src/lib/piano'
 import { contattoTitolare, nega, proMainDi, salonIdValido } from './comune'
-import { EMAIL_OPERATORE, emailOperatore, inviaEmail, type Posta } from './emailBeta'
+import { EMAIL_OPERATORE, emailOperatore, inviaEmail, type Posta, rigaFeedbackOperatore } from './emailBeta'
 
-const NON_VALIDO = 'Controlla le risposte e riprova'
+const NON_VALIDO = 'beta_feedback_non_valido' as const
 const VERSIONE_MAX = 40
 
 type Risposte = Omit<FeedbackBeta, 'salonId' | 'uid' | 'piano' | 'creatoIl'>
@@ -60,7 +60,7 @@ export async function inviaFeedbackBetaPer(input: {
   const account = input.uid !== '' && !input.uid.includes('/') ? (await db.doc(`accounts/${input.uid}`).get()).data() : undefined
   const salonId = account?.salonId
   const ruolo = account?.role === undefined || account.role === null || account.role === '' ? 'titolare' : account.role
-  if (!salonIdValido(salonId) || (ruolo !== 'titolare' && ruolo !== 'socio')) nega('Il feedback lo mandano il titolare o il socio')
+  if (!salonIdValido(salonId) || (ruolo !== 'titolare' && ruolo !== 'socio')) nega('beta_feedback_ruolo')
   const risposte = risposteDi(input.dati)
   const adesso = input.adesso ?? new Date()
   const giorno = chiaveGiornoRoma(adesso)
@@ -69,9 +69,9 @@ export async function inviaFeedbackBetaPer(input: {
   const piano = await db.runTransaction(async (tx) => {
     const pro = proMainDi((await tx.get(db.doc(`salons/${salonId}/pro/main`))).data())
     const limite = await tx.get(limiteRef)
-    if (pro?.exBeta !== true) nega('Il feedback è per chi ha provato la beta')
+    if (pro?.exBeta !== true) nega('beta_feedback_solo_beta')
     const salvati = limite.get('giorno') === giorno && typeof limite.get('n') === 'number' ? limite.get('n') as number : 0
-    if (salvati >= LIMITE_FEEDBACK_GIORNO) nega('Hai già mandato 5 feedback oggi: riprova domani')
+    if (salvati >= LIMITE_FEEDBACK_GIORNO) nega('beta_feedback_limite')
     const pianoBeta = pro.betaPiano ?? 'pro'
     const feedback: FeedbackBeta = { ...risposte, salonId, uid: input.uid, piano: pianoBeta, creatoIl: adesso.toISOString() }
     tx.set(limiteRef, { giorno, n: salvati + 1 })
@@ -84,7 +84,7 @@ export async function inviaFeedbackBetaPer(input: {
   const mail = emailOperatore('feedback', [
     `Salone: ${contatto.nome || salonId} (${contatto.email || 'senza email'})`,
     `Piano: ${piano === 'salone' ? 'Salon' : 'Plus'} · voto ${risposte.voto}/5 · pagherebbe: ${risposte.pagheresti}${risposte.quanto ? ` (${risposte.quanto})` : ''}`,
-    `Ricontatto: ${risposte.ricontatto ? 'sì' : 'no'} · fine beta: ${risposte.fineBeta ? 'sì' : 'no'} · app ${risposte.versioneApp}`,
+    rigaFeedbackOperatore(risposte.ricontatto, risposte.fineBeta, risposte.versioneApp),
     ...(funzioni ? [`Funzioni: ${funzioni}`] : []),
     ...(risposte.nonVa ? [`Cosa non va: ${risposte.nonVa}`] : []),
     ...(risposte.manca ? [`Cosa manca: ${risposte.manca}`] : []),

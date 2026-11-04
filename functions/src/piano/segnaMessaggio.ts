@@ -1,9 +1,9 @@
 import { getFirestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
+import { erroreServer } from '../erroriServer'
 
 export async function segnaMessaggioPer(salonId: string, dogId: string, testo: string): Promise<{ ok: true }> {
   if (salonId === '' || salonId === 'shared' || salonId.includes('/') || dogId === '' || testo.trim() === '') {
-    throw new HttpsError('invalid-argument', 'Richiesta non valida')
+    throw erroreServer('invalid-argument', 'richiesta_non_valida')
   }
   await getFirestore().collection(`salons/${salonId}/messaggi`).add({
     dogId,

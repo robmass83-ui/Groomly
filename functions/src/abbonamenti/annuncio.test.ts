@@ -67,6 +67,15 @@ describe('annunciaPagamentiPer', () => {
   })
 })
 
+describe('emailAnnuncio in francese e tedesco', () => {
+  it('testi e data nella lingua', () => {
+    expect(emailAnnuncio('fr', '2026-12-21T10:00:00.000Z').oggetto).toContain('Plus et Salon')
+    expect(emailAnnuncio('fr', '2026-12-21T10:00:00.000Z').html).toContain('21/12/2026')
+    expect(emailAnnuncio('de', '2026-12-21T10:00:00.000Z').oggetto).toContain('Plus und Salon')
+    expect(emailAnnuncio('de', '2026-12-21T10:00:00.000Z').html).toContain('21.12.2026')
+  })
+})
+
 describe('emailAnnuncio', () => {
   it('tre lingue con la data e niente HTML iniettato', () => {
     const it_ = emailAnnuncio('it', '2026-12-21T10:00:00.000Z')

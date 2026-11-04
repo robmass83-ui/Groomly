@@ -2,6 +2,17 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { paginaRisposta } from './rispondiRichiesta'
 
+describe('pagine di risposta in francese e tedesco', () => {
+  it('conferma e link non valido nella lingua del cliente', () => {
+    const fr = paginaRisposta('fr', 'confermato', { salone: 'Canespa', cane: 'Rex', quando: 'mardi 4 novembre à 10:30' })
+    expect(fr).toContain('Le rendez-vous de Rex chez Canespa est confirmé pour mardi 4 novembre à 10:30.')
+    const de = paginaRisposta('de', 'confermato', { salone: 'Canespa', cane: 'Rex', quando: 'Dienstag, 4. November um 10:30' })
+    expect(de).toContain('Der Termin von Rex bei Canespa ist bestätigt für Dienstag, 4. November um 10:30.')
+    expect(paginaRisposta('de', 'nonValido', {})).toContain('Dieser Link ist nicht mehr gültig.')
+    expect(paginaRisposta('fr', 'liberato', {})).toContain('Créneau libéré')
+  })
+})
+
 describe('rispondiRichiesta', () => {
   it('la GET torna prima di applicare il piano', () => {
     const src = readFileSync('functions/src/piano/rispondiRichiesta.ts', 'utf8')

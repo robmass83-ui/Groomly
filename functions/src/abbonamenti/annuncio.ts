@@ -1,10 +1,10 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { GIORNI_ANNUNCIO, giorniRoma } from '../../../src/lib/accensione'
 import { dataIsoValida, leggiConfigPiani } from '../../../src/lib/configPiani'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { operatoreAutorizzato } from '../../../src/lib/salonPath'
+import { erroreServer } from '../erroriServer'
 
 export type InvioAnnuncio = (a: { email: string; lingua: Lingua; pagamentiDal: string }) => Promise<void>
 
@@ -14,7 +14,7 @@ export function dataPartenzaValida(data: unknown, adesso: Date): data is string 
 
 export function controllaOperatore(input: { operatorEmail: string; emailVerified?: boolean; admin?: boolean }): void {
   if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
-    throw new HttpsError('failed-precondition', 'Accesso negato')
+    throw erroreServer('failed-precondition', 'accesso_negato')
   }
 }
 
@@ -51,14 +51,14 @@ export async function annunciaPagamentiPer(input: {
 }): Promise<{ ok: true; email: number }> {
   controllaOperatore(input)
   const adesso = input.adesso ?? new Date()
-  if (!dataPartenzaValida(input.data, adesso)) throw new HttpsError('invalid-argument', `Almeno ${GIORNI_ANNUNCIO} giorni dopo oggi`)
+  if (!dataPartenzaValida(input.data, adesso)) throw erroreServer('invalid-argument', 'annuncio_giorni_minimi', { n: GIORNI_ANNUNCIO })
   const pagamentiDal = new Date(input.data).toISOString()
   const db = getFirestore()
   const ref = db.doc('config/globale')
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref)
     const globale = snap.data()
-    if (globale?.abbonamentiAttivi === true) throw new HttpsError('failed-precondition', 'Abbonamenti già attivi')
+    if (globale?.abbonamentiAttivi === true) throw erroreServer('failed-precondition', 'abbonamenti_gia_attivi')
     tx.set(ref, { piani: { ...leggiConfigPiani(globale), annuncioPagamentiIl: adesso.toISOString(), pagamentiDal } }, { merge: true })
   })
   let email = 0

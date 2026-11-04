@@ -56,3 +56,18 @@ describe('inviaEmail', () => {
     expect(await inviaEmail('k', 'a@b.it', { oggetto: 'x', html: 'y' }, async () => undefined)).toBe('inviata')
   })
 })
+
+describe('emailBeta in francese e tedesco', () => {
+  const TIPI = ['invito', 'invito-ritirato', 'revoca', 'estensione', 'fine-7', 'fine-1'] as const
+  it.each(['fr', 'de'] as const)('%s: ogni testo è tradotto, con la data nella lingua', (lingua) => {
+    for (const tipo of TIPI) {
+      const dati = { piano: 'pro' as const, giorni: 30, scadeIl: '2026-12-04T10:00:00.000Z' }
+      const mail = emailBeta(lingua, tipo, dati)
+      expect(mail.oggetto).not.toBe(emailBeta('en', tipo, dati).oggetto)
+      expect(mail.html).toContain(`<html lang="${lingua}">`)
+      expect(mail.html).not.toContain('Open Groomly')
+    }
+    expect(dataBeta('fr', '2026-12-04T10:00:00.000Z')).toBe('4 décembre 2026')
+    expect(dataBeta('de', '2026-12-04T10:00:00.000Z')).toBe('4. Dezember 2026')
+  })
+})

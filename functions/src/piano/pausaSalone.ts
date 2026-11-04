@@ -1,6 +1,7 @@
 import { FieldValue, type Firestore, type Transaction } from 'firebase-admin/firestore'
 import { leggiPausa, pausaDa, ripresaDa, type PausaSalone } from '../../../src/lib/pausaSalone'
 import { salonCollection } from '../../../src/lib/salonPath'
+import { messaggioServer } from '../erroriServer'
 
 /** Quello che serve per mettere in pausa o riprendere il salone personale: impostazioni e pausa ricordata. */
 export type LettoPausa = { settings: Record<string, unknown>; pausa: PausaSalone | null }
@@ -53,7 +54,7 @@ export async function riprendiSalone(db: Firestore, uid: string, adesso: Date = 
   })
 }
 
-const NEGATO = { ok: false, message: 'Accesso negato' } as const
+const NEGATO = { ok: false, message: messaggioServer('accesso_negato') } as const
 
 /**
  * «Torna al mio salone» di un socio o collaboratore: lascia il posto nel salone dove lavora

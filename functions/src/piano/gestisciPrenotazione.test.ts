@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pianoRichiesta, serviziDellaRichiesta, type RichiestaDoc } from '../../../src/lib/pianoRichiesta'
-import { archivioDelCane, leggiRichiesta, orariMailProposta } from './gestisciPrenotazione'
+import { archivioDelCane, leggiRichiesta, linkRisposta, orariMailProposta } from './gestisciPrenotazione'
 
 const richiesta: RichiestaDoc = {
   status: 'proposta', token: 't', nome: 'Ada', phone: '333', email: 'a@b.it', cane: 'Fido', razza: 'Meticcio',
@@ -79,5 +79,21 @@ describe('archivioDelCane', () => {
     const adesso = new Date('2026-10-28T08:00:00.000Z')
     const piano = pianoRichiesta({ richiesta, comando: { azione: 'confermaCliente' }, token: 't', adesso, orarioLibero: false, animaleArchivio: archivioDelCane('non_in_cura') === true })
     expect(piano.ok && piano.cane).toBe('riattiva')
+  })
+})
+
+describe('lingua della richiesta', () => {
+  it('si legge se valida, un valore sconosciuto sparisce', () => {
+    const doc = { status: 'nuova', token: 't', nome: 'Ada', email: 'a@b.it', start: '2026-10-28T08:00:00.000Z', end: '2026-10-28T09:00:00.000Z' }
+    expect(leggiRichiesta({ ...doc, lingua: 'de' })?.lingua).toBe('de')
+    expect(leggiRichiesta({ ...doc, lingua: 'pt' })).not.toHaveProperty('lingua')
+  })
+
+  it('il link di risposta porta la lingua e gli orari la seguono', () => {
+    expect(linkRisposta('s', 'i', 't', 'conferma', 'de')).toContain('lang=de')
+    expect(linkRisposta('s', 'i', 't', 'conferma')).not.toContain('lang=')
+    const orari = orariMailProposta('de', '2026-11-04T09:00:00.000Z', '2026-11-04T10:00:00.000Z', '2026-11-03T16:00:00.000Z', '2026-11-03T17:00:00.000Z')
+    expect(orari).toEqual({ quando: 'Mittwoch, 4. November, 10:00\u201311:00', invece: 'Dienstag, 3. November um 17:00', entro: '18:00 Uhr' })
+    expect(orariMailProposta('fr', '2026-11-04T09:00:00.000Z', '2026-11-04T10:00:00.000Z', '2026-11-03T16:00:00.000Z', '2026-11-03T17:00:00.000Z')?.invece).toBe('mardi 3 novembre à 17:00')
   })
 })

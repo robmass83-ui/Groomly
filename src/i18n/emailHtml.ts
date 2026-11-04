@@ -18,7 +18,9 @@ export type TipoEmail =
   | 'recensione'
   | 'attesa'
 
-export type RuoloSalone = 'soggetto' | 'di' | 'a' | 'da' | 'dopoDi'
+type TipoCliente = Exclude<TipoEmail, 'verifica' | 'reset' | 'invito'>
+
+export type RuoloSalone = 'soggetto' | 'oggetto' | 'di' | 'a' | 'da' | 'dopoDi'
 
 export type DatiEmail = {
   cliente?: string
@@ -45,79 +47,105 @@ const OGGETTO_VERIFICA: Record<Lingua, string> = {
   it: 'Benvenuto su Groomly, conferma la tua email',
   en: 'Welcome to Groomly, please confirm your email',
   es: 'Bienvenido a Groomly, confirma tu correo',
-  // LINGUE: da tradurre
-  fr: 'Welcome to Groomly, please confirm your email',
-  de: 'Welcome to Groomly, please confirm your email',
+  fr: 'Bienvenue sur Groomly, confirmez votre e-mail',
+  de: 'Willkommen bei Groomly, bitte bestätigen Sie Ihre E-Mail',
 }
 
 const OGGETTO_RESET: Record<Lingua, string> = {
   it: 'Reimposta la tua password',
   en: 'Reset your password',
   es: 'Restablece tu contraseña',
-  // LINGUE: da tradurre
-  fr: 'Reset your password',
-  de: 'Reset your password',
+  fr: 'Réinitialisez votre mot de passe',
+  de: 'Setzen Sie Ihr Passwort zurück',
 }
 
 const OGGETTO_INVITO_VUOTO: Record<Lingua, string> = {
   it: 'Sei invitato su Groomly',
   en: 'You’re invited to Groomly',
   es: 'Te invitan a Groomly',
-  // LINGUE: da tradurre
-  fr: 'You’re invited to Groomly',
-  de: 'You’re invited to Groomly',
+  fr: 'Vous êtes invité sur Groomly',
+  de: 'Sie sind zu Groomly eingeladen',
+}
+
+const OGGETTO_INVITO: Record<Lingua, (nome: string) => string> = {
+  it: (nome) => `${nome} ti invita su Groomly`,
+  en: (nome) => `${nome} has invited you to Groomly`,
+  es: (nome) => `${nome} te invita a Groomly`,
+  fr: (nome) => `${nome} vous invite sur Groomly`,
+  de: (nome) => `${nome} lädt Sie zu Groomly ein`,
 }
 
 const BOTTONE_ACCOUNT: Record<'verifica' | 'reset' | 'invito', Record<Lingua, string>> = {
-  verifica: { it: 'Conferma l’email', en: 'Confirm email', es: 'Confirmar el correo', fr: 'Confirm email', de: 'Confirm email' }, // LINGUE: da tradurre
-  reset: { it: 'Reimposta la password', en: 'Reset password', es: 'Restablecer la contraseña', fr: 'Reset password', de: 'Reset password' }, // LINGUE: da tradurre
-  invito: { it: 'Accetta l’invito', en: 'Accept invitation', es: 'Aceptar la invitación', fr: 'Accept invitation', de: 'Accept invitation' }, // LINGUE: da tradurre
+  verifica: { it: 'Conferma l’email', en: 'Confirm email', es: 'Confirmar el correo', fr: 'Confirmer l’e-mail', de: 'E-Mail bestätigen' },
+  reset: { it: 'Reimposta la password', en: 'Reset password', es: 'Restablecer la contraseña', fr: 'Réinitialiser le mot de passe', de: 'Passwort zurücksetzen' },
+  invito: { it: 'Accetta l’invito', en: 'Accept invitation', es: 'Aceptar la invitación', fr: 'Accepter l’invitation', de: 'Einladung annehmen' },
 }
 
 const NOTA_RISPOSTA: Record<Lingua, string> = {
   it: 'Hai una domanda? Rispondi a questa email, arriva direttamente al salone.',
   en: 'Any questions? Just reply to this email and it will go straight to the salon.',
   es: '¿Tienes alguna pregunta? Responde a este correo y llegará directamente a la peluquería.',
-  // LINGUE: da tradurre
-  fr: 'Any questions? Just reply to this email and it will go straight to the salon.',
-  de: 'Any questions? Just reply to this email and it will go straight to the salon.',
+  fr: 'Une question ? Répondez à cet e-mail, il arrivera directement au salon.',
+  de: 'Haben Sie eine Frage? Antworten Sie auf diese E-Mail, sie geht direkt an den Salon.',
 }
 
 const NOTA_PAGINA: Record<Lingua, string> = {
   it: 'Puoi inviare una nuova richiesta dalla pagina del salone.',
   en: "You can send a new request from the salon's page.",
   es: 'Puedes enviar una nueva solicitud desde la página de la peluquería.',
-  // LINGUE: da tradurre
-  fr: "You can send a new request from the salon's page.",
-  de: "You can send a new request from the salon's page.",
+  fr: 'Vous pouvez envoyer une nouvelle demande depuis la page du salon.',
+  de: 'Über die Seite des Salons können Sie eine neue Anfrage senden.',
 }
 
 const SILENZIO: Record<Lingua, string> = {
   it: 'Non voglio più ricevere queste email',
   en: "I don't want to receive these emails any more",
   es: 'No quiero recibir más estos correos',
-  // LINGUE: da tradurre
-  fr: "I don't want to receive these emails any more",
-  de: "I don't want to receive these emails any more",
+  fr: 'Je ne souhaite plus recevoir ces e-mails',
+  de: 'Ich möchte diese E-Mails nicht mehr erhalten',
 }
 
-const CONFERMO: Record<Lingua, string> = { it: 'Confermo', en: 'Confirm', es: 'Confirmo', fr: 'Confirm', de: 'Confirm' } // LINGUE: da tradurre
-const NON_POSSO: Record<Lingua, string> = { it: 'Non posso', en: "I can't make it", es: 'No puedo', fr: "I can't make it", de: "I can't make it" } // LINGUE: da tradurre
-const RECENSIONE_BOTTONE: Record<Lingua, string> = { it: 'Lascia una recensione', en: 'Leave a review', es: 'Dejar una reseña', fr: 'Leave a review', de: 'Leave a review' } // LINGUE: da tradurre
-const ATTESA_BOTTONE: Record<Lingua, string> = { it: 'Prenota il posto', en: 'Book this slot', es: 'Reservar el hueco', fr: 'Book this slot', de: 'Book this slot' } // LINGUE: da tradurre
+const CONFERMO: Record<Lingua, string> = { it: 'Confermo', en: 'Confirm', es: 'Confirmo', fr: 'Je confirme', de: 'Bestätigen' }
+const NON_POSSO: Record<Lingua, string> = { it: 'Non posso', en: "I can't make it", es: 'No puedo', fr: 'Je ne peux pas', de: 'Ich kann nicht' }
+const RECENSIONE_BOTTONE: Record<Lingua, string> = { it: 'Lascia una recensione', en: 'Leave a review', es: 'Dejar una reseña', fr: 'Laisser un avis', de: 'Bewertung schreiben' }
+const ATTESA_BOTTONE: Record<Lingua, string> = { it: 'Prenota il posto', en: 'Book this slot', es: 'Reservar el hueco', fr: 'Réserver ce créneau', de: 'Termin buchen' }
 
 const SALONE_VUOTO: Record<RuoloSalone, Record<Lingua, string>> = {
-  soggetto: { it: 'il salone', en: 'the salon', es: 'la peluquería', fr: 'the salon', de: 'the salon' }, // LINGUE: da tradurre
-  di: { it: 'del salone', en: 'of the salon', es: 'de la peluquería', fr: 'of the salon', de: 'of the salon' }, // LINGUE: da tradurre
-  a: { it: 'al salone', en: 'to the salon', es: 'a la peluquería', fr: 'to the salon', de: 'to the salon' }, // LINGUE: da tradurre
-  da: { it: 'dal salone', en: 'from the salon', es: 'de la peluquería', fr: 'from the salon', de: 'from the salon' }, // LINGUE: da tradurre
-  dopoDi: { it: 'dal salone', en: 'at the salon', es: 'en la peluquería', fr: 'at the salon', de: 'at the salon' }, // LINGUE: da tradurre
+  soggetto: { it: 'il salone', en: 'the salon', es: 'la peluquería', fr: 'le salon', de: 'der Salon' },
+  oggetto: { it: 'il salone', en: 'the salon', es: 'la peluquería', fr: 'le salon', de: 'den Salon' },
+  di: { it: 'del salone', en: 'of the salon', es: 'de la peluquería', fr: 'du salon', de: 'des Salons' },
+  a: { it: 'al salone', en: 'to the salon', es: 'a la peluquería', fr: 'au salon', de: 'an den Salon' },
+  da: { it: 'dal salone', en: 'from the salon', es: 'de la peluquería', fr: 'du salon', de: 'vom Salon' },
+  dopoDi: { it: 'dal salone', en: 'at the salon', es: 'en la peluquería', fr: 'au salon', de: 'im Salon' },
+}
+
+const PREPOSIZIONE_A: Record<Lingua, string> = { it: 'a', en: 'to', es: 'a', fr: 'à', de: 'an' }
+const PREPOSIZIONE_DI: Record<Lingua, string> = { it: 'di', en: 'of', es: 'de', fr: 'de', de: 'von' }
+const LUOGO: Record<Lingua, { ruolo: RuoloSalone; prep: string }> = {
+  it: { ruolo: 'da', prep: 'da' },
+  en: { ruolo: 'dopoDi', prep: 'at' },
+  es: { ruolo: 'dopoDi', prep: 'en' },
+  fr: { ruolo: 'dopoDi', prep: 'chez' },
+  de: { ruolo: 'dopoDi', prep: 'bei' },
+}
+
+const RUOLI: Record<Lingua, Record<'socio' | 'collaboratore', string>> = {
+  it: { socio: 'Socio', collaboratore: 'Collaboratore' },
+  en: { socio: 'Partner', collaboratore: 'Team member' },
+  es: { socio: 'Socio', collaboratore: 'Colaborador' },
+  fr: { socio: 'Associé', collaboratore: 'Collaborateur' },
+  de: { socio: 'Teilhaber', collaboratore: 'Mitarbeiter' },
+}
+
+const ANIMALE_SENZA_NOME: Record<Lingua, string> = { it: 'Animale', en: 'Pet', es: 'Mascota', fr: 'Animal', de: 'Tier' }
+
+/** Il nome da dare a una scheda quando la richiesta non ne ha nessuno. */
+export function nomeAnimaleVuoto(lingua: Lingua): string {
+  return ANIMALE_SENZA_NOME[lingua]
 }
 
 export function etichettaRuolo(lingua: Lingua, ruolo: 'socio' | 'collaboratore'): string {
-  if (lingua === 'en') return ruolo === 'socio' ? 'Partner' : 'Team member'
-  if (lingua === 'es') return ruolo === 'socio' ? 'Socio' : 'Colaborador'
-  return ruolo === 'socio' ? 'Socio' : 'Collaboratore'
+  return RUOLI[lingua][ruolo]
 }
 
 export function escapaHtml(testo: string): string {
@@ -138,47 +166,72 @@ function posto(lingua: Lingua, nome: string, ruolo: RuoloSalone, prep: string): 
   return saloneNellaFrase(lingua, '', ruolo)
 }
 
-function luogo(lingua: Lingua, nome: string): string {
-  if (lingua === 'en') return posto(lingua, nome, 'dopoDi', 'at')
-  if (lingua === 'es') return posto(lingua, nome, 'dopoDi', 'en')
-  return posto(lingua, nome, 'da', 'da')
+/** «da Canespa», «at Canespa», «chez Canespa»; senza nome «dal salone» e simili. */
+export function luogoSalone(lingua: Lingua, nome: string): string {
+  return posto(lingua, nome, LUOGO[lingua].ruolo, LUOGO[lingua].prep)
 }
+
+function maiuscola(testo: string): string {
+  return testo.charAt(0).toUpperCase() + testo.slice(1)
+}
+
+const CIAO: Record<Lingua, string> = { it: 'Ciao', en: 'Hi', es: 'Hola', fr: 'Bonjour', de: 'Hallo' }
 
 function saluto(lingua: Lingua, cliente: string): string {
   const nome = cliente.trim()
-  if (!nome) return lingua === 'en' ? 'Hi,' : lingua === 'es' ? 'Hola,' : 'Ciao,'
-  const ciao = lingua === 'en' ? 'Hi' : lingua === 'es' ? 'Hola' : 'Ciao'
-  return `${ciao} ${escapaHtml(nome)},`
+  if (!nome) return `${CIAO[lingua]},`
+  return `${CIAO[lingua]} ${escapaHtml(nome)},`
 }
 
 const SPECIE_MAIL: Record<Lingua, Record<string, string>> = {
   it: { cane: 'cane', gatto: 'gatto', altro: 'altro animale' },
   en: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
   es: { cane: 'perro', gatto: 'gato', altro: 'otro animal' },
-  // LINGUE: da tradurre
-  fr: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
-  de: { cane: 'dog', gatto: 'cat', altro: 'other animal' },
+  fr: { cane: 'chien', gatto: 'chat', altro: 'autre animal' },
+  de: { cane: 'Hund', gatto: 'Katze', altro: 'anderes Tier' },
 }
 
 const TAGLIA_MAIL: Record<Lingua, Record<string, string>> = {
   it: { piccola: 'taglia piccola', media: 'taglia media', grande: 'taglia grande' },
   en: { piccola: 'small size', media: 'medium size', grande: 'large size' },
   es: { piccola: 'talla pequeña', media: 'talla mediana', grande: 'talla grande' },
-  // LINGUE: da tradurre
-  fr: { piccola: 'small size', media: 'medium size', grande: 'large size' },
-  de: { piccola: 'small size', media: 'medium size', grande: 'large size' },
+  fr: { piccola: 'petite taille', media: 'taille moyenne', grande: 'grande taille' },
+  de: { piccola: 'klein', media: 'mittelgroß', grande: 'groß' },
 }
 
 const PREZZI_MAIL: Record<Lingua, string> = {
   it: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.',
   en: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
   es: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.',
-  // LINGUE: da tradurre
-  fr: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
-  de: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
+  fr: 'Les prix sont indicatifs. Ils peuvent changer une fois l’animal vu, en cas de nœuds ou de problèmes qui demandent plus de temps.',
+  de: 'Die Preise sind Richtwerte. Sie können sich ändern, sobald wir das Tier gesehen haben, wenn Knoten oder andere Probleme mehr Zeit brauchen.',
 }
 
-function giornoMail(lingua: Lingua, data: Date): string {
+const DURATA_MAIL: Record<Lingua, (minuti: number, prezzo: string) => string> = {
+  it: (minuti, prezzo) => `Durata ${minuti} min · Prezzo indicativo ${prezzo}`,
+  en: (minuti, prezzo) => `Duration ${minuti} min · Guide price ${prezzo}`,
+  es: (minuti, prezzo) => `Duración ${minuti} min · Precio orientativo ${prezzo}`,
+  fr: (minuti, prezzo) => `Durée ${minuti} min · Prix indicatif ${prezzo}`,
+  de: (minuti, prezzo) => `Dauer ${minuti} Min. · Richtpreis ${prezzo}`,
+}
+
+const TELEFONO_MAIL: Record<Lingua, (telefono: string) => string> = {
+  it: (telefono) => `Telefono del salone: ${telefono}`,
+  en: (telefono) => `Salon phone: ${telefono}`,
+  es: (telefono) => `Teléfono del salón: ${telefono}`,
+  fr: (telefono) => `Téléphone du salon : ${telefono}`,
+  de: (telefono) => `Telefon des Salons: ${telefono}`,
+}
+
+const FORMA_GIORNO: Record<Lingua, (giorno: string, numero: string, mese: string) => string> = {
+  it: (giorno, numero, mese) => `${giorno} ${numero} ${mese}`,
+  en: (giorno, numero, mese) => `${giorno} ${numero} ${mese}`,
+  es: (giorno, numero, mese) => `${giorno} ${numero} de ${mese}`,
+  fr: (giorno, numero, mese) => `${giorno} ${numero} ${mese}`,
+  de: (giorno, numero, mese) => `${giorno}, ${numero}. ${mese}`,
+}
+
+export function giornoMail(lingua: Lingua, data: Date): string {
   const locale = LOCALE_INTL[lingua]
   const parti = new Intl.DateTimeFormat(locale, {
     timeZone: 'Europe/Rome',
@@ -187,13 +240,34 @@ function giornoMail(lingua: Lingua, data: Date): string {
     month: 'long',
   }).formatToParts(data)
   const valore = (tipo: Intl.DateTimeFormatPartTypes) => parti.find((parte) => parte.type === tipo)?.value ?? ''
-  const mese = lingua === 'es' ? `de ${valore('month')}` : valore('month')
-  return `${valore('weekday')} ${valore('day')} ${mese}`
+  return FORMA_GIORNO[lingua](valore('weekday'), valore('day'), valore('month'))
 }
 
-function euro(totale: number): string {
+const ALLE: Record<Lingua, string> = { it: 'alle', en: 'at', es: 'a las', fr: 'à', de: 'um' }
+
+/** «martedì 4 novembre alle 09:00». */
+export function giornoEOra(lingua: Lingua, giorno: string, ora: string): string {
+  return `${giorno} ${ALLE[lingua]} ${ora}`
+}
+
+const ORA_LIMITE: Record<Lingua, (ora: string) => string> = {
+  it: (ora) => `le ${ora}`,
+  en: (ora) => ora,
+  es: (ora) => `las ${ora}`,
+  fr: (ora) => ora,
+  de: (ora) => `${ora} Uhr`,
+}
+
+/** L'ora dentro «rispondi entro …». */
+export function oraLimite(lingua: Lingua, ora: string): string {
+  return ORA_LIMITE[lingua](ora)
+}
+
+const EURO_DOPO = new Set<Lingua>(['fr', 'de'])
+
+function euro(lingua: Lingua, totale: number): string {
   const testo = Number.isInteger(totale) ? String(totale) : totale.toFixed(2).replace('.', ',')
-  return `€ ${testo}`
+  return EURO_DOPO.has(lingua) ? `${testo} €` : `€ ${testo}`
 }
 
 export function riepilogoRicevuta(lingua: Lingua, dati: {
@@ -217,239 +291,316 @@ export function riepilogoRicevuta(lingua: Lingua, dati: {
   const quando = Number.isNaN(dati.inizio.getTime())
     ? ''
     : `${giornoMail(lingua, dati.inizio)}, ${oraRoma(dati.inizio)}–${oraRoma(dati.fine)}`
-  const durata = lingua === 'en'
-    ? `Duration ${dati.durataMin} min · Guide price ${euro(dati.totale)}`
-    : lingua === 'es'
-      ? `Duración ${dati.durataMin} min · Precio orientativo ${euro(dati.totale)}`
-      : `Durata ${dati.durataMin} min · Prezzo indicativo ${euro(dati.totale)}`
+  const durata = DURATA_MAIL[lingua](dati.durataMin, euro(lingua, dati.totale))
   const telefono = (dati.telefono ?? '').trim()
-  const contatto = telefono
-    ? (lingua === 'en' ? `Salon phone: ${telefono}` : lingua === 'es' ? `Teléfono del salón: ${telefono}` : `Telefono del salone: ${telefono}`)
-    : ''
+  const contatto = telefono ? TELEFONO_MAIL[lingua](telefono) : ''
   return [dati.nome.trim(), animale, servizi, quando, durata, PREZZI_MAIL[lingua], contatto].filter(Boolean).join('\n')
 }
 
-function oggettoCliente(lingua: Lingua, tipo: TipoEmail, cane: string): string {
-  const nome = cane.trim()
-  if (lingua === 'en') {
-    if (tipo === 'ricevuta') return "We've received your request"
-    if (tipo === 'conferma') return nome ? `Appointment confirmed for ${nome}` : 'Appointment confirmed'
-    if (tipo === 'proposta') return nome ? `A new time for ${nome}` : 'A new time'
-    if (tipo === 'rifiuto') return 'An update on your request'
-    if (tipo === 'liberato') return 'The slot has been released'
-    if (tipo === 'scadenza') return 'Your request has expired'
-    if (tipo === 'disdetta') return nome ? `${nome}'s appointment cancelled` : 'Appointment cancelled'
-    if (tipo === 'promemoria') return nome ? `See you soon, ${nome}!` : 'See you soon!'
-    if (tipo === 'pronto') return nome ? `${nome} is ready!` : 'Ready for pick-up'
-    if (tipo === 'auguri') return nome ? `Happy birthday, ${nome}!` : 'Happy birthday!'
-    if (tipo === 'recensione') return nome ? `How did it go with ${nome}?` : 'How did it go?'
-    if (tipo === 'attesa') return nome ? `A slot has opened up for ${nome}` : 'A slot has opened up'
-  }
-  if (lingua === 'es') {
-    if (tipo === 'ricevuta') return 'Hemos recibido tu solicitud'
-    if (tipo === 'conferma') return nome ? `Cita confirmada para ${nome}` : 'Cita confirmada'
-    if (tipo === 'proposta') return nome ? `Un nuevo horario para ${nome}` : 'Un nuevo horario'
-    if (tipo === 'rifiuto') return 'Novedades sobre tu solicitud'
-    if (tipo === 'liberato') return 'El hueco ha quedado libre'
-    if (tipo === 'scadenza') return 'Tu solicitud ha caducado'
-    if (tipo === 'disdetta') return nome ? `Cita de ${nome} cancelada` : 'Cita cancelada'
-    if (tipo === 'promemoria') return nome ? `¡Nos vemos pronto, ${nome}!` : '¡Nos vemos pronto!'
-    if (tipo === 'pronto') return nome ? `¡${nome} ya está listo!` : 'Ya está listo'
-    if (tipo === 'auguri') return nome ? `¡Feliz cumpleaños, ${nome}!` : '¡Feliz cumpleaños!'
-    if (tipo === 'recensione') return nome ? `¿Qué tal le fue a ${nome}?` : '¿Qué tal fue?'
-    if (tipo === 'attesa') return nome ? `Se ha liberado un hueco para ${nome}` : 'Se ha liberado un hueco'
-  }
-  if (tipo === 'ricevuta') return 'Abbiamo ricevuto la tua richiesta'
-  if (tipo === 'conferma') return nome ? `Appuntamento confermato per ${nome}` : 'Appuntamento confermato'
-  if (tipo === 'proposta') return nome ? `Un nuovo orario per ${nome}` : 'Un nuovo orario'
-  if (tipo === 'rifiuto') return 'Aggiornamento sulla tua richiesta'
-  if (tipo === 'liberato') return 'Il posto è stato liberato'
-  if (tipo === 'scadenza') return 'La tua richiesta è scaduta'
-  if (tipo === 'disdetta') return nome ? `Appuntamento di ${nome} disdetto` : 'Appuntamento disdetto'
-  if (tipo === 'promemoria') return nome ? `Ci vediamo presto, ${nome}!` : 'Ci vediamo presto!'
-  if (tipo === 'pronto') return nome ? `${nome} è pronto!` : 'È pronto'
-  if (tipo === 'auguri') return nome ? `Buon compleanno, ${nome}!` : 'Buon compleanno!'
-  if (tipo === 'recensione') return nome ? `Com’è andata con ${nome}?` : 'Com’è andata?'
-  return nome ? `Si è liberato un posto per ${nome}` : 'Si è liberato un posto'
+const OGGETTI: Record<Lingua, Record<TipoCliente, (nome: string) => string>> = {
+  it: {
+    ricevuta: () => 'Abbiamo ricevuto la tua richiesta',
+    conferma: (nome) => (nome ? `Appuntamento confermato per ${nome}` : 'Appuntamento confermato'),
+    proposta: (nome) => (nome ? `Un nuovo orario per ${nome}` : 'Un nuovo orario'),
+    rifiuto: () => 'Aggiornamento sulla tua richiesta',
+    liberato: () => 'Il posto è stato liberato',
+    scadenza: () => 'La tua richiesta è scaduta',
+    disdetta: (nome) => (nome ? `Appuntamento di ${nome} disdetto` : 'Appuntamento disdetto'),
+    promemoria: (nome) => (nome ? `Ci vediamo presto, ${nome}!` : 'Ci vediamo presto!'),
+    pronto: (nome) => (nome ? `${nome} è pronto!` : 'È pronto'),
+    auguri: (nome) => (nome ? `Buon compleanno, ${nome}!` : 'Buon compleanno!'),
+    recensione: (nome) => (nome ? `Com’è andata con ${nome}?` : 'Com’è andata?'),
+    attesa: (nome) => (nome ? `Si è liberato un posto per ${nome}` : 'Si è liberato un posto'),
+  },
+  en: {
+    ricevuta: () => "We've received your request",
+    conferma: (nome) => (nome ? `Appointment confirmed for ${nome}` : 'Appointment confirmed'),
+    proposta: (nome) => (nome ? `A new time for ${nome}` : 'A new time'),
+    rifiuto: () => 'An update on your request',
+    liberato: () => 'The slot has been released',
+    scadenza: () => 'Your request has expired',
+    disdetta: (nome) => (nome ? `${nome}'s appointment cancelled` : 'Appointment cancelled'),
+    promemoria: (nome) => (nome ? `See you soon, ${nome}!` : 'See you soon!'),
+    pronto: (nome) => (nome ? `${nome} is ready!` : 'Ready for pick-up'),
+    auguri: (nome) => (nome ? `Happy birthday, ${nome}!` : 'Happy birthday!'),
+    recensione: (nome) => (nome ? `How did it go with ${nome}?` : 'How did it go?'),
+    attesa: (nome) => (nome ? `A slot has opened up for ${nome}` : 'A slot has opened up'),
+  },
+  es: {
+    ricevuta: () => 'Hemos recibido tu solicitud',
+    conferma: (nome) => (nome ? `Cita confirmada para ${nome}` : 'Cita confirmada'),
+    proposta: (nome) => (nome ? `Un nuevo horario para ${nome}` : 'Un nuevo horario'),
+    rifiuto: () => 'Novedades sobre tu solicitud',
+    liberato: () => 'El hueco ha quedado libre',
+    scadenza: () => 'Tu solicitud ha caducado',
+    disdetta: (nome) => (nome ? `Cita de ${nome} cancelada` : 'Cita cancelada'),
+    promemoria: (nome) => (nome ? `¡Nos vemos pronto, ${nome}!` : '¡Nos vemos pronto!'),
+    pronto: (nome) => (nome ? `¡${nome} ya está listo!` : 'Ya está listo'),
+    auguri: (nome) => (nome ? `¡Feliz cumpleaños, ${nome}!` : '¡Feliz cumpleaños!'),
+    recensione: (nome) => (nome ? `¿Qué tal le fue a ${nome}?` : '¿Qué tal fue?'),
+    attesa: (nome) => (nome ? `Se ha liberado un hueco para ${nome}` : 'Se ha liberado un hueco'),
+  },
+  fr: {
+    ricevuta: () => 'Nous avons bien reçu votre demande',
+    conferma: (nome) => (nome ? `Rendez-vous confirmé pour ${nome}` : 'Rendez-vous confirmé'),
+    proposta: (nome) => (nome ? `Un nouvel horaire pour ${nome}` : 'Un nouvel horaire'),
+    rifiuto: () => 'Des nouvelles de votre demande',
+    liberato: () => 'Le créneau a été libéré',
+    scadenza: () => 'Votre demande a expiré',
+    disdetta: (nome) => (nome ? `Rendez-vous de ${nome} annulé` : 'Rendez-vous annulé'),
+    promemoria: (nome) => (nome ? `À bientôt, ${nome} !` : 'À bientôt !'),
+    pronto: (nome) => (nome ? `${nome} vous attend !` : 'Tout est prêt'),
+    auguri: (nome) => (nome ? `Joyeux anniversaire, ${nome} !` : 'Joyeux anniversaire !'),
+    recensione: (nome) => (nome ? `Comment ça s’est passé pour ${nome} ?` : 'Comment ça s’est passé ?'),
+    attesa: (nome) => (nome ? `Un créneau s’est libéré pour ${nome}` : 'Un créneau s’est libéré'),
+  },
+  de: {
+    ricevuta: () => 'Wir haben Ihre Anfrage erhalten',
+    conferma: (nome) => (nome ? `Termin für ${nome} bestätigt` : 'Termin bestätigt'),
+    proposta: (nome) => (nome ? `Neue Uhrzeit für ${nome}` : 'Neue Uhrzeit'),
+    rifiuto: () => 'Neuigkeiten zu Ihrer Anfrage',
+    liberato: () => 'Der Termin wurde freigegeben',
+    scadenza: () => 'Ihre Anfrage ist abgelaufen',
+    disdetta: (nome) => (nome ? `Termin von ${nome} storniert` : 'Termin storniert'),
+    promemoria: (nome) => (nome ? `Bis bald, ${nome}!` : 'Bis bald!'),
+    pronto: (nome) => (nome ? `${nome} ist fertig!` : 'Alles fertig'),
+    auguri: (nome) => (nome ? `Alles Gute zum Geburtstag, ${nome}!` : 'Alles Gute zum Geburtstag!'),
+    recensione: (nome) => (nome ? `Wie war es mit ${nome}?` : 'Wie war es?'),
+    attesa: (nome) => (nome ? `Ein Termin ist frei geworden für ${nome}` : 'Ein Termin ist frei geworden'),
+  },
+}
+
+/** I pezzi già pronti per le frasi: valori escapati, salone con la sua preposizione. */
+type PezziFrase = {
+  ciao: string
+  cane: string
+  quando: string
+  invece: string
+  entro: string
+  tel: string
+  rispondi: boolean
+  chi: string
+  oggetto: string
+  a: string
+  di: string
+  qui: string
+}
+
+const CORPI: Record<Lingua, Record<TipoCliente, (p: PezziFrase) => string>> = {
+  it: {
+    ricevuta: (p) => `${p.ciao} grazie per aver scelto ${p.chi}. La richiesta${p.cane ? ` per ${p.cane}` : ''} è arrivata: ti scriviamo appena il salone risponde.`,
+    conferma: (p) => {
+      const app = p.cane && p.quando ? `l’appuntamento di ${p.cane}, ${p.quando}` : p.cane ? `l’appuntamento di ${p.cane}` : p.quando ? `l’appuntamento, ${p.quando}` : 'l’appuntamento'
+      return `${p.ciao} buone notizie: ${p.chi} ha confermato ${app}. Ti aspettiamo! Se hai un imprevisto, avvisa il salone il prima possibile: così il posto può andare a qualcun altro.`
+    },
+    proposta: (p) => {
+      const accogli = [p.cane, p.quando].filter(Boolean).join(' ')
+      const chiesto = p.invece
+        ? `L’orario che avevi chiesto (${p.invece}) purtroppo non è disponibile`
+        : 'L’orario che avevi chiesto purtroppo non è disponibile'
+      const ma = accogli ? `, ma ${p.chi} può accogliere ${accogli}` : ''
+      const limite = p.entro ? ` Ti chiediamo di rispondere entro ${p.entro}: dopo, il posto verrà liberato.` : ''
+      return `${p.ciao} grazie per la richiesta. ${chiesto}${ma}.${limite}`
+    },
+    rifiuto: (p) => `${p.ciao} ci dispiace: questa volta ${p.chi} non riesce ad accogliere la richiesta${p.cane ? ` per ${p.cane}` : ''}. Puoi inviarne una nuova per un altro giorno, sarà un piacere ricevervi.`,
+    liberato: (p) => `${p.ciao} l’orario proposto${p.cane ? ` per ${p.cane}` : ''} non è più riservato. Se vuoi fissare un altro appuntamento, invia una nuova richiesta ${p.a}: ti aspettiamo.`,
+    scadenza: (p) => `${p.ciao} ci dispiace: ${p.chi} non è riuscito a confermare la tua richiesta${p.cane ? ` per ${p.cane}` : ''}${p.quando ? ` per ${p.quando}` : ''}. Contattalo direttamente${p.tel ? ` al ${p.tel}` : ''} per fissare un appuntamento.`,
+    disdetta: (p) => {
+      const altro = p.rispondi
+        ? 'Quando vuoi fissarne un altro, invia una nuova richiesta o rispondi a questa email.'
+        : 'Quando vuoi fissarne un altro, invia una nuova richiesta.'
+      return `${p.ciao} l’appuntamento${p.cane ? ` di ${p.cane}` : ''} ${p.qui} è stato disdetto. ${altro} A presto.`
+    },
+    promemoria: (p) => `${p.ciao} ${p.chi} ti ricorda il prossimo appuntamento${p.cane ? ` di ${p.cane}` : ''}${p.quando ? `, ${p.quando}` : ''}. Se non riesci a venire, avvisa il salone, così il posto può andare a qualcun altro. A presto!`,
+    pronto: (p) => {
+      const finito = p.cane
+        ? `abbiamo finito: ${p.cane} è pronto per tornare a casa e puoi passare a prenderlo.`
+        : 'abbiamo finito.'
+      return `${p.ciao} ${finito} Grazie per averlo affidato ${p.a}.`
+    },
+    auguri: (p) => `${p.ciao} oggi è un giorno speciale: tutto lo staff ${p.di} fa tanti auguri${p.cane ? ` a ${p.cane}` : ''}. Speriamo di rivedervi presto.`,
+    recensione: (p) => {
+      const coda = p.rispondi ? ' Se invece qualcosa non ti ha convinto, rispondi a questa email: ci teniamo a saperlo.' : ''
+      return `${p.ciao} grazie per aver scelto ${p.chi}. Se sei soddisfatto, una recensione su Google ci aiuta tanto e richiede un minuto.${coda}`
+    },
+    attesa: (p) => `${p.ciao} buone notizie: ${p.qui} si è liberato un posto${p.cane ? ` in un orario che fa per ${p.cane}` : ''}. Se ti va, tocca il pulsante per prenotarlo: i posti liberi vanno via in fretta.`,
+  },
+  en: {
+    ricevuta: (p) => `${p.ciao} thank you for choosing ${p.chi}. Your request${p.cane ? ` for ${p.cane}` : ''} has arrived: we'll let you know as soon as the salon replies.`,
+    conferma: (p) => {
+      const app = p.cane && p.quando ? `${p.cane}'s appointment, ${p.quando}` : p.cane ? `${p.cane}'s appointment` : p.quando ? `the appointment, ${p.quando}` : 'the appointment'
+      return `${p.ciao} good news: ${p.chi} has confirmed ${app}. We look forward to seeing you! If anything comes up, please let the salon know as soon as possible so the slot can go to someone else.`
+    },
+    proposta: (p) => {
+      const accogli = [p.cane, p.quando].filter(Boolean).join(' ')
+      const chiesto = p.invece
+        ? `Unfortunately the time you asked for (${p.invece}) isn't available`
+        : "Unfortunately the time you asked for isn't available"
+      const ma = accogli ? `, but ${p.chi} can see ${accogli}` : ''
+      const limite = p.entro ? ` Please reply by ${p.entro}: after that, the slot will be released.` : ''
+      return `${p.ciao} thank you for your request. ${chiesto}${ma}.${limite}`
+    },
+    rifiuto: (p) => `${p.ciao} we're sorry: this time ${p.chi} isn't able to accept the request${p.cane ? ` for ${p.cane}` : ''}. You're welcome to send a new one for another day, it would be a pleasure to see you.`,
+    liberato: (p) => `${p.ciao} the proposed time${p.cane ? ` for ${p.cane}` : ''} is no longer held. If you'd like to book another appointment, just send a new request ${p.a}: we look forward to seeing you.`,
+    scadenza: (p) => `${p.ciao} we're sorry: ${p.chi} wasn't able to confirm your request${p.cane ? ` for ${p.cane}` : ''}${p.quando ? ` for ${p.quando}` : ''}. Please contact the salon directly${p.tel ? ` on ${p.tel}` : ''} to arrange an appointment.`,
+    disdetta: (p) => {
+      const altro = p.rispondi
+        ? "Whenever you'd like to book another, send a new request or reply to this email."
+        : "Whenever you'd like to book another, send a new request."
+      const app = p.cane ? `${p.cane}'s appointment` : 'the appointment'
+      return `${p.ciao} ${app} ${p.qui} has been cancelled. ${altro} See you soon.`
+    },
+    promemoria: (p) => {
+      const app = p.cane ? `${p.cane}'s next appointment` : 'the next appointment'
+      return `${p.ciao} ${p.chi} would like to remind you of ${app}${p.quando ? ` on ${p.quando}` : ''}. If you can't make it, please let the salon know so the slot can go to someone else. See you soon!`
+    },
+    pronto: (p) => {
+      const finito = p.cane
+        ? `we're all done: ${p.cane} is ready to go home and you can come and pick them up.`
+        : "we're all done."
+      return `${p.ciao} ${finito} Thank you for trusting ${p.chi}.`
+    },
+    auguri: (p) => {
+      const wish = p.cane ? ` wishes ${p.cane} a very happy birthday` : ' wishes a very happy birthday'
+      return `${p.ciao} today is a special day: everyone ${p.qui}${wish}. We hope to see you both again soon.`
+    },
+    recensione: (p) => {
+      const coda = p.rispondi ? " If something wasn't quite right, just reply to this email: we'd really like to know." : ''
+      return `${p.ciao} thank you for choosing ${p.chi}. If you're happy with our work, a Google review helps us a lot and only takes a minute.${coda}`
+    },
+    attesa: (p) => `${p.ciao} good news: a slot has opened up ${p.qui}${p.cane ? ` at a time that suits ${p.cane}` : ''}. If you'd like it, tap the button to book: free slots go quickly.`,
+  },
+  es: {
+    ricevuta: (p) => `${p.ciao} gracias por elegir ${p.chi}. Tu solicitud${p.cane ? ` para ${p.cane}` : ''} ha llegado: te escribiremos en cuanto la peluquería responda.`,
+    conferma: (p) => {
+      const app = p.cane && p.quando ? `la cita de ${p.cane}, ${p.quando}` : p.cane ? `la cita de ${p.cane}` : p.quando ? `la cita, ${p.quando}` : 'la cita'
+      return `${p.ciao} buenas noticias: ${p.chi} ha confirmado ${app}. ¡Te esperamos! Si te surge algún imprevisto, avisa a la peluquería lo antes posible: así el hueco podrá ser para otra persona.`
+    },
+    proposta: (p) => {
+      const chiesto = p.invece
+        ? `Lamentablemente el horario que pediste (${p.invece}) no está disponible`
+        : 'Lamentablemente el horario que pediste no está disponible'
+      const conCane = [p.cane ? `a ${p.cane}` : '', p.quando].filter(Boolean).join(' ')
+      const ma = conCane ? `, pero ${p.chi} puede atender ${conCane}` : ''
+      const limite = p.entro ? ` Te pedimos que respondas antes de ${p.entro}: después, el hueco quedará libre.` : ''
+      return `${p.ciao} gracias por tu solicitud. ${chiesto}${ma}.${limite}`
+    },
+    rifiuto: (p) => `${p.ciao} lo sentimos: esta vez ${p.chi} no puede aceptar la solicitud${p.cane ? ` para ${p.cane}` : ''}. Puedes enviar una nueva para otro día, será un placer recibiros.`,
+    liberato: (p) => `${p.ciao} el horario propuesto${p.cane ? ` para ${p.cane}` : ''} ya no está reservado. Si quieres pedir otra cita, envía una nueva solicitud ${p.a}: te esperamos.`,
+    scadenza: (p) => `${p.ciao} lo sentimos: ${p.chi} no ha podido confirmar tu solicitud${p.cane ? ` para ${p.cane}` : ''}${p.quando ? ` para ${p.quando}` : ''}. Contacta directamente con la peluquería${p.tel ? ` en el ${p.tel}` : ''} para fijar una cita.`,
+    disdetta: (p) => {
+      const altro = p.rispondi
+        ? 'Cuando quieras pedir otra, envía una nueva solicitud o responde a este correo.'
+        : 'Cuando quieras pedir otra, envía una nueva solicitud.'
+      return `${p.ciao} la cita${p.cane ? ` de ${p.cane}` : ''} ${p.qui} ha sido cancelada. ${altro} Hasta pronto.`
+    },
+    promemoria: (p) => `${p.ciao} ${p.chi} te recuerda la próxima cita${p.cane ? ` de ${p.cane}` : ''}${p.quando ? `, ${p.quando}` : ''}. Si no puedes venir, avisa a la peluquería para que el hueco pueda ser para otra persona. ¡Hasta pronto!`,
+    pronto: (p) => {
+      const finito = p.cane
+        ? `hemos terminado: ${p.cane} ya puede volver a casa y puedes pasar a recogerlo.`
+        : 'hemos terminado.'
+      return `${p.ciao} ${finito} Gracias por confiar ${p.qui}.`
+    },
+    auguri: (p) => `${p.ciao} hoy es un día especial: todo el equipo ${p.di} le desea un muy feliz cumpleaños${p.cane ? ` a ${p.cane}` : ''}. Esperamos volver a veros pronto.`,
+    recensione: (p) => {
+      const coda = p.rispondi ? ' Si algo no te convenció, responde a este correo: nos importa saberlo.' : ''
+      return `${p.ciao} gracias por elegir ${p.chi}. Si estás contento con nuestro trabajo, una reseña en Google nos ayuda mucho y solo lleva un minuto.${coda}`
+    },
+    attesa: (p) => `${p.ciao} buenas noticias: ${p.qui} se ha liberado un hueco${p.cane ? ` en un horario que le viene bien a ${p.cane}` : ''}. Si te interesa, toca el botón para reservarlo: los huecos libres vuelan.`,
+  },
+  fr: {
+    ricevuta: (p) => `${p.ciao} merci d’avoir choisi ${p.chi}. Votre demande${p.cane ? ` pour ${p.cane}` : ''} est bien arrivée : nous vous écrirons dès que le salon aura répondu.`,
+    conferma: (p) => {
+      const app = p.cane && p.quando ? `le rendez-vous de ${p.cane}, ${p.quando}` : p.cane ? `le rendez-vous de ${p.cane}` : p.quando ? `le rendez-vous, ${p.quando}` : 'le rendez-vous'
+      return `${p.ciao} bonne nouvelle : ${p.chi} a confirmé ${app}. Nous vous attendons ! En cas d’imprévu, prévenez le salon dès que possible : le créneau pourra ainsi servir à quelqu’un d’autre.`
+    },
+    proposta: (p) => {
+      const accogli = [p.cane, p.quando].filter(Boolean).join(' ')
+      const chiesto = p.invece
+        ? `Malheureusement, l’horaire demandé (${p.invece}) n’est pas disponible`
+        : 'Malheureusement, l’horaire demandé n’est pas disponible'
+      const ma = accogli ? `, mais ${p.chi} peut accueillir ${accogli}` : ''
+      const limite = p.entro ? ` Merci de répondre avant ${p.entro} : passé ce délai, le créneau sera libéré.` : ''
+      return `${p.ciao} merci pour votre demande. ${chiesto}${ma}.${limite}`
+    },
+    rifiuto: (p) => `${p.ciao} nous sommes désolés : cette fois, ${p.chi} ne peut pas accepter la demande${p.cane ? ` pour ${p.cane}` : ''}. Vous pouvez en envoyer une nouvelle pour un autre jour, ce sera un plaisir de vous accueillir.`,
+    liberato: (p) => `${p.ciao} l’horaire proposé${p.cane ? ` pour ${p.cane}` : ''} n’est plus réservé. Si vous souhaitez un autre rendez-vous, envoyez une nouvelle demande ${p.a} : nous vous attendons.`,
+    scadenza: (p) => `${p.ciao} nous sommes désolés : ${p.chi} n’a pas pu confirmer votre demande${p.cane ? ` pour ${p.cane}` : ''}${p.quando ? ` pour ${p.quando}` : ''}. Contactez directement le salon${p.tel ? ` au ${p.tel}` : ''} pour fixer un rendez-vous.`,
+    disdetta: (p) => {
+      const altro = p.rispondi
+        ? 'Si vous souhaitez en fixer un autre, envoyez une nouvelle demande ou répondez à cet e-mail.'
+        : 'Si vous souhaitez en fixer un autre, envoyez une nouvelle demande.'
+      return `${p.ciao} le rendez-vous${p.cane ? ` de ${p.cane}` : ''} ${p.qui} a été annulé. ${altro} À bientôt.`
+    },
+    promemoria: (p) => `${p.ciao} ${p.chi} vous rappelle le prochain rendez-vous${p.cane ? ` de ${p.cane}` : ''}${p.quando ? `, ${p.quando}` : ''}. Si vous ne pouvez pas venir, prévenez le salon : le créneau pourra ainsi servir à quelqu’un d’autre. À bientôt !`,
+    pronto: (p) => {
+      const finito = p.cane ? `c’est terminé : vous pouvez venir chercher ${p.cane}.` : 'c’est terminé.'
+      return `${p.ciao} ${finito} Merci d’avoir fait confiance ${p.a}.`
+    },
+    auguri: (p) => `${p.ciao} aujourd’hui est un jour spécial : toute l’équipe ${p.di} souhaite un joyeux anniversaire${p.cane ? ` à ${p.cane}` : ''}. Nous espérons vous revoir bientôt.`,
+    recensione: (p) => {
+      const coda = p.rispondi ? ' Si quelque chose ne vous a pas convenu, répondez à cet e-mail : nous tenons à le savoir.' : ''
+      return `${p.ciao} merci d’avoir choisi ${p.chi}. Si vous êtes satisfait, un avis sur Google nous aide beaucoup et ne prend qu’une minute.${coda}`
+    },
+    attesa: (p) => `${p.ciao} bonne nouvelle : un créneau s’est libéré ${p.qui}${p.cane ? ` à un horaire qui convient à ${p.cane}` : ''}. Si cela vous intéresse, touchez le bouton pour le réserver : les créneaux libres partent vite.`,
+  },
+  de: {
+    ricevuta: (p) => `${p.ciao} vielen Dank, dass Sie sich für ${p.oggetto} entschieden haben. Ihre Anfrage${p.cane ? ` für ${p.cane}` : ''} ist angekommen: Wir melden uns, sobald der Salon geantwortet hat.`,
+    conferma: (p) => {
+      const app = p.cane && p.quando ? `den Termin von ${p.cane}, ${p.quando},` : p.cane ? `den Termin von ${p.cane}` : p.quando ? `den Termin, ${p.quando},` : 'den Termin'
+      return `${p.ciao} gute Nachrichten: ${maiuscola(p.chi)} hat ${app} bestätigt. Wir freuen uns auf Sie! Falls etwas dazwischenkommt, sagen Sie dem Salon bitte so früh wie möglich Bescheid, damit jemand anderes den Termin nutzen kann.`
+    },
+    proposta: (p) => {
+      const accogli = [p.cane, p.quando ? `am ${p.quando}` : ''].filter(Boolean).join(' ')
+      const chiesto = p.invece
+        ? `Leider ist die gewünschte Uhrzeit (${p.invece}) nicht verfügbar`
+        : 'Leider ist die gewünschte Uhrzeit nicht verfügbar'
+      const ma = accogli ? `, aber ${p.chi} kann ${accogli} empfangen` : ''
+      const limite = p.entro ? ` Bitte antworten Sie bis ${p.entro}: Danach wird der Termin freigegeben.` : ''
+      return `${p.ciao} vielen Dank für Ihre Anfrage. ${chiesto}${ma}.${limite}`
+    },
+    rifiuto: (p) => `${p.ciao} es tut uns leid: Dieses Mal kann ${p.chi} die Anfrage${p.cane ? ` für ${p.cane}` : ''} nicht annehmen. Sie können gern eine neue für einen anderen Tag senden, wir freuen uns auf Sie.`,
+    liberato: (p) => `${p.ciao} die vorgeschlagene Uhrzeit${p.cane ? ` für ${p.cane}` : ''} ist nicht mehr reserviert. Wenn Sie einen anderen Termin möchten, senden Sie einfach eine neue Anfrage ${p.a}: Wir freuen uns auf Sie.`,
+    scadenza: (p) => `${p.ciao} es tut uns leid: ${maiuscola(p.chi)} konnte Ihre Anfrage${p.cane ? ` für ${p.cane}` : ''}${p.quando ? ` für ${p.quando}` : ''} nicht bestätigen. Bitte wenden Sie sich direkt an den Salon${p.tel ? ` unter ${p.tel}` : ''}, um einen Termin zu vereinbaren.`,
+    disdetta: (p) => {
+      const altro = p.rispondi
+        ? 'Wenn Sie einen neuen Termin möchten, senden Sie eine neue Anfrage oder antworten Sie auf diese E-Mail.'
+        : 'Wenn Sie einen neuen Termin möchten, senden Sie eine neue Anfrage.'
+      return `${p.ciao} der Termin${p.cane ? ` von ${p.cane}` : ''} ${p.qui} wurde storniert. ${altro} Bis bald.`
+    },
+    promemoria: (p) => `${p.ciao} ${p.chi} erinnert Sie an den nächsten Termin${p.cane ? ` von ${p.cane}` : ''}${p.quando ? `, ${p.quando}` : ''}. Falls Sie nicht kommen können, sagen Sie dem Salon bitte Bescheid, damit jemand anderes den Termin nutzen kann. Bis bald!`,
+    pronto: (p) => {
+      const finito = p.cane ? `wir sind fertig: Sie können ${p.cane} jetzt abholen.` : 'wir sind fertig.'
+      return `${p.ciao} ${finito} Vielen Dank für Ihr Vertrauen in ${p.oggetto}.`
+    },
+    auguri: (p) => `${p.ciao} heute ist ein besonderer Tag: Das ganze Team ${p.di} wünscht${p.cane ? ` ${p.cane}` : ''} alles Gute zum Geburtstag. Wir hoffen, Sie bald wiederzusehen.`,
+    recensione: (p) => {
+      const coda = p.rispondi ? ' Falls etwas nicht gepasst hat, antworten Sie einfach auf diese E-Mail: Das möchten wir gern wissen.' : ''
+      return `${p.ciao} vielen Dank, dass Sie sich für ${p.oggetto} entschieden haben. Wenn Sie zufrieden sind, hilft uns eine Bewertung bei Google sehr und dauert nur eine Minute.${coda}`
+    },
+    attesa: (p) => `${p.ciao} gute Nachrichten: ${maiuscola(p.qui)} ist ein Termin frei geworden${p.cane ? `, der für ${p.cane} passt` : ''}. Wenn Sie möchten, tippen Sie auf die Schaltfläche, um ihn zu buchen: Freie Termine sind schnell weg.`,
+  },
 }
 
 function corpoCliente(
   lingua: Lingua,
-  tipo: TipoEmail,
+  tipo: TipoCliente,
   raw: { cliente: string; cane: string; salone: string; quando: string; telefono: string; invece: string; entro: string; rispondi: boolean },
 ): string {
-  const cane = escapaHtml(raw.cane.trim())
-  const quando = escapaHtml(raw.quando.trim())
-  const invece = escapaHtml(raw.invece.trim())
-  const entro = escapaHtml(raw.entro.trim())
-  const ciao = saluto(lingua, raw.cliente)
-  const chi = () => posto(lingua, raw.salone, 'soggetto', '')
-  const a = () => posto(lingua, raw.salone, 'a', lingua === 'en' ? 'to' : 'a')
-  const di = () => posto(lingua, raw.salone, 'di', lingua === 'en' ? 'of' : lingua === 'es' ? 'de' : 'di')
-  const qui = () => luogo(lingua, raw.salone)
-
-  if (tipo === 'ricevuta') {
-    if (lingua === 'en') {
-      return `${ciao} thank you for choosing ${chi()}. Your request${cane ? ` for ${cane}` : ''} has arrived: we'll let you know as soon as the salon replies.`
-    }
-    if (lingua === 'es') {
-      return `${ciao} gracias por elegir ${chi()}. Tu solicitud${cane ? ` para ${cane}` : ''} ha llegado: te escribiremos en cuanto la peluquería responda.`
-    }
-    return `${ciao} grazie per aver scelto ${chi()}. La richiesta${cane ? ` per ${cane}` : ''} è arrivata: ti scriviamo appena il salone risponde.`
-  }
-
-  if (tipo === 'conferma') {
-    if (lingua === 'en') {
-      const app = cane && quando ? `${cane}'s appointment, ${quando}` : cane ? `${cane}'s appointment` : quando ? `the appointment, ${quando}` : 'the appointment'
-      return `${ciao} good news: ${chi()} has confirmed ${app}. We look forward to seeing you! If anything comes up, please let the salon know as soon as possible so the slot can go to someone else.`
-    }
-    if (lingua === 'es') {
-      const app = cane && quando ? `la cita de ${cane}, ${quando}` : cane ? `la cita de ${cane}` : quando ? `la cita, ${quando}` : 'la cita'
-      return `${ciao} buenas noticias: ${chi()} ha confirmado ${app}. ¡Te esperamos! Si te surge algún imprevisto, avisa a la peluquería lo antes posible: así el hueco podrá ser para otra persona.`
-    }
-    const app = cane && quando ? `l’appuntamento di ${cane}, ${quando}` : cane ? `l’appuntamento di ${cane}` : quando ? `l’appuntamento, ${quando}` : 'l’appuntamento'
-    return `${ciao} buone notizie: ${chi()} ha confermato ${app}. Ti aspettiamo! Se hai un imprevisto, avvisa il salone il prima possibile: così il posto può andare a qualcun altro.`
-  }
-
-  if (tipo === 'proposta') {
-    const accogli = [cane, quando].filter(Boolean).join(' ')
-    if (lingua === 'en') {
-      const chiesto = invece
-        ? `Unfortunately the time you asked for (${invece}) isn't available`
-        : "Unfortunately the time you asked for isn't available"
-      const ma = accogli ? `, but ${chi()} can see ${accogli}` : ''
-      const limite = entro ? ` Please reply by ${entro}: after that, the slot will be released.` : ''
-      return `${ciao} thank you for your request. ${chiesto}${ma}.${limite}`
-    }
-    if (lingua === 'es') {
-      const chiesto = invece
-        ? `Lamentablemente el horario que pediste (${invece}) no está disponible`
-        : 'Lamentablemente el horario que pediste no está disponible'
-      const conCane = [cane ? `a ${cane}` : '', quando].filter(Boolean).join(' ')
-      const ma = conCane ? `, pero ${chi()} puede atender ${conCane}` : ''
-      const limite = entro ? ` Te pedimos que respondas antes de ${entro}: después, el hueco quedará libre.` : ''
-      return `${ciao} gracias por tu solicitud. ${chiesto}${ma}.${limite}`
-    }
-    const chiesto = invece
-      ? `L’orario che avevi chiesto (${invece}) purtroppo non è disponibile`
-      : 'L’orario che avevi chiesto purtroppo non è disponibile'
-    const ma = accogli ? `, ma ${chi()} può accogliere ${accogli}` : ''
-    const limite = entro ? ` Ti chiediamo di rispondere entro ${entro}: dopo, il posto verrà liberato.` : ''
-    return `${ciao} grazie per la richiesta. ${chiesto}${ma}.${limite}`
-  }
-
-  if (tipo === 'rifiuto') {
-    if (lingua === 'en') {
-      return `${ciao} we're sorry: this time ${chi()} isn't able to accept the request${cane ? ` for ${cane}` : ''}. You're welcome to send a new one for another day, it would be a pleasure to see you.`
-    }
-    if (lingua === 'es') {
-      return `${ciao} lo sentimos: esta vez ${chi()} no puede aceptar la solicitud${cane ? ` para ${cane}` : ''}. Puedes enviar una nueva para otro día, será un placer recibiros.`
-    }
-    return `${ciao} ci dispiace: questa volta ${chi()} non riesce ad accogliere la richiesta${cane ? ` per ${cane}` : ''}. Puoi inviarne una nuova per un altro giorno, sarà un piacere ricevervi.`
-  }
-
-  if (tipo === 'liberato') {
-    if (lingua === 'en') {
-      return `${ciao} the proposed time${cane ? ` for ${cane}` : ''} is no longer held. If you'd like to book another appointment, just send a new request ${a()}: we look forward to seeing you.`
-    }
-    if (lingua === 'es') {
-      return `${ciao} el horario propuesto${cane ? ` para ${cane}` : ''} ya no está reservado. Si quieres pedir otra cita, envía una nueva solicitud ${a()}: te esperamos.`
-    }
-    return `${ciao} l’orario proposto${cane ? ` per ${cane}` : ''} non è più riservato. Se vuoi fissare un altro appuntamento, invia una nuova richiesta ${a()}: ti aspettiamo.`
-  }
-
-  if (tipo === 'scadenza') {
-    const tel = escapaHtml(raw.telefono.trim())
-    if (lingua === 'en') {
-      return `${ciao} we're sorry: ${chi()} wasn't able to confirm your request${cane ? ` for ${cane}` : ''}${quando ? ` for ${quando}` : ''}. Please contact the salon directly${tel ? ` on ${tel}` : ''} to arrange an appointment.`
-    }
-    if (lingua === 'es') {
-      return `${ciao} lo sentimos: ${chi()} no ha podido confirmar tu solicitud${cane ? ` para ${cane}` : ''}${quando ? ` para ${quando}` : ''}. Contacta directamente con la peluquería${tel ? ` en el ${tel}` : ''} para fijar una cita.`
-    }
-    return `${ciao} ci dispiace: ${chi()} non è riuscito a confermare la tua richiesta${cane ? ` per ${cane}` : ''}${quando ? ` per ${quando}` : ''}. Contattalo direttamente${tel ? ` al ${tel}` : ''} per fissare un appuntamento.`
-  }
-
-  if (tipo === 'disdetta') {
-    if (lingua === 'en') {
-      const altro = raw.rispondi
-        ? "Whenever you'd like to book another, send a new request or reply to this email."
-        : "Whenever you'd like to book another, send a new request."
-      const app = cane ? `${cane}'s appointment` : 'the appointment'
-      return `${ciao} ${app} ${qui()} has been cancelled. ${altro} See you soon.`
-    }
-    if (lingua === 'es') {
-      const altro = raw.rispondi
-        ? 'Cuando quieras pedir otra, envía una nueva solicitud o responde a este correo.'
-        : 'Cuando quieras pedir otra, envía una nueva solicitud.'
-      return `${ciao} la cita${cane ? ` de ${cane}` : ''} ${qui()} ha sido cancelada. ${altro} Hasta pronto.`
-    }
-    const altro = raw.rispondi
-      ? 'Quando vuoi fissarne un altro, invia una nuova richiesta o rispondi a questa email.'
-      : 'Quando vuoi fissarne un altro, invia una nuova richiesta.'
-    return `${ciao} l’appuntamento${cane ? ` di ${cane}` : ''} ${qui()} è stato disdetto. ${altro} A presto.`
-  }
-
-  if (tipo === 'promemoria') {
-    if (lingua === 'en') {
-      const app = cane ? `${cane}'s next appointment` : 'the next appointment'
-      return `${ciao} ${chi()} would like to remind you of ${app}${quando ? ` on ${quando}` : ''}. If you can't make it, please let the salon know so the slot can go to someone else. See you soon!`
-    }
-    if (lingua === 'es') {
-      return `${ciao} ${chi()} te recuerda la próxima cita${cane ? ` de ${cane}` : ''}${quando ? `, ${quando}` : ''}. Si no puedes venir, avisa a la peluquería para que el hueco pueda ser para otra persona. ¡Hasta pronto!`
-    }
-    return `${ciao} ${chi()} ti ricorda il prossimo appuntamento${cane ? ` di ${cane}` : ''}${quando ? `, ${quando}` : ''}. Se non riesci a venire, avvisa il salone, così il posto può andare a qualcun altro. A presto!`
-  }
-
-  if (tipo === 'pronto') {
-    if (lingua === 'en') {
-      const finito = cane
-        ? `we're all done: ${cane} is ready to go home and you can come and pick them up.`
-        : "we're all done."
-      return `${ciao} ${finito} Thank you for trusting ${chi()}.`
-    }
-    if (lingua === 'es') {
-      const finito = cane
-        ? `hemos terminado: ${cane} ya puede volver a casa y puedes pasar a recogerlo.`
-        : 'hemos terminado.'
-      return `${ciao} ${finito} Gracias por confiar ${posto(lingua, raw.salone, 'dopoDi', 'en')}.`
-    }
-    const finito = cane
-      ? `abbiamo finito: ${cane} è pronto per tornare a casa e puoi passare a prenderlo.`
-      : 'abbiamo finito.'
-    return `${ciao} ${finito} Grazie per averlo affidato ${a()}.`
-  }
-
-  if (tipo === 'auguri') {
-    if (lingua === 'en') {
-      const wish = cane ? ` wishes ${cane} a very happy birthday` : ' wishes a very happy birthday'
-      return `${ciao} today is a special day: everyone ${posto(lingua, raw.salone, 'dopoDi', 'at')}${wish}. We hope to see you both again soon.`
-    }
-    if (lingua === 'es') {
-      return `${ciao} hoy es un día especial: todo el equipo ${di()} le desea un muy feliz cumpleaños${cane ? ` a ${cane}` : ''}. Esperamos volver a veros pronto.`
-    }
-    return `${ciao} oggi è un giorno speciale: tutto lo staff ${di()} fa tanti auguri${cane ? ` a ${cane}` : ''}. Speriamo di rivedervi presto.`
-  }
-
-  if (tipo === 'recensione') {
-    if (lingua === 'en') {
-      const coda = raw.rispondi ? " If something wasn't quite right, just reply to this email: we'd really like to know." : ''
-      return `${ciao} thank you for choosing ${chi()}. If you're happy with our work, a Google review helps us a lot and only takes a minute.${coda}`
-    }
-    if (lingua === 'es') {
-      const coda = raw.rispondi ? ' Si algo no te convenció, responde a este correo: nos importa saberlo.' : ''
-      return `${ciao} gracias por elegir ${chi()}. Si estás contento con nuestro trabajo, una reseña en Google nos ayuda mucho y solo lleva un minuto.${coda}`
-    }
-    const coda = raw.rispondi ? ' Se invece qualcosa non ti ha convinto, rispondi a questa email: ci teniamo a saperlo.' : ''
-    return `${ciao} grazie per aver scelto ${chi()}. Se sei soddisfatto, una recensione su Google ci aiuta tanto e richiede un minuto.${coda}`
-  }
-
-  if (lingua === 'en') {
-    return `${ciao} good news: a slot has opened up ${qui()}${cane ? ` at a time that suits ${cane}` : ''}. If you'd like it, tap the button to book: free slots go quickly.`
-  }
-  if (lingua === 'es') {
-    return `${ciao} buenas noticias: ${qui()} se ha liberado un hueco${cane ? ` en un horario que le viene bien a ${cane}` : ''}. Si te interesa, toca el botón para reservarlo: los huecos libres vuelan.`
-  }
-  return `${ciao} buone notizie: ${qui()} si è liberato un posto${cane ? ` in un orario che fa per ${cane}` : ''}. Se ti va, tocca il pulsante per prenotarlo: i posti liberi vanno via in fretta.`
+  return CORPI[lingua][tipo]({
+    ciao: saluto(lingua, raw.cliente),
+    cane: escapaHtml(raw.cane.trim()),
+    quando: escapaHtml(raw.quando.trim()),
+    invece: escapaHtml(raw.invece.trim()),
+    entro: escapaHtml(raw.entro.trim()),
+    tel: escapaHtml(raw.telefono.trim()),
+    rispondi: raw.rispondi,
+    chi: posto(lingua, raw.salone, 'soggetto', ''),
+    oggetto: posto(lingua, raw.salone, 'oggetto', ''),
+    a: posto(lingua, raw.salone, 'a', PREPOSIZIONE_A[lingua]),
+    di: posto(lingua, raw.salone, 'di', PREPOSIZIONE_DI[lingua]),
+    qui: luogoSalone(lingua, raw.salone),
+  })
 }
 
 function avvolgi(lingua: Lingua, titolo: string, corpo: string, scheda: string, riga: string, pulsanti: string, nota: string, silenzio: string): string {
@@ -489,18 +640,17 @@ const POSTO_LIBERO: Record<Lingua, { titolo: string; frase: string; fretta: stri
     fretta: 'Date prisa, antes de perder esta posibilidad.',
     link: 'Mirar el calendario',
   },
-  // LINGUE: da tradurre
   fr: {
-    titolo: 'A place has opened up',
-    frase: 'Check the salon calendar for availability.',
-    fretta: 'Hurry, before you lose this chance.',
-    link: 'Check the calendar',
+    titolo: 'Un créneau s’est libéré',
+    frase: 'Consultez l’agenda du salon pour voir les disponibilités.',
+    fretta: 'Faites vite, avant de perdre cette occasion.',
+    link: 'Consulter l’agenda',
   },
   de: {
-    titolo: 'A place has opened up',
-    frase: 'Check the salon calendar for availability.',
-    fretta: 'Hurry, before you lose this chance.',
-    link: 'Check the calendar',
+    titolo: 'Ein Termin ist frei geworden',
+    frase: 'Prüfen Sie die Verfügbarkeit im Kalender des Salons.',
+    fretta: 'Beeilen Sie sich, bevor diese Möglichkeit weg ist.',
+    link: 'Kalender ansehen',
   },
 }
 
@@ -525,40 +675,38 @@ function oggettoAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', s
   if (tipo === 'reset') return OGGETTO_RESET[lingua]
   const nome = salone.trim()
   if (!nome) return OGGETTO_INVITO_VUOTO[lingua]
-  if (lingua === 'en') return `${nome} has invited you to Groomly`
-  if (lingua === 'es') return `${nome} te invita a Groomly`
-  return `${nome} ti invita su Groomly`
+  return OGGETTO_INVITO[lingua](nome)
 }
 
-function corpoVerifica(lingua: Lingua): string {
-  if (lingua === 'en') return 'Hi and welcome! Just one more step: tap the button to confirm your address, then go back to the app and get started.'
-  if (lingua === 'es') return '¡Hola y bienvenido! Solo falta un paso: toca el botón para confirmar tu dirección, luego vuelve a la app y empieza a trabajar.'
-  return 'Ciao e benvenuto! Manca solo un passaggio: tocca il pulsante per confermare il tuo indirizzo, poi torna all’app e inizia a lavorare.'
+const CORPO_VERIFICA: Record<Lingua, string> = {
+  it: 'Ciao e benvenuto! Manca solo un passaggio: tocca il pulsante per confermare il tuo indirizzo, poi torna all’app e inizia a lavorare.',
+  en: 'Hi and welcome! Just one more step: tap the button to confirm your address, then go back to the app and get started.',
+  es: '¡Hola y bienvenido! Solo falta un paso: toca el botón para confirmar tu dirección, luego vuelve a la app y empieza a trabajar.',
+  fr: 'Bonjour et bienvenue ! Plus qu’une étape : touchez le bouton pour confirmer votre adresse, puis revenez dans l’app pour commencer.',
+  de: 'Hallo und willkommen! Nur noch ein Schritt: Tippen Sie auf die Schaltfläche, um Ihre Adresse zu bestätigen, und kehren Sie dann zur App zurück.',
 }
 
-function corpoReset(lingua: Lingua, account: string): string {
-  if (lingua === 'en') {
-    const chi = account ? `the account ${account}` : 'the account'
-    return `Hi, we received a request to reset the password for ${chi}. Tap the button to choose a new one. If this wasn't you, you can safely ignore this email: your password will stay the same.`
-  }
-  if (lingua === 'es') {
-    const chi = account ? `la cuenta ${account}` : 'la cuenta'
-    return `Hola, hemos recibido una solicitud para restablecer la contraseña de ${chi}. Toca el botón para elegir una nueva. Si no has sido tú, puedes ignorar este correo: tu contraseña seguirá siendo la misma.`
-  }
-  const chi = account ? `dell’account ${account}` : 'dell’account'
-  return `Ciao, abbiamo ricevuto una richiesta per reimpostare la password ${chi}. Tocca il pulsante per sceglierne una nuova. Se non sei stato tu, ignora pure questa email: la password resta quella di prima.`
+const CORPO_RESET: Record<Lingua, (account: string) => string> = {
+  it: (account) => `Ciao, abbiamo ricevuto una richiesta per reimpostare la password ${account ? `dell’account ${account}` : 'dell’account'}. Tocca il pulsante per sceglierne una nuova. Se non sei stato tu, ignora pure questa email: la password resta quella di prima.`,
+  en: (account) => `Hi, we received a request to reset the password for ${account ? `the account ${account}` : 'the account'}. Tap the button to choose a new one. If this wasn't you, you can safely ignore this email: your password will stay the same.`,
+  es: (account) => `Hola, hemos recibido una solicitud para restablecer la contraseña de ${account ? `la cuenta ${account}` : 'la cuenta'}. Toca el botón para elegir una nueva. Si no has sido tú, puedes ignorar este correo: tu contraseña seguirá siendo la misma.`,
+  fr: (account) => `Bonjour, nous avons reçu une demande de réinitialisation du mot de passe ${account ? `du compte ${account}` : 'du compte'}. Touchez le bouton pour en choisir un nouveau. Si ce n’est pas vous, ignorez simplement cet e-mail : votre mot de passe ne changera pas.`,
+  de: (account) => `Hallo, wir haben eine Anfrage erhalten, das Passwort ${account ? `für das Konto ${account}` : 'für das Konto'} zurückzusetzen. Tippen Sie auf die Schaltfläche, um ein neues zu wählen. Wenn Sie das nicht waren, ignorieren Sie diese E-Mail einfach: Ihr Passwort bleibt unverändert.`,
+}
+
+const COME_RUOLO: Record<Lingua, string> = { it: 'come', en: 'as', es: 'como', fr: 'en tant que', de: 'als' }
+
+const CORPO_INVITO: Record<Lingua, (nome: string, come: string) => string> = {
+  it: (nome, come) => `Ciao! ${nome} ti ha invitato a far parte del team${come}. Tocca il pulsante ed entra con questo stesso indirizzo email. Buon lavoro!`,
+  en: (nome, come) => `Hi! ${nome} has invited you to join the team${come}. Tap the button and sign in with this same email address. Enjoy working together!`,
+  es: (nome, come) => `¡Hola! ${nome} te ha invitado a unirte al equipo${come}. Toca el botón y entra con esta misma dirección de correo. ¡Buen trabajo!`,
+  fr: (nome, come) => `Bonjour ! ${maiuscola(nome)} vous a invité à rejoindre l’équipe${come}. Touchez le bouton et connectez-vous avec cette même adresse e-mail. Bon travail !`,
+  de: (nome, come) => `Hallo! ${maiuscola(nome)} hat Sie eingeladen, dem Team${come} beizutreten. Tippen Sie auf die Schaltfläche und melden Sie sich mit derselben E-Mail-Adresse an. Viel Erfolg!`,
 }
 
 function corpoInvito(lingua: Lingua, salone: string, ruolo: string): string {
   const nome = saloneNellaFrase(lingua, salone, 'soggetto')
-  const come = ruolo ? (lingua === 'en' ? ` as ${ruolo}` : lingua === 'es' ? ` como ${ruolo}` : ` come ${ruolo}`) : ''
-  if (lingua === 'en') {
-    return `Hi! ${nome} has invited you to join the team${come}. Tap the button and sign in with this same email address. Enjoy working together!`
-  }
-  if (lingua === 'es') {
-    return `¡Hola! ${nome} te ha invitado a unirte al equipo${come}. Toca el botón y entra con esta misma dirección de correo. ¡Buen trabajo!`
-  }
-  return `Ciao! ${nome} ti ha invitato a far parte del team${come}. Tocca il pulsante ed entra con questo stesso indirizzo email. Buon lavoro!`
+  return CORPO_INVITO[lingua](nome, ruolo ? ` ${COME_RUOLO[lingua]} ${ruolo}` : '')
 }
 
 function emailAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', dati: DatiEmail): { oggetto: string; html: string } {
@@ -566,7 +714,7 @@ function emailAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', dat
   const account = escapaHtml((dati.account ?? '').trim())
   const salone = dati.salone ?? ''
   const oggetto = oggettoAccount(lingua, tipo, salone)
-  const corpo = tipo === 'verifica' ? corpoVerifica(lingua) : tipo === 'reset' ? corpoReset(lingua, account) : corpoInvito(lingua, salone, ruolo)
+  const corpo = tipo === 'verifica' ? CORPO_VERIFICA[lingua] : tipo === 'reset' ? CORPO_RESET[lingua](account) : corpoInvito(lingua, salone, ruolo)
   const url = dati.url ?? 'https://groomlyapp.it/azione/'
   const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
   const pulsanti = `<tr><td align="center" style="padding:22px 28px 8px"><a href="${escapaHtml(url)}" style="${stileSi}">${BOTTONE_ACCOUNT[tipo][lingua]}</a></td></tr>\n`
@@ -590,7 +738,7 @@ export function emailMessaggio(
   const invece = dati.invece ?? ''
   const entro = dati.entro ?? ''
   const rispondi = dati.rispondi === true
-  const oggetto = oggettoCliente(lingua, tipo, cane)
+  const oggetto = OGGETTI[lingua][tipo](cane.trim())
   const corpo = corpoCliente(lingua, tipo, { cliente, cane, salone, quando, telefono, invece, entro, rispondi })
   const scheda = (dati.scheda ?? '').trim()
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${escapaHtml(dati.scheda ?? '').trim().replaceAll('\n', '<br>')}</p>`

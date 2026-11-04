@@ -74,6 +74,8 @@ import { linguaValida, type Lingua } from '../../src/i18n/lingua'
 import { buildActionLink } from './actionLink'
 import { BrevoRequestError, postBrevoHtml } from './brevoMail'
 import { pushRateDecision, rateDecision } from './rateLimit'
+import { erroreDaMessaggio, erroreServer } from './erroriServer'
+import type { CodiceErrore } from '../../src/i18n/errori'
 import {
   appointmentFromDoc,
   appointmentsForPush,
@@ -125,7 +127,7 @@ function authCode(error: unknown): string {
 function requireEmail(value: unknown): string {
   const email = typeof value === 'string' ? value.trim().toLowerCase() : ''
   if (!EMAIL.test(email) || email.length > 320) {
-    throw new HttpsError('invalid-argument', 'Inserisci un’email valida')
+    throw erroreServer('invalid-argument', 'email_valida')
   }
   return email
 }
@@ -147,9 +149,9 @@ async function reserveEmailSlot(email: string): Promise<void> {
     })
   } catch (error) {
     logger.error('Limite email non disponibile', { code: authCode(error) })
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
-  if (limited) throw new HttpsError('resource-exhausted', 'Aspetta un momento e riprova')
+  if (limited) throw erroreServer('resource-exhausted', 'attendi_riprova')
 }
 
 async function reservePushSlot(uid: string): Promise<void> {
@@ -169,9 +171,9 @@ async function reservePushSlot(uid: string): Promise<void> {
     })
   } catch (error) {
     logger.error('Limite push non disponibile', { code: authCode(error) })
-    throw new HttpsError('internal', 'Dispositivo non valido')
+    throw erroreServer('internal', 'dispositivo_non_valido')
   }
-  if (limited) throw new HttpsError('resource-exhausted', 'Aspetta un momento e riprova')
+  if (limited) throw erroreServer('resource-exhausted', 'attendi_riprova')
 }
 
 async function sendHtml(toEmail: string, subject: string, html: string): Promise<void> {
@@ -181,7 +183,7 @@ async function sendHtml(toEmail: string, subject: string, html: string): Promise
     const status = error instanceof BrevoRequestError ? error.status : 0
     const detail = error instanceof BrevoRequestError ? error.detail : ''
     logger.error('Brevo ha rifiutato l’invio', { status, detail })
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
 }
 
@@ -190,7 +192,7 @@ function actionLink(firebaseLink: string, lang: Lingua = 'it'): string {
     return buildActionLink(firebaseLink, lang)
   } catch {
     logger.error('Link azione non valido')
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
 }
 
@@ -200,19 +202,19 @@ async function firebaseLink(create: () => Promise<string>, lang: Lingua = 'it'):
   } catch (error) {
     if (error instanceof HttpsError) throw error
     logger.error('Generazione link non riuscita', { code: authCode(error) })
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
 }
 
 export const sendVerificationEmail = onCall(callable, async (request) => {
   const email = request.auth?.token.email?.trim().toLowerCase()
-  if (!request.auth || !email) throw new HttpsError('unauthenticated', 'Accesso richiesto')
+  if (!request.auth || !email) throw erroreServer('unauthenticated', 'accesso_richiesto')
   let verified = false
   try {
     verified = (await getAuth().getUser(request.auth.uid)).emailVerified === true
   } catch (error) {
     logger.error('Lettura account non riuscita', { code: authCode(error) })
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
   if (verified) return { ok: true, alreadyVerified: true }
   await reserveEmailSlot(email)
@@ -232,7 +234,7 @@ export const sendPasswordResetEmail = onCall(callable, async (request) => {
   } catch (error) {
     if (authCode(error) === 'auth/user-not-found') return { ok: true }
     logger.error('Lettura account non riuscita', { code: authCode(error) })
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
   const lingua = linguaValida((await getFirestore().doc(`accounts/${uid}`).get()).get('lingua')) ?? 'it'
   const link = await firebaseLink(() => getAuth().generatePasswordResetLink(email), lingua)
@@ -270,10 +272,10 @@ export const prendiPushTelefono = onCall({
   const tieni = field(request.data, 'tieni') === true
   const appVersion = text(field(request.data, 'appVersion'))
   if (!token || token.length > 4096 || !deviceId || deviceId.includes('/') || deviceId.length > 200) {
-    throw new HttpsError('invalid-argument', 'Dispositivo non valido')
+    throw erroreServer('invalid-argument', 'dispositivo_non_valido')
   }
   if (tieni && (appVersion.length === 0 || appVersion.length > 40)) {
-    throw new HttpsError('invalid-argument', 'Dispositivo non valido')
+    throw erroreServer('invalid-argument', 'dispositivo_non_valido')
   }
   const db = getFirestore()
   await reservePushSlot(uid)
@@ -327,14 +329,14 @@ export const confermaPushTelefono = onCall({
 }, async (request) => {
   const uid = requireUid(request.auth)
   const id = text(field(request.data, 'sfida')).trim()
-  if (!/^[0-9a-f]{32}$/.test(id)) throw new HttpsError('invalid-argument', 'Dispositivo non valido')
+  if (!/^[0-9a-f]{32}$/.test(id)) throw erroreServer('invalid-argument', 'dispositivo_non_valido')
   await reservePushSlot(uid)
   const db = getFirestore()
   const ref = db.doc(`pushSfide/${id}`)
   const sfida = (await ref.get()).data()
   // La sfida vale una volta, solo per l’accesso che l’ha chiesta e prima che scada.
   if (!sfida || sfida.uid !== uid || typeof sfida.scade !== 'number' || sfida.scade < Date.now()) {
-    throw new HttpsError('permission-denied', 'Dispositivo non valido')
+    throw erroreServer('permission-denied', 'dispositivo_non_valido')
   }
   await ref.delete()
   const deviceId = text(sfida.deviceId)
@@ -558,12 +560,16 @@ export const sendPush = onSchedule({
   }
 })
 
-function deny(message: string): never {
-  throw new HttpsError('failed-precondition', message)
+function deny(codice: CodiceErrore): never {
+  throw erroreServer('failed-precondition', codice)
+}
+
+function denyMessaggio(message: string): never {
+  throw erroreDaMessaggio('failed-precondition', message)
 }
 
 function requireUid(auth: { uid: string } | undefined): string {
-  if (!auth?.uid) throw new HttpsError('unauthenticated', 'Accesso richiesto')
+  if (!auth?.uid) throw erroreServer('unauthenticated', 'accesso_richiesto')
   return auth.uid
 }
 
@@ -671,7 +677,7 @@ export const setSalonPro = onCall(pianoCall, async (request) => {
   requireUid(request.auth)
   const salonId = text(field(request.data, 'salonId'))
   const enabled = field(request.data, 'enabled')
-  if (typeof enabled !== 'boolean') deny('Accesso negato')
+  if (typeof enabled !== 'boolean') deny('accesso_negato')
   await impostaPianoManualePer({
     ...tokenOperatore(request.auth),
     salonId,
@@ -715,7 +721,7 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
-  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
+  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('accesso_negato')
   return registraSlug(uid, text(field(request.data, 'nome')))
 })
 
@@ -792,6 +798,7 @@ export const inviaRichiesta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, a
     razza: text(field(request.data, 'razza')),
     foto: field(request.data, 'foto'),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
+    lingua: text(field(request.data, 'lingua')),
     mittente: await mittenteDi(request.rawRequest),
   }, chiaveBrevo())
 })
@@ -808,8 +815,8 @@ export const gestisciPrenotazione = onCall({ ...pianoCall, secrets: [brevoApiKey
   const uid = requireUid(request.auth)
   const salonId = text(field(request.data, 'salonId'))
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
-  if (!account || salonId === '' || account.salonId !== salonId || account.salonId === 'shared') deny('Accesso negato')
-  if (account.role !== 'titolare' && account.role !== 'socio' && account.role !== 'collaboratore') deny('Accesso negato')
+  if (!account || salonId === '' || account.salonId !== salonId || account.salonId === 'shared') deny('accesso_negato')
+  if (account.role !== 'titolare' && account.role !== 'socio' && account.role !== 'collaboratore') deny('accesso_negato')
   return gestisciPrenotazionePer({
     salonId,
     id: text(field(request.data, 'id')),
@@ -825,11 +832,12 @@ const AZIONI_ATTESA: readonly AzioneAttesa[] = ['leggi', 'conferma', 'rifiuta', 
 
 export const confermaAttesa = onCall(pianoCall, async (request) => {
   const azione = AZIONI_ATTESA.find((voce) => voce === text(field(request.data, 'azione')))
-  if (!azione) throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  if (!azione) throw erroreServer('invalid-argument', 'richiesta_non_valida')
   return confermaAttesaPer({
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
     azione,
+    lingua: field(request.data, 'lingua'),
     adesso: new Date(),
   })
 })
@@ -849,6 +857,7 @@ export const iscrivitiAttesa = onCall(pianoCall, async (request) => {
     consenso: field(request.data, 'consenso') === true,
     esca: text(field(request.data, 'esca')),
     settimana: field(request.data, 'settimana'),
+    lingua: field(request.data, 'lingua'),
     mittente: await mittenteDi(request.rawRequest),
     adesso: new Date(),
   })
@@ -879,7 +888,7 @@ export const silenzioEmail = onCall(pianoCall, async (request) => {
 
 async function titolareUid(uid: string): Promise<string> {
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
-  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('Accesso negato')
+  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('accesso_negato')
   return uid
 }
 
@@ -1037,26 +1046,26 @@ export const copieCloud = onSchedule({
 export const fermaCoda = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
-  if (!account || account.salonId === '') deny('Accesso negato')
+  if (!account || account.salonId === '') deny('accesso_negato')
   const id = text(field(request.data, 'id'))
-  if (id === '' || id.includes('/')) throw new HttpsError('invalid-argument', 'Riga assente')
+  if (id === '' || id.includes('/')) throw erroreServer('invalid-argument', 'riga_assente')
   const fermata = await fermaCodaRiga({ salonId: account.salonId, id })
-  if (!fermata) throw new HttpsError('not-found', 'Riga assente')
+  if (!fermata) throw erroreServer('not-found', 'riga_assente')
   return { stato: 'fermata', motivo: 'fermata' }
 })
 
 export const inviaSubito = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
-  if (!account || account.salonId === '') deny('Accesso negato')
+  if (!account || account.salonId === '') deny('accesso_negato')
   const id = text(field(request.data, 'id'))
-  if (id === '' || id.includes('/')) throw new HttpsError('invalid-argument', 'Riga assente')
+  if (id === '' || id.includes('/')) throw erroreServer('invalid-argument', 'riga_assente')
   const esito = await inviaSubitoRiga({
     salonId: account.salonId,
     id,
     apiKey: brevoApiKey.value(),
   })
-  if (!esito) throw new HttpsError('not-found', 'Riga assente')
+  if (!esito) throw erroreServer('not-found', 'riga_assente')
   return esito
 })
 
@@ -1074,7 +1083,7 @@ export const createInvite = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
-  if (!account) deny('Accesso negato')
+  if (!account) deny('accesso_negato')
   const salonId = account.salonId
   const email = text(field(request.data, 'email'))
   const role = text(field(request.data, 'role'))
@@ -1097,8 +1106,8 @@ export const createInvite = onCall(callable, async (request) => {
     now: new Date(),
     seatLimit: limitePosti(proSnap?.data()),
   })
-  if (!decision.ok) deny(decision.message)
-  if (!proRef || !membersQuery || !invitesQuery) deny('Accesso negato')
+  if (!decision.ok) denyMessaggio(decision.message)
+  if (!proRef || !membersQuery || !invitesQuery) deny('accesso_negato')
 
   const token = tokenBytes()
   const inviteRef = db.doc(`invites/${token}`)
@@ -1119,8 +1128,8 @@ export const createInvite = onCall(callable, async (request) => {
       now: new Date(),
       seatLimit: limitePosti(pro.data()),
     })
-    if (!again.ok) deny(again.message)
-    if (current.exists) throw new HttpsError('internal', 'Invio non riuscito')
+    if (!again.ok) denyMessaggio(again.message)
+    if (current.exists) throw erroreServer('internal', 'invio')
     const created = new Date()
     const expiresAt = inviteExpiresAt(created).toISOString()
     written = { email: again.email, role: again.role, expiresAt }
@@ -1136,7 +1145,7 @@ export const createInvite = onCall(callable, async (request) => {
       openInviteExpiries: appendOpenInviteExpiry(pro.get('openInviteExpiries'), expiresAt),
     }, { merge: true })
   })
-  if (!written) throw new HttpsError('internal', 'Invio non riuscito')
+  if (!written) throw erroreServer('internal', 'invio')
   const sent = written
   const linguaInvito = linguaValida((await db.doc(`accounts/${uid}`).get()).get('lingua')) ?? 'it'
   const mail = inviteMail(token, salonName, sent.role, linguaInvito)
@@ -1166,14 +1175,14 @@ export const createInvite = onCall(callable, async (request) => {
     )
   } catch (error) {
     if (error instanceof HttpsError) throw error
-    throw new HttpsError('internal', 'Invio non riuscito')
+    throw erroreServer('internal', 'invio')
   }
   return { ok: true }
 })
 
 export const acceptInvite = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
+  if (uid.includes('/')) deny('accesso_negato')
   const rawToken = text(field(request.data, 'token'))
   const token = /^[0-9a-f]{64}$/.test(rawToken) ? rawToken : ''
   const callerEmail = loginEmail(request.auth)
@@ -1183,7 +1192,7 @@ export const acceptInvite = onCall(callable, async (request) => {
   await db.runTransaction(async (tx) => {
     const accountData = (await tx.get(db.doc(`accounts/${uid}`))).data()
     const account = accountOf(accountData)
-    if (!account) deny('Accesso negato')
+    if (!account) deny('accesso_negato')
     const inviteSnap = token ? await tx.get(db.doc(`invites/${token}`)) : null
     const invite = inviteSnap ? inviteFields(inviteSnap.data()) : null
     let proEnabled = false
@@ -1221,7 +1230,7 @@ export const acceptInvite = onCall(callable, async (request) => {
       sceltaSalone,
       seatLimit: limitePosti(proData),
     })
-    if (!decision.ok) deny(decision.message)
+    if (!decision.ok) denyMessaggio(decision.message)
     if (decision.pausa && lettoPausa) scriviPausa(tx, db, uid, lettoPausa, new Date())
     tx.update(db.doc(`invites/${token}`), { status: 'usato', usedBy: uid })
     const remainingExpiries = invite ? removeOneOpenInviteExpiry(openInviteExpiries, invite.expiresAt) : null
@@ -1244,11 +1253,11 @@ export const acceptInvite = onCall(callable, async (request) => {
 export const revokeMember = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const targetUid = text(field(request.data, 'uid'))
-  if (targetUid === '' || targetUid.includes('/')) deny('Accesso negato')
+  if (targetUid === '' || targetUid.includes('/')) deny('accesso_negato')
   const db = getFirestore()
   await db.runTransaction(async (tx) => {
     const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
-    if (!account) deny('Accesso negato')
+    if (!account) deny('accesso_negato')
     const salonId = account.salonId
     const readable = salonId !== '' && !salonId.includes('/')
     const memberRef = readable ? db.doc(salonDocPath(salonId, 'members', targetUid)) : null
@@ -1267,8 +1276,8 @@ export const revokeMember = onCall(callable, async (request) => {
       targetUid,
       targetRole,
     })
-    if (!decision.ok) deny(decision.message)
-    if (!memberRef || !memberSnap?.exists) deny('Accesso negato')
+    if (!decision.ok) denyMessaggio(decision.message)
+    if (!memberRef || !memberSnap?.exists) deny('accesso_negato')
     tx.update(memberRef, { status: 'revocato' })
     if (restore) {
       tx.set(targetAccountRef, { salonId: targetUid, role: 'titolare' }, { merge: true })
@@ -1281,31 +1290,31 @@ export const revokeMember = onCall(callable, async (request) => {
 
 export const leggiInvito = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
+  if (uid.includes('/')) deny('accesso_negato')
   return leggiInvitoPer(getFirestore(), { uid, email: loginEmail(request.auth) }, text(field(request.data, 'token')))
 })
 
 export const rifiutaInvito = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
+  if (uid.includes('/')) deny('accesso_negato')
   const esito = await rifiutaInvitoPer(getFirestore(), { uid, email: loginEmail(request.auth) }, text(field(request.data, 'token')))
-  if (!esito.ok) deny(esito.message)
+  if (!esito.ok) denyMessaggio(esito.message)
   return { ok: true }
 })
 
 export const invitiInSospeso = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
+  if (uid.includes('/')) deny('accesso_negato')
   const esito = await invitiInSospesoPer(getFirestore(), uid)
-  if (!esito.ok) deny(esito.message)
+  if (!esito.ok) denyMessaggio(esito.message)
   return { inviti: esito.inviti }
 })
 
 export const annullaInvito = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
+  if (uid.includes('/')) deny('accesso_negato')
   const esito = await annullaInvitoPer(getFirestore(), uid, text(field(request.data, 'id')))
-  if (!esito.ok) deny(esito.message)
+  if (!esito.ok) denyMessaggio(esito.message)
   return { ok: true }
 })
 
@@ -1318,19 +1327,19 @@ export const segnaAvvisoUscita = onCall(pianoCall, async (request) => {
 export const tornaAlMioSalone = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const esito = await tornaAlMioSalonePer(getFirestore(), uid)
-  if (!esito.ok) deny(esito.message)
+  if (!esito.ok) denyMessaggio(esito.message)
   return { ok: true }
 })
 
 export const riprendiSalone = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
-  if (uid.includes('/')) deny('Accesso negato')
+  if (uid.includes('/')) deny('accesso_negato')
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   const ammesso = account !== null && account.salonId !== '' && (
     (account.role === 'titolare' && account.salonId === uid) || account.role === 'socio'
   )
-  if (!account || !ammesso) deny('Accesso negato')
+  if (!account || !ammesso) deny('accesso_negato')
   await riprendiSaloneDi(db, account.salonId)
   return { ok: true }
 })
@@ -1339,11 +1348,11 @@ export const changeMemberRole = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const targetUid = text(field(request.data, 'uid'))
   const nextRole = text(field(request.data, 'role'))
-  if (targetUid === '' || targetUid.includes('/')) deny('Accesso negato')
+  if (targetUid === '' || targetUid.includes('/')) deny('accesso_negato')
   const db = getFirestore()
   await db.runTransaction(async (tx) => {
     const account = accountOf((await tx.get(db.doc(`accounts/${uid}`))).data())
-    if (!account) deny('Accesso negato')
+    if (!account) deny('accesso_negato')
     const salonId = account.salonId
     const readable = salonId !== '' && !salonId.includes('/')
     const proSnap = readable ? await tx.get(db.doc(salonDocPath(salonId, 'pro', 'main'))) : null
@@ -1358,8 +1367,8 @@ export const changeMemberRole = onCall(callable, async (request) => {
       targetUid,
       nextRole,
     })
-    if (!decision.ok) deny(decision.message)
-    if (!memberRef || !memberSnap?.exists) deny('Accesso negato')
+    if (!decision.ok) denyMessaggio(decision.message)
+    if (!memberRef || !memberSnap?.exists) deny('accesso_negato')
     tx.update(memberRef, { role: decision.role })
     if (text(targetAccountSnap.get('salonId')) === salonId) {
       tx.update(targetAccountRef, { role: decision.role })
@@ -1458,9 +1467,9 @@ async function riservaRichiestaPlaces(uid: string): Promise<void> {
     })
   } catch (error) {
     logger.error('Limite indirizzi non disponibile', { code: authCode(error) })
-    throw new HttpsError('internal', 'Ricerca non riuscita')
+    throw erroreServer('internal', 'ricerca_non_riuscita')
   }
-  if (limitato) throw new HttpsError('resource-exhausted', 'Troppe ricerche oggi')
+  if (limitato) throw erroreServer('resource-exhausted', 'troppe_ricerche')
 }
 
 export const suggerisciIndirizzi = onCall(placesCall, async (request) => {

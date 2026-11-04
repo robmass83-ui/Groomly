@@ -1,5 +1,5 @@
-import { HttpsError } from 'firebase-functions/v2/https'
 import { bloccaCane, type RigaCoda, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
+import { erroreServer } from '../erroriServer'
 
 const TOKEN = /^[A-Za-z0-9_-]{16,128}$/
 const TIPI = new Set<TipoCoda>(['promemoria', 'pronto', 'auguri', 'recensione', 'attesa'])
@@ -99,11 +99,11 @@ export async function silenzioEmailPer(
   archivio: ArchivioSilenzio,
 ): Promise<{ ok: true }> {
   if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/') || !TOKEN.test(input.token)) {
-    throw new HttpsError('invalid-argument', 'Link non valido')
+    throw erroreServer('invalid-argument', 'link_non_valido')
   }
   const riga = await archivio.leggiRiga(input.salonId, input.token)
-  if (!riga || riga.dogId.includes('/')) throw new HttpsError('not-found', 'Link non valido')
-  if (!(await archivio.caneEsiste(input.salonId, riga.dogId))) throw new HttpsError('not-found', 'Cane assente')
+  if (!riga || riga.dogId.includes('/')) throw erroreServer('not-found', 'link_non_valido')
+  if (!(await archivio.caneEsiste(input.salonId, riga.dogId))) throw erroreServer('not-found', 'cane_assente')
   await archivio.segnaBloccata(input.salonId, riga.dogId)
   const righe = await archivio.leggiRighe(input.salonId, riga.dogId)
   const dopo = bloccaCane(righe, riga.dogId)

@@ -1,4 +1,4 @@
-import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
+import { linguaPagina } from '../../../src/i18n/paginaPubblica'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import type { Request, Response } from 'express'
 import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
@@ -14,14 +14,10 @@ function testo(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-function lingua(value: unknown): Lingua {
-  return linguaValida(value) ?? 'it'
-}
-
 export async function paginaPubblicaHttp(req: Request, res: Response): Promise<void> {
   const pezzi = (req.path || '').split('/').filter(Boolean)
   const slug = pezzi[pezzi.length - 1] ?? ''
-  const lang = lingua(typeof req.query.lang === 'string' ? req.query.lang : '')
+  const lang = linguaPagina(typeof req.query.lang === 'string' ? req.query.lang : '', (req.get('accept-language') ?? '').split(',')[0])
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) {
     res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(lang))
     return

@@ -1,11 +1,12 @@
 import { defineSecret, defineString } from 'firebase-functions/params'
-import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https'
+import { onCall, type CallableRequest } from 'firebase-functions/v2/https'
 import { postBrevoHtml } from '../brevoMail'
 import { revenueCatApiKey } from '../piano/rcWebhookHttp'
 import { accendiAbbonamentiPer, confermaPartitaIvaPer, controlloAccensionePer, spegniAbbonamentiPer } from './accensione'
 import { annunciaPagamentiPer } from './annuncio'
 import { emailAnnuncio } from './emailAnnuncio'
 import { leggiOfferingRc } from './offeringRc'
+import { erroreServer } from '../erroriServer'
 
 // Callable degli abbonamenti (fase 4), tutte solo per operatori. Esportate da index.ts con una riga.
 const brevoApiKey = defineSecret('BREVO_API_KEY')
@@ -16,7 +17,7 @@ const opzioni = { region: 'europe-west1' as const, invoker: 'public' as const }
 const conRevenueCat = { ...opzioni, secrets: [revenueCatApiKey] }
 
 function operatore(request: CallableRequest) {
-  if (!request.auth?.uid) throw new HttpsError('unauthenticated', 'Accesso richiesto')
+  if (!request.auth?.uid) throw erroreServer('unauthenticated', 'accesso_richiesto')
   const token = request.auth.token
   return {
     operatorEmail: typeof token.email === 'string' ? token.email : '',

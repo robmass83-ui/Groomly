@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { emailMessaggio, etichettaRuolo, mailPostoLibero, riepilogoRicevuta, type TipoEmail } from './emailHtml'
-import type { Lingua } from './lingua'
+import { LINGUE, type Lingua } from './lingua'
 
 const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 const SENZA_PULSANTI: TipoEmail[] = ['ricevuta', 'conferma', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri']
-// LINGUE: da tradurre. Quando le email hanno fr e de, qui si usa LINGUE di lingua.ts.
+// Frasi esatte per it, en, es; francese e tedesco hanno il loro blocco in fondo.
 type LinguaEmail = Exclude<Lingua, 'fr' | 'de'>
-const LINGUE: LinguaEmail[] = ['it', 'en', 'es']
+const TRE_LINGUE: LinguaEmail[] = ['it', 'en', 'es']
 const SERVIZI: TipoEmail[] = ['promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
 const SILENZIO: Record<LinguaEmail, string> = {
   it: 'Non voglio più ricevere queste email',
@@ -160,7 +160,7 @@ describe('email', () => {
     for (const tipo of TIPI) {
       const frasi = FRASI[tipo]
       if (!frasi) continue
-      for (const lingua of LINGUE) {
+      for (const lingua of TRE_LINGUE) {
         const mail = emailMessaggio(lingua, tipo, {
           ...PIENI,
           url: tipo === 'proposta' || tipo === 'recensione' || tipo === 'attesa' ? url : undefined,
@@ -184,7 +184,7 @@ describe('email', () => {
   })
 
   it('senza cane l’oggetto resta la cornice', () => {
-    for (const lingua of LINGUE) {
+    for (const lingua of TRE_LINGUE) {
       for (const cornice of CORNICI[lingua]) {
         expect(emailMessaggio(lingua, cornice.tipo, { cliente: 'Giulia', cane: '', salone: 'Canespa' }).oggetto).toBe(cornice.oggetto)
       }
@@ -383,7 +383,7 @@ describe('email', () => {
   it('i cinque servizi hanno oggetto, corpo e il silenzio, e il pulsante solo se c’è un indirizzo', () => {
     const silenzio = 'https://groomlyapp.it/azione?mode=silenzio&salon=salone-1&token=aaaaaaaaaaaaaaaa'
     for (const tipo of SERVIZI) {
-      for (const lingua of LINGUE) {
+      for (const lingua of TRE_LINGUE) {
         const messaggio = emailMessaggio(lingua, tipo, {
           cliente: 'Giulia',
           cane: 'Rex',
@@ -497,5 +497,57 @@ describe('mail di scadenza', () => {
       const { html } = emailMessaggio(lingua, 'scadenza', { ...dati, telefono: '' })
       for (const buco of ['al .', 'at .', 'on .', 'en el .', 'al  ', '  ']) expect(html).not.toContain(buco)
     }
+  })
+})
+
+describe('email in francese e tedesco', () => {
+  const PIENE = { cliente: 'Giulia', cane: 'Rex', salone: 'Canespa', quando: 'mardi 4 novembre', invece: 'lundi 3', entro: '18:00', telefono: '055 123', rispondi: true, url: 'https://groomlyapp.it/x', urlRifiuta: 'https://groomlyapp.it/y', silenzio: 'https://groomlyapp.it/z' }
+  const ITALIANO = /\b(Ciao|grazie|appuntamento|richiesta|salone|Conferma|Non voglio)\b/
+  const INGLESE = /\b(Hi|thank you|appointment|request|salon's|Confirm|Please)\b/
+
+  it.each(['fr', 'de'] as const)('%s: ogni email è diversa da en e it, senza parole rimaste indietro', (lingua) => {
+    for (const tipo of TIPI) {
+      for (const dati of [PIENE, { url: 'https://groomlyapp.it/x' }]) {
+        const mail = emailMessaggio(lingua, tipo, dati)
+        expect(mail.html).toContain(`<html lang="${lingua}">`)
+        expect(mail.oggetto).not.toBe(emailMessaggio('en', tipo, dati).oggetto)
+        expect(mail.oggetto).not.toBe(emailMessaggio('it', tipo, dati).oggetto)
+        const testo = mail.html.replace(/<[^>]*>/g, ' ')
+        expect(testo, tipo).not.toMatch(ITALIANO)
+        expect(testo, tipo).not.toMatch(INGLESE)
+      }
+    }
+  })
+
+  it('il francese dà del vous, il tedesco del Sie', () => {
+    expect(emailMessaggio('fr', 'conferma', PIENE).html).toContain('Bonjour Giulia, bonne nouvelle\u00a0: Canespa a confirmé le rendez-vous de Rex, mardi 4 novembre. Nous vous attendons\u00a0!')
+    expect(emailMessaggio('de', 'conferma', PIENE).html).toContain('Hallo Giulia, gute Nachrichten: Canespa hat den Termin von Rex, mardi 4 novembre, bestätigt. Wir freuen uns auf Sie!')
+  })
+
+  it('senza nome il salone si declina', () => {
+    expect(emailMessaggio('de', 'ricevuta', { cliente: 'Giulia' }).html).toContain('für den Salon entschieden')
+    expect(emailMessaggio('de', 'scadenza', { cliente: 'Giulia' }).html).toContain('Der Salon konnte')
+    expect(emailMessaggio('de', 'auguri', { cliente: 'Giulia' }).html).toContain('Das ganze Team des Salons')
+    expect(emailMessaggio('fr', 'auguri', { cliente: 'Giulia' }).html).toContain('toute l’équipe du salon')
+    expect(emailMessaggio('fr', 'invito', {}).html).toContain('Le salon vous a invité')
+  })
+
+  it('date, prezzo e ruoli seguono la lingua', () => {
+    const dati = { nome: 'Ada', specie: 'cane', taglia: 'piccola', servizi: ['Bagno'], inizio: new Date('2026-11-04T09:00:00Z'), fine: new Date('2026-11-04T10:00:00Z'), durataMin: 60, totale: 40.5, telefono: '055' }
+    const fr = riepilogoRicevuta('fr', dati)
+    expect(fr).toContain('chien · petite taille')
+    expect(fr).toContain('mercredi 4 novembre, 10:00–11:00')
+    expect(fr).toContain('40,50\u00a0€')
+    const de = riepilogoRicevuta('de', dati)
+    expect(de).toContain('Hund · klein')
+    expect(de).toContain('Mittwoch, 4. November, 10:00–11:00')
+    expect(de).toContain('40,50\u00a0€')
+    expect(etichettaRuolo('fr', 'socio')).toBe('Associé')
+    expect(etichettaRuolo('de', 'collaboratore')).toBe('Mitarbeiter')
+  })
+
+  it('tutte le lingue hanno il posto libero nella propria lingua', () => {
+    const titoli = LINGUE.map((lingua) => mailPostoLibero({ lingua, nomeSalone: '', quando: '', url: 'https://x.it' }).oggetto)
+    expect(new Set(titoli).size).toBe(LINGUE.length)
   })
 })

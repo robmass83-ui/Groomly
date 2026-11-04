@@ -1,16 +1,17 @@
 import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { riepilogoRicevuta } from '../../../src/i18n/emailHtml'
+import { linguaValida } from '../../../src/i18n/lingua'
 import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import { contaAperte, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
-import { linguaClientiSalon, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
+import { linguaCliente, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
 import { riservaMittente } from './mittente'
 import { catalogoDelSalone } from './paginaPubblica'
 import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
+import { erroreDaMessaggio, erroreServer } from '../erroriServer'
 
 export async function inviaRichiestaPer(input: {
   salonId: string
@@ -29,13 +30,15 @@ export async function inviaRichiestaPer(input: {
   razza?: string
   foto?: unknown
   servizi?: string[]
+  /** La lingua in cui il cliente ha visto la pagina. Tutte le email di questa richiesta la seguono. */
+  lingua?: string
   /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
   mittente?: string
 }, apiKey?: string): Promise<{ ok: true; id?: string; emailStato: 'inviata' | 'non_inviata' }> {
   if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/')) {
-    throw new HttpsError('invalid-argument', 'Richiesta non valida')
+    throw erroreServer('invalid-argument', 'richiesta_non_valida')
   }
-  if (!(await salonPrenota(input.salonId))) throw new HttpsError('failed-precondition', 'Prenotazioni spente')
+  if (!(await salonPrenota(input.salonId))) throw erroreServer('failed-precondition', 'prenotazioni_spente')
   const db = getFirestore()
   const aperte = await db.collection(`salons/${input.salonId}/richieste`).where('status', '==', 'nuova').get()
   const conti = contaAperte(
@@ -60,27 +63,28 @@ export async function inviaRichiestaPer(input: {
   })
   if (!ingresso.ok) {
     const codice = ingresso.message === 'Troppe richieste' ? 'resource-exhausted' : 'invalid-argument'
-    throw new HttpsError(codice, ingresso.message)
+    throw erroreDaMessaggio(codice, ingresso.message)
   }
   if (!ingresso.scrivi) return { ok: true, emailStato: 'non_inviata' }
   await riservaMittente(input.mittente ?? '', db)
   const razza = razzaRichiesta(input.razza)
-  if (!razza) throw new HttpsError('invalid-argument', 'Razza obbligatoria')
+  if (!razza) throw erroreServer('invalid-argument', 'razza_obbligatoria')
   const impostazioni = (await db.doc(`salons/${input.salonId}/settings/main`).get()).data() ?? {}
   if (!specieAccettate(impostazioni.speciePrenotabili).includes(input.specie as 'cane' | 'gatto' | 'altro')) {
-    throw new HttpsError('invalid-argument', 'Questo salone non accetta questo animale')
+    throw erroreServer('invalid-argument', 'animale_non_accettato')
   }
   const foto = fotoRichiesta(input.foto)
-  if (!foto) throw new HttpsError('invalid-argument', 'Foto non valida')
+  if (!foto) throw erroreServer('invalid-argument', 'foto_non_valida')
   const quando = intervalloRichiesta({ giorno: ingresso.giorno, ora: ingresso.ora })
-  if (!quando?.giorno || !quando.ora) throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  if (!quando?.giorno || !quando.ora) throw erroreServer('invalid-argument', 'richiesta_non_valida')
   const taglia: TagliaPrenotazione | null = input.taglia === 'piccola' || input.taglia === 'media' || input.taglia === 'grande' ? input.taglia : null
   const scelta = taglia ? scegliCatalogo(await catalogoDelSalone(input.salonId), input.servizi ?? [], taglia) : null
-  if (!taglia || !scelta) throw new HttpsError('invalid-argument', 'Servizio non valido')
+  if (!taglia || !scelta) throw erroreServer('invalid-argument', 'servizio_non_valido')
   const liberi = await postiLiberiPer(input.salonId, quando.giorno, scelta.durataMin)
-  if (!liberi.orari.includes(quando.ora)) throw new HttpsError('failed-precondition', 'Orario non disponibile')
+  if (!liberi.orari.includes(quando.ora)) throw erroreServer('failed-precondition', 'orario_non_disponibile')
   const fine = new Date(quando.inizio.getTime() + scelta.durataMin * 60 * 1000)
   const token = randomBytes(16).toString('hex')
+  const linguaPagina = linguaValida(input.lingua)
   const ref = db.collection(`salons/${input.salonId}/richieste`).doc()
   const documento = {
     status: 'nuova',
@@ -105,6 +109,7 @@ export async function inviaRichiestaPer(input: {
     emailStato: 'non_inviata',
     consenso: true,
     consensoIl: new Date().toISOString(),
+    ...(linguaPagina ? { lingua: linguaPagina } : {}),
     ...(input.mittente ? { mittente: input.mittente } : {}),
   }
   await db.runTransaction(async (tx) => {
@@ -117,7 +122,7 @@ export async function inviaRichiestaPer(input: {
       appuntamenti: appSnap.docs.map((doc) => doc.data()),
       richieste: ricSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
     })
-    if (!libero) throw new HttpsError('failed-precondition', 'Orario non disponibile')
+    if (!libero) throw erroreServer('failed-precondition', 'orario_non_disponibile')
     tx.set(ref, documento)
   })
   const business = impostazioni.business && typeof impostazioni.business === 'object' ? impostazioni.business as Record<string, unknown> : {}
@@ -126,7 +131,7 @@ export async function inviaRichiestaPer(input: {
   let emailStato: 'inviata' | 'non_inviata' = 'non_inviata'
   if (apiKey) {
     try {
-      const lingua = await linguaClientiSalon(input.salonId)
+      const lingua = linguaCliente(linguaPagina, impostazioni.linguaClienti)
       const scheda = riepilogoRicevuta(lingua, {
         nome: ingresso.nome,
         cane: (input.cane ?? '').trim(),

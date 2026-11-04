@@ -1,9 +1,9 @@
 import { getFirestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { GIORNI_ANNUNCIO, giorniRoma, type Controllo, type VoceControllo } from '../../../src/lib/accensione'
 import { dataIsoValida, leggiConfigPiani } from '../../../src/lib/configPiani'
 import { controllaOperatore } from './annuncio'
 import type { VoceOffering } from './offeringRc'
+import { erroreServer } from '../erroriServer'
 
 type Operatore = { operatorEmail: string; emailVerified?: boolean; admin?: boolean }
 // L'offering si legge da RevenueCat: lo passa chi chiama (index.ts con i segreti, i test con un finto).
@@ -45,7 +45,7 @@ export async function controlloAccensionePer(input: Operatore & { offering: Legg
 
 export async function confermaPartitaIvaPer(input: Operatore & { valore: unknown }, adesso = new Date()): Promise<{ ok: true; confermatoIl: string | null }> {
   controllaOperatore(input)
-  if (typeof input.valore !== 'boolean') throw new HttpsError('invalid-argument', 'Impostazione non valida')
+  if (typeof input.valore !== 'boolean') throw erroreServer('invalid-argument', 'impostazione_non_valida')
   const confermatoIl = input.valore ? adesso.toISOString() : null
   const db = getFirestore()
   const ref = db.doc('config/globale')
@@ -59,9 +59,9 @@ export async function confermaPartitaIvaPer(input: Operatore & { valore: unknown
 // Il controllo si rifà qui: il pannello non basta a sbloccare l'interruttore.
 export async function accendiAbbonamentiPer(input: Operatore & { parola: unknown; offering: LeggiOffering }, adesso = new Date()): Promise<{ ok: true }> {
   controllaOperatore(input)
-  if (input.parola !== PAROLA_ACCENDI) throw new HttpsError('invalid-argument', `Scrivi ${PAROLA_ACCENDI}`)
+  if (input.parola !== PAROLA_ACCENDI) throw erroreServer('invalid-argument', 'scrivi_parola', { parola: PAROLA_ACCENDI })
   const controllo = await controlloDa(input.offering, adesso)
-  if (!controllo.tuttoVerde) throw new HttpsError('failed-precondition', 'Controllo non superato')
+  if (!controllo.tuttoVerde) throw erroreServer('failed-precondition', 'controllo_non_superato')
   const db = getFirestore()
   const ref = db.doc('config/globale')
   await db.runTransaction(async (tx) => {
