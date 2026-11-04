@@ -1,3 +1,5 @@
+import type { TracciaBeta } from './piano'
+
 export type DirectoryAccount = {
   uid: string
   firstName: string
@@ -16,7 +18,7 @@ export type SalonDirectory = {
   accountCount: number
   salonCount: number
   entries: DirectoryEntry[]
-  pro: { uid: string; salonId: string; enabled: boolean; livello?: 'base' | 'pro' | 'salone' | 'vip' }[]
+  pro: { uid: string; salonId: string; enabled: boolean; livello?: 'base' | 'pro' | 'salone' | 'vip'; traccia?: TracciaBeta }[]
 }
 
 export function businessName(data: Record<string, unknown> | null): string {
