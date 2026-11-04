@@ -1,3 +1,3 @@
-export const APP_VERSION = '1.1.187'
+export const APP_VERSION = '1.1.188'
 
 export const RELEASE_REPO = 'robmass83-ui/Groomly'
