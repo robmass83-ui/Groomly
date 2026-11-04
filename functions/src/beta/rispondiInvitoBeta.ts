@@ -7,7 +7,7 @@ import { membroTitolareMancante } from '../piano/titolareMembro'
 import { contattoTitolare, nega, percorsoAvviso, pianoCheBlocca, proMainDi, testoFacoltativo, titolareDi } from './comune'
 import { EMAIL_OPERATORE, emailOperatore, inviaEmail, type Posta } from './emailBeta'
 
-const NON_VALIDA = 'Risposta non valida: riprova'
+const NON_VALIDA = 'beta_risposta_non_valida' as const
 
 type Risposta = { accetta: true } | { accetta: false; motivo: MotivoRifiutoBeta | null; altro: string | null }
 
@@ -30,7 +30,7 @@ export async function rispondiInvitoBetaPer(input: {
   posta?: Posta
 }): Promise<{ ok: true; scadeIl: string | null }> {
   const db = getFirestore()
-  const salonId = await titolareDi(db, input.uid, 'Solo il titolare può rispondere all’invito')
+  const salonId = await titolareDi(db, input.uid, 'beta_solo_titolare')
   const risposta = rispostaDi(input.dati)
   const adesso = input.adesso ?? new Date()
   const ora = adesso.toISOString()
@@ -45,14 +45,14 @@ export async function rispondiInvitoBetaPer(input: {
     const avvisoSnap = await tx.get(avvisoRef)
     const memberSnap = await tx.get(memberRef)
     const account = (await tx.get(db.doc(`accounts/${salonId}`))).data()
-    if (!invito || invito.stato !== 'invitato') nega('Questo invito non è più valido')
+    if (!invito || invito.stato !== 'invitato') nega('beta_invito_non_valido')
     if (Date.parse(invito.scadeInvitoIl) <= adesso.getTime()) {
       tx.set(invitoRef, { stato: 'scaduto', aggiornatoIl: ora }, { merge: true })
       return { scaduto: true as const }
     }
     if (risposta.accetta) {
-      if (eVip(pro)) nega('Hai già il piano Salon omaggio: l’invito non serve')
-      if (pianoCheBlocca(pro, adesso)) nega('Hai già un piano attivo: l’invito non serve')
+      if (eVip(pro)) nega('beta_gia_vip')
+      if (pianoCheBlocca(pro, adesso)) nega('beta_gia_piano')
     }
     const segnaLetto = () => {
       if (avvisoSnap.exists) tx.set(avvisoRef, { letto: true }, { merge: true })
@@ -73,7 +73,7 @@ export async function rispondiInvitoBetaPer(input: {
     segnaLetto()
     return { scaduto: false as const, scadeIl: fine, piano: invito.piano }
   })
-  if (esito.scaduto) nega('Questo invito è scaduto')
+  if (esito.scaduto) nega('beta_invito_scaduto')
 
   if (!risposta.accetta) {
     const contatto = await contattoTitolare(db, salonId)

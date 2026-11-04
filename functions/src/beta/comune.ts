@@ -1,9 +1,10 @@
 import type { DocumentData, Firestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { eVip } from '../../../src/lib/funzioniPiano'
 import { fonteDi, statoPiano, statoPianoNome, tracciaBetaDi, type ProMain } from '../../../src/lib/piano'
 import { operatoreAutorizzato } from '../../../src/lib/salonPath'
+import { erroreServer } from '../erroriServer'
+import type { CodiceErrore } from '../../../src/i18n/errori'
 
 export type TipoAvvisoBeta = 'invito' | 'invito-ritirato' | 'revoca' | 'estensione' | 'feedback' | 'fine-7' | 'fine-1' | 'finita'
 
@@ -22,8 +23,8 @@ export type TokenOperatore = { operatorEmail: string; emailVerified?: boolean; a
 
 export const GIORNO_MS = 24 * 60 * 60 * 1000
 
-export function nega(messaggio: string): never {
-  throw new HttpsError('failed-precondition', messaggio)
+export function nega(codice: CodiceErrore): never {
+  throw erroreServer('failed-precondition', codice)
 }
 
 export function salonIdValido(id: unknown): id is string {
@@ -31,7 +32,7 @@ export function salonIdValido(id: unknown): id is string {
 }
 
 export function richiediOperatore(token: TokenOperatore): void {
-  if (!operatoreAutorizzato({ email: token.operatorEmail, emailVerified: token.emailVerified, admin: token.admin })) nega('Accesso negato')
+  if (!operatoreAutorizzato({ email: token.operatorEmail, emailVerified: token.emailVerified, admin: token.admin })) nega('accesso_negato')
 }
 
 export function proMainDi(dati: DocumentData | undefined): ProMain | undefined {
@@ -84,7 +85,7 @@ export function percorsoAvviso(salonId: string): string {
 }
 
 /** Testo facoltativo ripulito: vuoto diventa null, oltre il massimo è un errore. */
-export function testoFacoltativo(valore: unknown, max: number, errore: string): string | null {
+export function testoFacoltativo(valore: unknown, max: number, errore: CodiceErrore): string | null {
   if (valore === undefined || valore === null) return null
   if (typeof valore !== 'string') nega(errore)
   const pulito = valore.trim()
@@ -114,7 +115,7 @@ export async function contattoTitolare(db: Firestore, salonId: string): Promise<
 }
 
 /** Il salone di chi chiama, se ne è il titolare. */
-export async function titolareDi(db: Firestore, uid: string, negato = 'Accesso negato'): Promise<string> {
+export async function titolareDi(db: Firestore, uid: string, negato: CodiceErrore = 'accesso_negato'): Promise<string> {
   if (!salonIdValido(uid)) nega(negato)
   const dati = (await db.doc(`accounts/${uid}`).get()).data()
   const ruolo = dati?.role

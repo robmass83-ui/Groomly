@@ -1,13 +1,13 @@
 import { getFirestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { MESSAGGIO_SLUG_PRESO, slugConNumero, slugDaNome, slugLibero } from '../../../src/lib/slug'
+import { erroreDaMessaggio, erroreServer } from '../erroriServer'
 
 const TENTATIVI = 50
 
 /** Dà al salone il primo link libero del suo nome: «canespa», poi «canespa-2», «canespa-3»… Se ne ha già uno, resta quello. */
 export async function registraSlug(salonId: string, nome: string): Promise<{ slug: string }> {
   const base = slugDaNome(nome)
-  if (base === '' || salonId === '' || salonId === 'shared') throw new HttpsError('failed-precondition', 'Accesso negato')
+  if (base === '' || salonId === '' || salonId === 'shared') throw erroreServer('failed-precondition', 'accesso_negato')
   const db = getFirestore()
   const slug = await db.runTransaction(async (tx) => {
     for (let numero = 1; numero <= TENTATIVI; numero += 1) {
@@ -19,7 +19,7 @@ export async function registraSlug(salonId: string, nome: string): Promise<{ slu
       if (occupato !== salonId) tx.set(ref, { salonId, nome: nome.trim(), slug: candidato })
       return candidato
     }
-    throw new HttpsError('already-exists', MESSAGGIO_SLUG_PRESO)
+    throw erroreDaMessaggio('already-exists', MESSAGGIO_SLUG_PRESO)
   })
   return { slug }
 }

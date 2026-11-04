@@ -12,7 +12,7 @@ import { emailBeta, inviaEmail, type Posta } from './emailBeta'
 export type MotivoSalto = 'vip' | 'shared' | 'gia-invitato' | 'piano-attivo' | 'non-trovato'
 export type EsitoInviti = { invitati: string[]; saltati: { salonId: string; motivo: MotivoSalto }[] }
 
-const NON_VALIDO = 'Invito non valido'
+const NON_VALIDO = 'invito_non_valido' as const
 
 function idValido(id: string): boolean {
   return id !== '' && !id.includes('/')

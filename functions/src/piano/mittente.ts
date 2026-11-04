@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from 'node:crypto'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { mittenteRateDecision } from '../rateLimit'
+import { erroreServer } from '../erroriServer'
 
 type Richiesta = { headers?: Record<string, string | string[] | undefined>; ip?: string }
 
@@ -48,5 +48,5 @@ export async function riservaMittente(mittente: string, db: Firestore = getFires
     if (decisione.ok) tx.set(ref, { hits: decisione.next })
     return decisione.ok
   })
-  if (!ok) throw new HttpsError('resource-exhausted', 'Troppe richieste')
+  if (!ok) throw erroreServer('resource-exhausted', 'troppe_richieste')
 }

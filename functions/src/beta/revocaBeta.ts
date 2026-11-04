@@ -19,9 +19,9 @@ export async function revocaBetaPer(input: {
   posta?: Posta
 }): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
   richiediOperatore(input.token)
-  if (!salonIdValido(input.salonId)) nega('Accesso negato')
+  if (!salonIdValido(input.salonId)) nega('accesso_negato')
   const salonId = input.salonId
-  const testo = testoFacoltativo(input.testo, TESTO_REVOCA_MAX, 'Testo troppo lungo')
+  const testo = testoFacoltativo(input.testo, TESTO_REVOCA_MAX, 'testo_troppo_lungo')
   const adesso = input.adesso ?? new Date()
   const ora = adesso.toISOString()
   const db = getFirestore()
@@ -31,9 +31,9 @@ export async function revocaBetaPer(input: {
   const esito = await db.runTransaction(async (tx) => {
     const invito = invitoBetaDi((await tx.get(invitoRef)).data())
     const pro = proMainDi((await tx.get(proRef)).data())
-    if (!invito || (invito.stato !== 'invitato' && invito.stato !== 'accettato')) nega('Niente da revocare')
+    if (!invito || (invito.stato !== 'invitato' && invito.stato !== 'accettato')) nega('beta_niente_da_revocare')
     if (invito.stato === 'accettato') {
-      if (!betaInCorso(pro, adesso)) nega('La beta è già finita')
+      if (!betaInCorso(pro, adesso)) nega('beta_gia_finita')
       tx.set(proRef, { ...scriviPiano(campiBase(true), adesso), updatedAt: ora }, { merge: true })
     }
     const tipo = invito.stato === 'invitato' ? 'invito-ritirato' as const : 'revoca' as const

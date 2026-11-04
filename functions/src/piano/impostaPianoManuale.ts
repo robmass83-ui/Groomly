@@ -1,5 +1,4 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { htmlAvviso, oggettoAvviso } from '../../../src/lib/avvisoPiano'
 import { decisioneVip } from '../../../src/lib/funzioniPiano'
@@ -9,6 +8,7 @@ import { postBrevoHtml } from '../brevoMail'
 import { membroTitolareMancante } from './titolareMembro'
 import { campiAzione, campiBypass, conTraccia, scriviPiano, tracciaProva, type AzionePiano, type CampiPiano } from './scriviPiano'
 import { fonteDi, type ProMain } from '../../../src/lib/piano'
+import { erroreDaMessaggio, erroreServer } from '../erroriServer'
 
 const AZIONI = new Set<AzionePiano>(['prova', 'pro', 'salone', 'base'])
 
@@ -30,12 +30,12 @@ export async function impostaPianoManualePer(input: {
   apiKey?: string
 }): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
   if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
-    throw new HttpsError('failed-precondition', 'Accesso negato')
+    throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const bypass = comeBypass(input.azione)
-  if (!bypass && !AZIONI.has(input.azione as AzionePiano)) throw new HttpsError('failed-precondition', 'Accesso negato')
+  if (!bypass && !AZIONI.has(input.azione as AzionePiano)) throw erroreServer('failed-precondition', 'accesso_negato')
   if (input.salonId === '' || input.salonId.includes('/') || input.salonId === 'shared') {
-    throw new HttpsError('failed-precondition', 'Accesso negato')
+    throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const adesso = input.adesso ?? new Date()
   const db = getFirestore()
@@ -62,7 +62,7 @@ export async function impostaPianoManualePer(input: {
     const traccia = tracciaProva(attuale, provaUsata, adesso)
     if (input.azione !== 'spegni-omaggio') {
       const vip = decisioneVip(attuale, input.azione)
-      if (!vip.ok) throw new HttpsError('failed-precondition', vip.message)
+      if (!vip.ok) throw erroreDaMessaggio('failed-precondition', vip.message)
     }
     const esito = bypass
       ? esitoBypass(attuale, bypass, input.testo ?? '', adesso)
@@ -104,12 +104,9 @@ function esitoBypass(doc: ProMain | undefined, azione: AzioneBypass, testo: stri
   const decisione = decisioneBypass(doc, azione, testo, adesso)
   if (!decisione.ok) {
     if (decisione.manca === 'testo' || decisione.manca === 'vip') {
-      throw new HttpsError(
-        'failed-precondition',
-        decisione.manca === 'vip' ? 'Il piano VIP resta attivo' : 'Scrivi il motivo, da 1 a 400 caratteri',
-      )
+      throw erroreServer('failed-precondition', decisione.manca === 'vip' ? 'piano_vip_attivo' : 'motivo_piano')
     }
-    throw new HttpsError('failed-precondition', 'Accesso negato')
+    throw erroreServer('failed-precondition', 'accesso_negato')
   }
   return { campi: campiBypass(decisione.campi), avviso: decisione.avviso }
 }

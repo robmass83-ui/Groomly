@@ -1,8 +1,8 @@
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { isSharedEmail, operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { pulisciPersona, pulisciRaccolteSalone } from './pulisciSalone'
+import { erroreDaMessaggio, erroreServer, messaggioServer } from '../erroriServer'
 
 /** Persona del salone da cancellare: titolare o collaboratore, con l'email dell'accesso e quella dell'account. */
 export type PersonaSalone = { uid: string; emails: string[] }
@@ -21,15 +21,15 @@ export function decisioneEliminaSalone(input: {
   persone: PersonaSalone[]
 }): { ok: true } | { ok: false; message: string } {
   if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
-    return { ok: false, message: 'Accesso negato' }
+    return { ok: false, message: messaggioServer('accesso_negato') }
   }
   const id = input.salonId.trim()
-  if (id === '' || id === 'shared' || id.includes('/')) return { ok: false, message: 'Accesso negato' }
+  if (id === '' || id === 'shared' || id.includes('/')) return { ok: false, message: messaggioServer('accesso_negato') }
   if (id === input.chiamante || id === input.salonChiamante) {
-    return { ok: false, message: 'Questa toelettatura non si può eliminare' }
+    return { ok: false, message: messaggioServer('salone_non_eliminabile') }
   }
   if (input.persone.some((persona) => persona.uid === input.chiamante || persona.emails.some((email) => isSharedEmail(email)))) {
-    return { ok: false, message: 'Questa toelettatura non si può eliminare' }
+    return { ok: false, message: messaggioServer('salone_non_eliminabile') }
   }
   return { ok: true }
 }
@@ -44,7 +44,7 @@ export async function eliminaSalonePer(input: {
   const db = getFirestore()
   const auth = getAuth()
   const salonId = input.salonId.trim()
-  if (salonId === '' || salonId.includes('/')) throw new HttpsError('failed-precondition', 'Accesso negato')
+  if (salonId === '' || salonId.includes('/')) throw erroreServer('failed-precondition', 'accesso_negato')
   const chiamante = (await db.doc(`accounts/${input.chiamante}`).get()).data() ?? {}
   const persone = await personeDelSalone(db, salonId)
   const decisione = decisioneEliminaSalone({
@@ -56,7 +56,7 @@ export async function eliminaSalonePer(input: {
     salonChiamante: typeof chiamante.salonId === 'string' ? chiamante.salonId : undefined,
     persone,
   })
-  if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)
+  if (!decisione.ok) throw erroreDaMessaggio('failed-precondition', decisione.message)
 
   // Chi ha un salone proprio con dati (cani o appuntamenti) non perde nulla: torna titolare del suo salone.
   const daCancellare: PersonaSalone[] = []

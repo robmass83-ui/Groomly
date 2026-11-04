@@ -1,6 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import { operatoreAutorizzato } from '../../../src/lib/salonPath'
+import { erroreServer } from '../erroriServer'
 
 /** Accendere riparte da adesso; spegnere conserva il `dal` precedente. */
 export function configTourDopo(
@@ -20,7 +20,7 @@ export async function impostaTourPer(input: {
   acceso: boolean
 }): Promise<{ ok: true }> {
   if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
-    throw new HttpsError('failed-precondition', 'Accesso negato')
+    throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const db = getFirestore()
   const ref = db.doc('config/globale')

@@ -1,4 +1,5 @@
 import { provaConcessa, statoPiano, type FontePiano as FonteApp, type ProMain, type TracciaBeta } from '../../../src/lib/piano'
+import { messaggioServer } from '../erroriServer'
 
 export type LivelloPiano = 'base' | 'pro' | 'salone'
 export type StatoPiano = 'attivo' | 'prova' | 'grazia' | 'sospeso' | 'disdetto' | 'scaduto'
@@ -129,8 +130,8 @@ export function decisioneProva(
   documento: ProMain | undefined,
   adesso: Date,
 ): { ok: true } | { ok: false; message: string } {
-  if (ruolo !== 'titolare') return { ok: false, message: 'Accesso negato' }
-  if (!provaConcessa(documento, adesso)) return { ok: false, message: 'Prova non disponibile' }
+  if (ruolo !== 'titolare') return { ok: false, message: messaggioServer('accesso_negato') }
+  if (!provaConcessa(documento, adesso)) return { ok: false, message: messaggioServer('prova_non_disponibile') }
   return { ok: true }
 }
 
@@ -139,7 +140,7 @@ export function decisioneManuale(
   salonId: string,
 ): { ok: true } | { ok: false; message: string } {
   if (!operator || salonId === '' || salonId.includes('/') || salonId === 'shared') {
-    return { ok: false, message: 'Accesso negato' }
+    return { ok: false, message: messaggioServer('accesso_negato') }
   }
   return { ok: true }
 }

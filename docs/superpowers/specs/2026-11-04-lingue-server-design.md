@@ -105,7 +105,7 @@ Più i generali `richiesta_non_valida` e `troppe_richieste`.
 
 **Solo operatore** (Admin Manager: hanno il codice e la frase nelle cinque lingue come gli altri, ma le pagine non si traducono)
 
-`impostazione_non_valida`, `valore_non_valido`, `durata_non_valida`, `salone_non_trovato`, `beta_non_in_corso`, `beta_gia_finita`, `beta_massimo_giorni`, `beta_niente_da_revocare`, `controllo_non_superato`, `abbonamenti_gia_attivi`, `annuncio_giorni_minimi` (`valori.n`), `scrivi_parola` (`valori.parola`).
+`impostazione_non_valida`, `testo_troppo_lungo`, `valore_non_valido`, `durata_non_valida`, `salone_non_trovato`, `beta_non_in_corso`, `beta_gia_finita`, `beta_massimo_giorni`, `beta_niente_da_revocare`, `controllo_non_superato`, `abbonamenti_gia_attivi`, `annuncio_giorni_minimi` (`valori.n`), `scrivi_parola` (`valori.parola`).
 
 **Le frasi dentro `src/lib`.** Alcune decisioni condivise col client restituiscono `{ ok: false, message }` in italiano: `salonAccess.ts`, `prenotazione.ts`, `disponibilita.ts`, `funzioniPiano.ts`, `slug.ts`. Il server trasforma quel testo in codice con `codiceDaMessaggio`, per confronto esatto. **T4:** se tocchi queste frasi, il testo italiano deve restare identico; un test delle functions fallisce se un `message` di questi file non ha un codice.
 

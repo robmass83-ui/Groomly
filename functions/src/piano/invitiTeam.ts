@@ -3,14 +3,15 @@ import type { Firestore, Transaction } from 'firebase-admin/firestore'
 import { isStaffRole, type StaffRole, type StatoInvito } from '../../../src/lib/salonAccess'
 import { normalizeEmail, salonCollection } from '../../../src/lib/salonPath'
 import { removeOneOpenInviteExpiry } from '../salonInvite'
+import { messaggioServer } from '../erroriServer'
 
 type Chi = { uid: string; email: string }
 type Esito = { ok: true } | { ok: false; message: string }
 
 const TOKEN_VALIDO = /^[0-9a-f]{64}$/
-const NON_VALIDO = { ok: false, message: 'Invito non valido' } as const
-const NEGATO = { ok: false, message: 'Accesso negato' } as const
-const NON_IN_SOSPESO = { ok: false, message: 'Invito non più in sospeso' } as const
+const NON_VALIDO = { ok: false, message: messaggioServer('invito_non_valido') } as const
+const NEGATO = { ok: false, message: messaggioServer('accesso_negato') } as const
+const NON_IN_SOSPESO = { ok: false, message: messaggioServer('invito_non_in_sospeso') } as const
 
 function percorso(uid: string, ...parti: string[]): string {
   return [...salonCollection(uid), ...parti].join('/')

@@ -1,5 +1,4 @@
 import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/firestore'
-import { HttpsError } from 'firebase-functions/v2/https'
 import type { TipoEmail } from '../../../src/i18n/emailHtml'
 import { LOCALE_INTL, type Lingua } from '../../../src/i18n/lingua'
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
@@ -10,6 +9,7 @@ import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { slugDaNome } from '../../../src/lib/slug'
 import { linguaClientiSalon, replyToDelSalone, spedisciHtml } from '../postaHtml'
 import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
+import { erroreServer } from '../erroriServer'
 
 const STATI: readonly RichiestaDoc['status'][] = ['nuova', 'accettata', 'proposta', 'rifiutata', 'scaduta']
 const FOTO_PREFISSI = ['data:image/jpeg;base64,', 'data:image/png;base64,', 'data:image/webp;base64,'] as const
@@ -401,7 +401,7 @@ function slotDaInizio(start: string): { giorno: string; ora: string } | null {
 
 function comandoDa(azione: string, scelta: string, giorno: string, ora: string): ComandoRichiesta {
   if (azione === 'rifiuta') return { azione: 'rifiuta' }
-  if (azione !== 'accetta' && azione !== 'proponi') throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  if (azione !== 'accetta' && azione !== 'proponi') throw erroreServer('invalid-argument', 'richiesta_non_valida')
   const animale: SceltaAnimale = scelta === 'nuovo' ? { tipo: 'nuovo' } : { tipo: 'esistente', dogId: scelta }
   return azione === 'accetta' ? { azione, scelta: animale } : { azione, scelta: animale, giorno, ora }
 }
@@ -414,11 +414,11 @@ export async function gestisciPrenotazionePer(input: {
   giorno: string
   ora: string
 }, apiKey: string, adesso = new Date()): Promise<EsitoGestione> {
-  if (!idValido(input.salonId) || !idValido(input.id)) throw new HttpsError('invalid-argument', 'Richiesta non valida')
+  if (!idValido(input.salonId) || !idValido(input.id)) throw erroreServer('invalid-argument', 'richiesta_non_valida')
   const comando = comandoDa(input.azione, input.scelta, input.giorno, input.ora)
   const ref = getFirestore().doc(`salons/${input.salonId}/richieste/${input.id}`)
   const data = (await ref.get()).data()
-  if (!data) throw new HttpsError('not-found', 'Richiesta assente')
+  if (!data) throw erroreServer('not-found', 'richiesta_assente')
   const richiesta = leggiRichiesta(data)
   if (!richiesta) return { ok: false, errore: 'stato' }
 

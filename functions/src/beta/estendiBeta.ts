@@ -19,8 +19,8 @@ export async function estendiBetaPer(input: {
   posta?: Posta
 }): Promise<{ ok: true; scadeIl: string }> {
   richiediOperatore(input.token)
-  if (!salonIdValido(input.salonId)) nega('Accesso negato')
-  if (!giorniValidi(input.giorni)) nega('Durata non valida')
+  if (!salonIdValido(input.salonId)) nega('accesso_negato')
+  if (!giorniValidi(input.giorni)) nega('durata_non_valida')
   const salonId = input.salonId
   const giorni = input.giorni
   const adesso = input.adesso ?? new Date()
@@ -33,9 +33,9 @@ export async function estendiBetaPer(input: {
     const invitoSnap = await tx.get(invitoRef)
     const invito = invitoBetaDi(invitoSnap.data())
     const pro = proMainDi((await tx.get(proRef)).data())
-    if (!invito || invito.stato !== 'accettato' || !betaInCorso(pro, adesso) || !pro?.scadeIl) nega('La beta non è in corso')
+    if (!invito || invito.stato !== 'accettato' || !betaInCorso(pro, adesso) || !pro?.scadeIl) nega('beta_non_in_corso')
     const scadeIl = new Date(Date.parse(pro.scadeIl) + giorni * GIORNO_MS).toISOString()
-    if (Date.parse(scadeIl) > adesso.getTime() + 365 * GIORNO_MS) nega('Al massimo 365 giorni da oggi')
+    if (Date.parse(scadeIl) > adesso.getTime() + 365 * GIORNO_MS) nega('beta_massimo_giorni')
     const prima = invitoSnap.get('estensioni')
     const estensioni: Estensione[] = [...(Array.isArray(prima) ? prima : []), { il: ora, giorni, scadeIl }]
     tx.set(proRef, { scadeIl, betaFinoAl: scadeIl, updatedAt: ora }, { merge: true })
