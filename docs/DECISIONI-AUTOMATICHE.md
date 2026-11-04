@@ -400,3 +400,17 @@ Roberto ha scelto la proposta 2 «Tab in alto», con «Da fare oggi» e il panne
 - Scelta di Roberto: **c**.
 - Applicata così: «Salon» è il nome di marca del piano, uguale in italiano, inglese e spagnolo (anche lo spagnolo «Salón» del piano diventa «Salon», come nel logo). Solo il nome del piano: la parola comune resta («il salone», «salón cerrado», «Nome toelettatura»). Le chiavi interne restano `salone`. I loghi SVG non cambiano.
 - Testi: `saloneOmaggio`, `servizioSalonePer`, `teamCollegatiDettaglio`, `uteSalone`, `servizioSalone`, `profiloBaseTesto`, `servizioProIntro`, `sbloccaSalone`, `avvisaSalone`, `segnoSalone`, `proAccendi`, `proPianoSalone`, `sospesoDettaglio*`, `abbSalone` («Groomly Salon»); bollino `BollinoPiano` «SALON». Email delle functions: non nominano il piano. `hosting/salone/` è la pagina pubblica del singolo salone, non del piano: invariata.
+
+## Beta Plus e Salon — B1 Server beta (4 novembre 2026)
+
+Scelte di Roberto nel brainstorm: email al titolare per invito, ritiro/revoca, estensione, fine a 7 e 1 giorno; email a info@ per feedback e rifiuti; prova invitabile, piano manuale saltato; un solo avviso `avvisi/beta` con l'ultimo evento e promemoria ogni giorno alle 9. Scelte minori prese da B1:
+- `avvisi/beta` leggibile solo dal titolare (regola nuova); nuova callable `segnaAvvisoBeta` perché il client non scrive in `avvisi`.
+- I testi degli avvisi li traduce l'app (B3) da `tipo`; il documento porta `piano`, `scadeIl`, `giorni`, `testo`.
+- «Piano attivo che blocca» = piano vivo con fonte diversa da prova e beta (VIP a parte); vale sia per invitare sia per accettare.
+- Revoca di una beta già finita o sostituita: errore «La beta è già finita»; la revoca di un invito aperto diventa «invito ritirato» (avviso ed email).
+- Estensione solo con la beta in corso, dalla fine attuale, al massimo fino a 365 giorni da oggi; ogni estensione resta in `betaInviti.estensioni`.
+- Feedback degli ex beta accettato senza limite di tempo; `motivo` del rifiuto facoltativo lato server; con `pagheresti: 'no'` la fascia diventa null, con sì/forse può mancare.
+- `contatoriAdmin`: attività dall'ultimo accesso di Firebase Auth (`lastRefreshTime`, poi `lastSignInTime`), il più recente fra le persone del salone; un invito aperto ma scaduto conta come `scaduto`; aggiunti `inBeta` e `ultimoAccesso`.
+- Promemoria: uno per salone a giro; un `fine-1` segna anche `fine-7` e feedback; le «fine» sono legate alla `betaFinoAl`, quindi ripartono dopo un'estensione. «Finita» solo se il piano è tornato a Go.
+- Email senza pulsante («Apri Groomly: trovi tutto negli Avvisi»), perché l'app non apre link; cornice copiata da `avvolgi` di `emailHtml.ts`.
+- Collaudo con le funzioni compilate (`scripts/emu/beta.mjs`) perché le callable in emulatore rispondono INTERNAL.
