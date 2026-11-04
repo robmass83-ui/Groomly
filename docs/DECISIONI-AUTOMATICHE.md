@@ -482,4 +482,4 @@ Scelte prese da B4 senza Roberto:
 - **Parole da scrivere per confermare.** `delParola` e `b4ParolaAccendi` restano `ELIMINA` e `ACCENDI`, come in inglese, perché il codice le confronta fisse. `uteEliminaParola` e `bakParolaSostituisci` sono tedesche (`LÖSCHEN`, `ERSETZEN`) perché il controllo legge il catalogo.
 - **Età e sesso nella scheda.** `Adult` invece di `Erwachsen` e `Unbekannt` invece di `Keine Angabe`, per stare nei pulsanti affiancati a 320 px.
 - **Pagine per soli operatori.** Le chiavi dell'Admin Manager sono tradotte comunque: il catalogo le chiede tutte.
-- **Testi legati a regole italiane.** `authIvaForma` («11 Ziffern, ohne IT») e `linguaMessaggiDettaglio` sono tradotti alla lettera. Il secondo cita la vecchia regola della lingua: se T1 cambia l'italiano, va riallineato.
+- **Testi legati a regole italiane.** `authIvaForma` («11 Ziffern, ohne IT») è tradotto alla lettera.

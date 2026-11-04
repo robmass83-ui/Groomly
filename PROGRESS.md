@@ -347,5 +347,6 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Lunghezza a 320 px: controllata leggendo il codice e facendo i conti su larghezze e font, **non ancora su un telefono**. Tocca a T7. I punti da guardare: barra in basso, i tre pulsanti di chiusura in Home, età e sesso nella scheda.
 - 74 frasi uguali a inglese o italiano, tutte volute: elenco in `docs/superpowers/specs/2026-11-04-lingue-tedesco-design.md`, per il test di T1.
 - Termini nuovi nel glossario, scelte in `docs/DECISIONI-AUTOMATICHE.md`.
+- Da T1: `linguaClienti` e `linguaClientiDettaglio` in fondo con `// Lingue T1`, nuovo `linguaMessaggiDettaglio`. Le due chiavi nuove arrivano in `it.ts` con T1: su questo ramo da solo `tsc` le segnala come in più, unito a T1 no.
 - Da fare per T4: `homeAnnulla` copre sia «Annulla» sia l'annullamento nei toast, conviene dividerla.
 - `npm test` non eseguito: il worktree non ha `node_modules` e il file non è ancora importato da nessuno.
