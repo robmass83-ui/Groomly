@@ -351,3 +351,18 @@ Verifica sul codice del 25/10/2026, `main` a `41e6ea1`, prima di scrivere il pia
 - `APP_VERSION` passa a 1.1.97 una volta sola, alla fine, se `npm test` e `npm run build` sono verdi. `versionCode` 10197. APK `github` firmato con la chiave debug di oggi. AAB `play` con la chiave fuori dal repo, non caricato. `hosting/release.json` resta 1.1.96. Nessuna `gh release`.
 - Deploy di functions e hosting sì, se i test sono verdi e `release.json` non è stato alzato. L’APK nuovo non si copia in `hosting/groomly.apk`. Le regole Firestore non si pubblicano se il file non cambia. Se cambia, solo dopo la prova sull’emulatore con la forma dei salvataggi della versione pubblicata.
 - `mostraPiani` e `abbonamentiAttivi` restano false. App Check resta spento. Nessun dato di Laura, di `salon/shared` o di Troddioni.
+
+## A2 Proposte design (4/11/2026)
+
+Roberto ha scelto la proposta 2 «Tab in alto», con «Da fare oggi» e il pannello di accensione della 5. Spec: `docs/superpowers/specs/2026-11-04-admin-manager-design.md`. Scelte minori prese da A2:
+- Percorso `/impostazioni/admin-manager`; `/impostazioni/utenti` reindirizza.
+- Filtri dei saloni: in E tra gruppi diversi, in O nello stesso gruppo.
+- Niente «Ricorda invito»: non c'è nei contratti. Un invito scaduto si rifà.
+- I feedback «non visti» si segnano in locale, come i Suggerimenti.
+- Il motivo del «No grazie» è obbligatorio; «Più tardi» nasconde la card in Home per 3 giorni.
+- La riga «Invia feedback beta» resta per gli ex beta per 30 giorni.
+- Il benvenuto è senza genere («Ti diamo il benvenuto nella beta»).
+- La domanda di fine beta apre il modulo al passo 4, con «Pagheresti» già scelto e `fineBeta: true`.
+- Se l'offerta early adopter non c'è in una lingua, si usa il testo italiano.
+- Per accendere gli abbonamenti si scrive ACCENDI, come per Elimina.
+- Trovato: nessuna function scrive `mostraPiani`. Serve una callable operatore (B1).
