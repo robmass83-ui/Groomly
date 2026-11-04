@@ -85,4 +85,18 @@ describe('BetaProvider', () => {
     render(<BetaProvider><Mostra /></BetaProvider>)
     expect(screen.getByText('in-corso|titolare:false|non letti:0')).toBeInTheDocument()
   })
+
+  it('il collaboratore non riceve avvisi della beta', () => {
+    finto.account = { uid: 'u3', salonId: 'u1', role: 'collaboratore' }
+    finto.pro = { piano: 'pro', stato: 'attivo', fonte: 'beta', scadeIl: tra(5), exBeta: true, betaDal: tra(-25), betaFinoAl: tra(5) }
+    render(<BetaProvider><Mostra /></BetaProvider>)
+    expect(screen.getByText('in-corso|titolare:false|non letti:0')).toBeInTheDocument()
+  })
+
+  it('il socio riceve gli avvisi di fine', () => {
+    finto.account = { uid: 'u2', salonId: 'u1', role: 'socio' }
+    finto.pro = { piano: 'pro', stato: 'attivo', fonte: 'beta', scadeIl: tra(5), exBeta: true, betaDal: tra(-3), betaFinoAl: tra(5) }
+    render(<BetaProvider><Mostra /></BetaProvider>)
+    expect(screen.getByText('in-corso|titolare:false|non letti:1')).toBeInTheDocument()
+  })
 })

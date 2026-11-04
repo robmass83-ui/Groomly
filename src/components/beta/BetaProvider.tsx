@@ -76,6 +76,8 @@ export function BetaProvider({ children }: { children: ReactNode }) {
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const salonId = account ? account.salonId || account.uid : ''
   const titolare = !!account && (account.role === undefined || account.role === 'titolare') && salonId === account.uid
+  // Il collaboratore vede il piano e il BETA, ma niente feedback né avvisi della beta.
+  const collaboratore = account?.role === 'collaboratore'
   const [invito, setInvito] = useState<InvitoBeta | null>(null)
   const [invitoPronto, setInvitoPronto] = useState(false)
   const [adesso, setAdesso] = useState(() => new Date())
@@ -143,7 +145,7 @@ export function BetaProvider({ children }: { children: ReactNode }) {
 
   const valore = useMemo<ValoreBeta>(() => {
     const stato = faseBeta({ invito: titolare ? invito : null, stato: piano.stato, traccia: piano.traccia ?? {}, adesso })
-    const avvisi = avvisiBeta(stato, adesso, { feedbackInviatoIl })
+    const avvisi = collaboratore ? [] : avvisiBeta(stato, adesso, { feedbackInviatoIl })
     return {
       ...stato,
       pronto: invitoPronto && piano.pronto !== false,
@@ -156,7 +158,7 @@ export function BetaProvider({ children }: { children: ReactNode }) {
       feedbackInviatoIl,
       ricordaFeedback,
     }
-  }, [invito, invitoPronto, titolare, salonId, piano.stato, piano.traccia, piano.pronto, adesso, letti, feedbackInviatoIl, segnaLetto, ricordaFeedback])
+  }, [invito, invitoPronto, titolare, collaboratore, salonId, piano.stato, piano.traccia, piano.pronto, adesso, letti, feedbackInviatoIl, segnaLetto, ricordaFeedback])
 
   return <BetaContext.Provider value={valore}>{children}</BetaContext.Provider>
 }
