@@ -489,4 +489,25 @@ describe('regole Firestore sull’emulatore', () => {
     await assertFails(setDoc(doc(operatore, 'config', 'globale'), { piani: { provaSelfService: true } }, { merge: true }))
     await assertFails(getDocs(collection(operatore, 'salons', SALON, 'interesse')))
   })
+  it('avviso beta: lo legge solo il titolare, nessuno lo scrive; avvisi/piano resta del salone', async () => {
+    const SOCIO = 'uid-socio'
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'accounts', SOCIO), { salonId: SALON, role: 'socio', legacy: false })
+      await setDoc(doc(db, 'salons', SALON, 'avvisi', 'beta'), { tipo: 'invito', piano: 'pro', letto: false })
+      await setDoc(doc(db, 'salons', SALON, 'avvisi', 'piano'), { testo: 'x', letto: false })
+    })
+    const titolare = env.authenticatedContext(ALTRO).firestore()
+    const socio = env.authenticatedContext(SOCIO).firestore()
+    const collab = env.authenticatedContext(COLLAB).firestore()
+    const estraneo = env.authenticatedContext('uid-altro-account').firestore()
+
+    await assertSucceeds(getDoc(doc(titolare, 'salons', SALON, 'avvisi', 'beta')))
+    await assertFails(getDoc(doc(socio, 'salons', SALON, 'avvisi', 'beta')))
+    await assertFails(getDoc(doc(collab, 'salons', SALON, 'avvisi', 'beta')))
+    await assertFails(getDoc(doc(estraneo, 'salons', SALON, 'avvisi', 'beta')))
+    await assertFails(setDoc(doc(titolare, 'salons', SALON, 'avvisi', 'beta'), { letto: true }, { merge: true }))
+    await assertFails(setDoc(doc(socio, 'salons', SALON, 'avvisi', 'beta'), { letto: true }))
+    await assertSucceeds(getDoc(doc(socio, 'salons', SALON, 'avvisi', 'piano')))
+  })
 })

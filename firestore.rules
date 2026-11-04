@@ -273,12 +273,17 @@ service cloud.firestore {
     match /salons/{salonId}/avvisiAttesa/{id} {
       allow read, write: if canUse(salonId);
     }
+    // L'avviso della beta (invito, revoca, promemoria) lo legge solo il titolare; lo scrivono solo le functions.
+    match /salons/{salonId}/avvisi/beta {
+      allow read: if owns(salonId) && memberRole() == 'titolare';
+      allow write: if false;
+    }
     match /salons/{salonId}/{kind}/{id} {
-      allow read: if canUse(salonId);
+      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta');
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
     match /salons/{salonId}/{kind}/{id}/{rest=**} {
-      allow read: if canUse(salonId);
+      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta');
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
 
