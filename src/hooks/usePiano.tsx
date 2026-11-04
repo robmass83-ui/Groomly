@@ -5,7 +5,7 @@ import { currentSalonId } from '../data/firebase/salonRoot'
 import { livelloElenco } from '../lib/funzioniPiano'
 import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, tracciaBetaDi, type FeatureKey, type ProMain, type StatoPiano, type TracciaBeta } from '../lib/piano'
-import { CONFIG_PIANI_DEFAULT, leggiConfigPiani, provaSelfServiceConcessa, type ConfigPiani } from '../lib/configPiani'
+import { CONFIG_PIANI_DEFAULT, datiAcquistoPiano, leggiConfigPiani, provaSelfServiceConcessa, type ConfigPiani, type DatiAcquistoPiano } from '../lib/configPiani'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
@@ -38,6 +38,8 @@ export type PianoValore = {
   // Traccia della beta (exBeta, date, early adopter) e blocco piani di config/globale.
   traccia?: TracciaBeta
   configPiani?: ConfigPiani
+  // Fase 4: chiave e offering RevenueCat, offerta fondatori e data di partenza dei pagamenti.
+  acquisto?: DatiAcquistoPiano
 }
 
 const spento: PianoValore = {
@@ -204,6 +206,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       pausa: leggiPausa(pro?.pausa),
       traccia: tracciaBetaDi(pro),
       configPiani: leggiConfigPiani(config),
+      acquisto: datiAcquistoPiano(config, pro),
     }
   }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
 

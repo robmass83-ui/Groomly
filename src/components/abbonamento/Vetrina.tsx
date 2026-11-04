@@ -7,15 +7,15 @@ import iconaSalone from '../../assets/brand/groomly-salon-icon-tonda.svg'
 import scrittaSalone from '../../assets/brand/groomly-salon-scritta-scura.svg'
 import { usePiano } from '../../hooks/usePiano'
 import { useSession } from '../../hooks/useSession'
-import { useFrasi } from '../../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import type { Chiave } from '../../i18n/t'
 import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, offertaPiano } from '../../lib/abbonamento'
-import { compra } from '../../lib/billing'
 import { PRO_SEAT_LIMIT } from '../../lib/salonAccess'
 import { useBeta } from '../beta/BetaProvider'
 import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
+import { useAcquisto } from './useAcquisto'
 
 type PianoPagato = 'plus' | 'salone'
 
@@ -103,6 +103,9 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
   const [avvisato, setAvvisato] = useState(false)
   // Chi ha un invito aperto per questo piano non deve chiedere di essere avvisato: lo apre.
   const invitoQui = avvisami && beta.invitoValido && (beta.piano === 'salone' ? 'salone' : 'plus') === piano
+  const acquisto = useAcquisto(piano, () => setInArrivo(true))
+  const { lingua } = useLingua()
+  const offertaEarly = stato.acquisto?.earlyAdopter ? (stato.acquisto.offertaEarly[lingua] || stato.acquisto.offertaEarly.it) : ''
 
   function abbonati() {
     if (offerta.acquisto === 'avvisami') {
@@ -112,8 +115,7 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
       toast.show(frasi.vetTiAvviseremo, 'ok')
       return
     }
-    // Finché il Play Store non è collegato, compra risponde «spento» e mostriamo «In arrivo».
-    if (compra(stato.abbonamentiAttivi).stato === 'spento') setInArrivo(true)
+    acquisto.abbonati()
   }
 
   const etichettaAcquisto = avvisami
@@ -189,9 +191,13 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
                 <FlaskConical size={17} strokeWidth={2.4} aria-hidden />{frasi.betaApriInvito}
               </button>
             ) : (
-              <button type="button" onClick={abbonati} style={principale}>{etichettaAcquisto}</button>
+              <button type="button" onClick={abbonati} disabled={acquisto.inCorso} style={principale}>{acquisto.inCorso ? frasi.b4Attendi : etichettaAcquisto}</button>
             )}
+            {offerta.acquisto === 'abbonati' && offertaEarly ? <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 700 }}>{offertaEarly}</p> : null}
             <p style={{ margin: provaDisponibile ? 0 : '8px 0 0', fontSize: 12, opacity: 0.85 }}>{avvisami ? frasi.vetNessunPagamento : frasi.abbDisdici}</p>
+            {offerta.acquisto === 'abbonati' ? (
+              <button type="button" onClick={acquisto.ripristina} disabled={acquisto.inCorso} style={{ minHeight: 36, padding: '0 12px', border: 0, background: 'transparent', color: '#fff', font: 'inherit', fontSize: 13, textDecoration: 'underline', textUnderlineOffset: 3 }}>{frasi.b4Ripristina}</button>
+            ) : null}
           </>
         )}
       </footer>
@@ -199,6 +205,7 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
         <p style={{ margin: 0, lineHeight: 1.45 }}>{frasi.abbInArrivoTesto}</p>
         <Button onClick={() => setInArrivo(false)}>{frasi.notCapito}</Button>
       </Dialog>
+      {acquisto.dialogo}
     </div>
   )
 }

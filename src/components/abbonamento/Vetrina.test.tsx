@@ -17,6 +17,15 @@ vi.mock('../../data/firebase/client', async () => {
   return { ...actual, scriviInteresse }
 })
 
+const { avviaAcquisto, ripristinaAcquisti } = vi.hoisted(() => ({
+  avviaAcquisto: vi.fn(async (_d: unknown) => 'ok' as string),
+  ripristinaAcquisti: vi.fn(async (_d: unknown) => 'ok' as string),
+}))
+vi.mock('../../lib/billing', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/billing')>('../../lib/billing')
+  return { ...actual, avviaAcquisto, ripristinaAcquisti }
+})
+
 const pianoForzato = vi.hoisted(() => ({ valore: null as PianoValore | null }))
 vi.mock('../../hooks/usePiano', async () => {
   const actual = await vi.importActual<typeof import('../../hooks/usePiano')>('../../hooks/usePiano')
@@ -41,17 +50,20 @@ function pianoDa(doc: ProMain | undefined, abbonamentiAttivi = false): PianoValo
     prova: async () => undefined,
     avvisa: async () => undefined,
     pronto: true,
+    acquisto: { chiaveSdk: 'goog_x', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '' }, pagamentiDal: null },
   }
 }
 
 async function monta(doc: ProMain | undefined, abbonamentiAttivi = false, piano: 'plus' | 'salone' = 'plus') {
   await createAccount('ada@salone.it', 'segretissimo')
   pianoForzato.valore = pianoDa(doc, abbonamentiAttivi)
-  render(
+  const vista = () => (
     <Providers>
       <MemoryRouter><Vetrina piano={piano} /></MemoryRouter>
-    </Providers>,
+    </Providers>
   )
+  const { rerender } = render(vista())
+  return { aggiorna: (nuovo: ProMain | undefined) => { pianoForzato.valore = pianoDa(nuovo, abbonamentiAttivi); rerender(vista()) } }
 }
 
 describe('Vetrina Plus', () => {
@@ -59,6 +71,9 @@ describe('Vetrina Plus', () => {
     localStorage.clear()
     pianoForzato.valore = null
     scriviInteresse.mockClear()
+    avviaAcquisto.mockReset()
+    avviaAcquisto.mockResolvedValue('ok')
+    ripristinaAcquisti.mockClear()
   })
 
   it('con Plus sospeso la vetrina di Plus non offre la prova gratis', async () => {
@@ -155,5 +170,67 @@ describe('Vetrina Plus', () => {
     await monta({ piano: 'pro', stato: 'sospeso', fonte: 'play', scadeIl: '2026-10-20T00:00:00.000Z' }, true)
     expect(await screen.findByRole('button', { name: 'Abbonati' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Avvisami' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Vetrina con gli abbonamenti accesi', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pianoForzato.valore = null
+    avviaAcquisto.mockReset()
+    avviaAcquisto.mockResolvedValue('ok')
+    ripristinaAcquisti.mockClear()
+  })
+
+  it('spenti: Avvisami non avvia nessun acquisto', async () => {
+    const user = userEvent.setup()
+    await monta(undefined, false, 'salone')
+    await user.click(await screen.findByRole('button', { name: 'Avvisami' }))
+    expect(avviaAcquisto).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Ripristina acquisti' })).not.toBeInTheDocument()
+  })
+
+  it('senza chiave o prodotti: messaggio gentile', async () => {
+    const user = userEvent.setup()
+    avviaAcquisto.mockResolvedValue('non-disponibile')
+    await monta({ piano: 'base', provaUsata: true }, true, 'salone')
+    await user.click(await screen.findByRole('button', { name: 'Abbonati' }))
+    expect(await screen.findByText('Abbonamento momentaneamente non disponibile. Riprova più tardi.')).toBeInTheDocument()
+    expect(avviaAcquisto).toHaveBeenCalledWith(expect.objectContaining({ piano: 'salone', earlyAdopter: false, abbonamentiAttivi: true, chiaveSdk: 'goog_x' }))
+  })
+
+  it('in beta avvisa che i giorni gratis finiscono, poi compra', async () => {
+    const user = userEvent.setup()
+    await monta({ piano: 'salone', stato: 'attivo', fonte: 'beta', scadeIl: '2026-12-20T00:00:00.000Z' }, true, 'salone')
+    await user.click(await screen.findByRole('button', { name: 'Abbonati' }))
+    expect(await screen.findByText('La beta gratuita finisce adesso')).toBeInTheDocument()
+    expect(avviaAcquisto).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'Continua' }))
+    await waitFor(() => expect(avviaAcquisto).toHaveBeenCalledTimes(1))
+  })
+
+  it('dopo il pagamento aspetta il piano Play e poi dice che è attivo', async () => {
+    const user = userEvent.setup()
+    const { aggiorna } = await monta({ piano: 'base', provaUsata: true }, true)
+    await user.click(await screen.findByRole('button', { name: 'Abbonati' }))
+    expect(await screen.findByText('Pagamento ricevuto, attivo il piano…')).toBeInTheDocument()
+    aggiorna({ piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: '2026-12-01T10:00:00.000Z' })
+    expect(await screen.findByText('Fatto! Il piano è attivo.')).toBeInTheDocument()
+  })
+
+  it('annullato dall’utente: nessun dialogo', async () => {
+    const user = userEvent.setup()
+    avviaAcquisto.mockResolvedValue('annullato')
+    await monta({ piano: 'base', provaUsata: true }, true)
+    await user.click(await screen.findByRole('button', { name: 'Abbonati' }))
+    await waitFor(() => expect(avviaAcquisto).toHaveBeenCalled())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('ripristina acquisti', async () => {
+    const user = userEvent.setup()
+    await monta({ piano: 'base', provaUsata: true }, true)
+    await user.click(await screen.findByRole('button', { name: 'Ripristina acquisti' }))
+    expect(await screen.findByText('Acquisti ripristinati')).toBeInTheDocument()
   })
 })

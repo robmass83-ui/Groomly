@@ -339,7 +339,7 @@ describe('footer fisso della pagina del piano', () => {
     expect(within(footer).getByText('/ mese')).toBeInTheDocument()
     expect(within(footer).getByText('30 giorni gratis, poi 9,99 €/mese')).toBeInTheDocument()
     const bottoni = within(footer).getAllByRole('button')
-    expect(bottoni.map((b) => b.textContent)).toEqual(['Prova Plus gratis per 30 giorni', 'Abbonati'])
+    expect(bottoni.map((b) => b.textContent)).toEqual(['Prova Plus gratis per 30 giorni', 'Abbonati', 'Ripristina acquisti'])
     expect(bottoni[1].getAttribute('style')).toContain('text-decoration: underline')
     expect(within(footer).getByText('Disdici quando vuoi')).toBeInTheDocument()
     // Il prezzo grande sotto lo slogan non c'è più: il prezzo sta solo nel footer.
@@ -350,14 +350,14 @@ describe('footer fisso della pagina del piano', () => {
     await apri('/impostazioni/abbonamento/plus', 'base')
     const footer = await screen.findByRole('contentinfo')
     expect(within(footer).queryByText('30 giorni gratis, poi 9,99 €/mese')).not.toBeInTheDocument()
-    expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati'])
+    expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati', 'Ripristina acquisti'])
   })
 
   it('Salone: 19,99 €, solo Abbonati, e i posti del team con il loro numero', async () => {
     await apri('/impostazioni/abbonamento/salone', 'base', undefined, { provaConcessa: true })
     const footer = await screen.findByRole('contentinfo')
     expect(within(footer).getByText('19,99 €')).toBeInTheDocument()
-    expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati'])
+    expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati', 'Ripristina acquisti'])
     expect(screen.getByText('Fino a 3 tra collaboratori e soci')).toBeInTheDocument()
     expect(screen.queryByText('Posti extra per il team')).not.toBeInTheDocument()
   })

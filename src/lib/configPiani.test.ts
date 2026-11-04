@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CONFIG_PIANI_DEFAULT, leggiConfigPiani, provaSelfServiceAccesa, provaSelfServiceConcessa } from './configPiani'
+import { CONFIG_PIANI_DEFAULT, datiAcquistoPiano, leggiConfigPiani, provaSelfServiceAccesa, provaSelfServiceConcessa } from './configPiani'
 
 describe('config dei piani', () => {
   it('di default è tutto spento', () => {
@@ -9,7 +9,17 @@ describe('config dei piani', () => {
       offertaEarlyAdopter: { it: '', en: '', es: '' },
       revenueCat: { chiaveSdk: '', offeringId: 'groomly_standard' },
       annuncioPagamentiIl: null,
+      pagamentiDal: null,
+      confermaFiscaleIl: null,
+      accesiIl: null,
     })
+  })
+
+  it('legge le date della fase 4 solo se valide', () => {
+    const piani = leggiConfigPiani({ piani: { pagamentiDal: '2027-01-01T00:00:00.000Z', confermaFiscaleIl: 'x', accesiIl: 4 } })
+    expect(piani.pagamentiDal).toBe('2027-01-01T00:00:00.000Z')
+    expect(piani.confermaFiscaleIl).toBeNull()
+    expect(piani.accesiIl).toBeNull()
   })
 
   it('config assente o rotta → default', () => {
@@ -43,5 +53,17 @@ describe('prova self-service per l’app', () => {
     expect(provaSelfServiceConcessa(undefined, undefined, adesso)).toBe(false)
     expect(provaSelfServiceConcessa({ piani: { provaSelfService: true } }, undefined, adesso)).toBe(true)
     expect(provaSelfServiceConcessa({ piani: { provaSelfService: true } }, { piano: 'base', provaUsata: true }, adesso)).toBe(false)
+  })
+})
+
+describe('dati per l’acquisto', () => {
+  it('config e traccia early adopter del salone, con ripieghi', () => {
+    expect(datiAcquistoPiano(undefined, undefined)).toEqual({
+      chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '' }, pagamentiDal: null,
+    })
+    expect(datiAcquistoPiano(
+      { piani: { revenueCat: { chiaveSdk: 'goog_x' }, offertaEarlyAdopter: { it: 'Metà prezzo' }, pagamentiDal: '2027-01-01T00:00:00.000Z' } },
+      { piano: 'pro', fonte: 'beta', earlyAdopter: true },
+    )).toMatchObject({ chiaveSdk: 'goog_x', earlyAdopter: true, offertaEarly: { it: 'Metà prezzo' }, pagamentiDal: '2027-01-01T00:00:00.000Z' })
   })
 })

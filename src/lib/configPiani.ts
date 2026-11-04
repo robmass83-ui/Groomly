@@ -1,5 +1,5 @@
 import { OFFERING_ID } from './idAbbonamenti'
-import { provaConcessa, type ProMain } from './piano'
+import { provaConcessa, tracciaBetaDi, type ProMain } from './piano'
 
 // Impostazioni del programma beta e dei pagamenti, nel blocco `piani` di config/globale.
 // Le scrive solo la callable operatore impostaConfigPiani; mostraPiani e abbonamentiAttivi restano in radice.
@@ -12,6 +12,11 @@ export interface ConfigPiani {
   // Chiave pubblica dell'SDK Android ('goog_…'): non è un segreto.
   revenueCat: { chiaveSdk: string; offeringId: string }
   annuncioPagamentiIl: string | null
+  // Fase 4: data di partenza dei pagamenti scelta all'annuncio, conferma «ho Partita IVA», ultima accensione.
+  // Le scrivono solo le callable degli abbonamenti, non impostaConfigPiani.
+  pagamentiDal: string | null
+  confermaFiscaleIl: string | null
+  accesiIl: string | null
 }
 
 export type ModificheConfigPiani = Partial<{
@@ -33,6 +38,9 @@ export const CONFIG_PIANI_DEFAULT: ConfigPiani = {
   offertaEarlyAdopter: { it: '', en: '', es: '' },
   revenueCat: { chiaveSdk: '', offeringId: OFFERING_ID },
   annuncioPagamentiIl: null,
+  pagamentiDal: null,
+  confermaFiscaleIl: null,
+  accesiIl: null,
 }
 
 function oggetto(value: unknown): Record<string, unknown> {
@@ -63,6 +71,9 @@ export function leggiConfigPiani(globale: unknown): ConfigPiani {
       offeringId: typeof rc.offeringId === 'string' && rc.offeringId !== '' ? rc.offeringId : d.revenueCat.offeringId,
     },
     annuncioPagamentiIl: dataIsoValida(piani.annuncioPagamentiIl) ? piani.annuncioPagamentiIl : null,
+    pagamentiDal: dataIsoValida(piani.pagamentiDal) ? piani.pagamentiDal : null,
+    confermaFiscaleIl: dataIsoValida(piani.confermaFiscaleIl) ? piani.confermaFiscaleIl : null,
+    accesiIl: dataIsoValida(piani.accesiIl) ? piani.accesiIl : null,
   }
 }
 
@@ -73,4 +84,24 @@ export function provaSelfServiceAccesa(globale: unknown): boolean {
 // Cosa vede l'app: «Prova gratis» solo se l'operatore l'ha accesa e il salone non ha mai avuto Plus (stessa regola del server).
 export function provaSelfServiceConcessa(globale: unknown, doc: ProMain | undefined, adesso: Date): boolean {
   return provaSelfServiceAccesa(globale) && provaConcessa(doc, adesso)
+}
+
+// Quello che serve alla vetrina per comprare: chiave e offering dalla config, offerta fondatori se il salone è early adopter.
+export interface DatiAcquistoPiano {
+  chiaveSdk: string
+  offeringId: string
+  earlyAdopter: boolean
+  offertaEarly: Record<LinguaOfferta, string>
+  pagamentiDal: string | null
+}
+
+export function datiAcquistoPiano(globale: unknown, pro: unknown): DatiAcquistoPiano {
+  const piani = leggiConfigPiani(globale)
+  return {
+    chiaveSdk: piani.revenueCat.chiaveSdk,
+    offeringId: piani.revenueCat.offeringId,
+    earlyAdopter: tracciaBetaDi(pro).earlyAdopter === true,
+    offertaEarly: piani.offertaEarlyAdopter,
+    pagamentiDal: piani.pagamentiDal,
+  }
 }

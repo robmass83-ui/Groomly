@@ -33,15 +33,33 @@ rimborsi, IVA a carico di Google, recesso). Quando si accende il pagamento basta
       Su ogni piano base un'offerta `early-adopter` con idoneità «decisa dallo sviluppatore» (prezzo di favore per ex beta ed early adopter).
       In RevenueCat: entitlement `plus` (prodotti Plus) e `salone` (prodotti Salone); offering `groomly_standard` con i pacchetti
       `plus_mensile`, `plus_annuale`, `salone_mensile`, `salone_annuale`, `posto_extra_mensile`, `posto_extra_annuale`. ID prodotto in RevenueCat: `groomly_plus:mensile` ecc.
+- [ ] Sull'offerta `early-adopter` aggiungere anche il **tag** `early-adopter` e il tag **`rc-ignore-offer`**: così RevenueCat non la propone da sola a chi non è early adopter (l'app la sceglie solo per i saloni con `earlyAdopter`).
 - [ ] **Sicurezza dei dati**: aggiungere «Informazioni finanziarie → Cronologia acquisti» (raccolta, non condivisa).
 - [ ] **Classificazione dei contenuti**: alla domanda «L'app consente di acquistare beni digitali?» rispondere **Sì**.
 - [ ] License tester per provare gli acquisti senza pagare (checklist §9.7 in `DA-FARE-ROBERTO.md`).
 
-## 3. App (lo fa Cursor)
-- [ ] RevenueCat: progetto, chiavi `REVENUECAT_API_KEY` e `REVENUECAT_WEBHOOK_AUTH`, pacchetto
-      `@revenuecat/purchases-capacitor`.
-- [ ] Accendere prima `mostraPiani` (si vedono piani e prova), poi `abbonamentiAttivi` (si può comprare).
-- [ ] Avviso nell'app **15 giorni prima** che partano i pagamenti (lo promettono i termini, punto 3 e punto 8).
+## 3. App — il codice è pronto e spento (B4, 4/11/2026)
+Già fatto nel codice: pacchetto `@revenuecat/purchases-capacitor` 14.0.0 (permesso di fatturazione solo nell'AAB `play`),
+acquisto del mensile dalla vetrina, ripristino acquisti, salone collegato a RevenueCat (`appUserID` = ID del salone),
+webhook che aggiorna il piano (attivo, rinnovo, grazia, disdetta, scadenza; un salone in beta passa a Play senza buchi),
+offerta fondatori per gli early adopter, annuncio con email, controllo pre-accensione, accensione e spegnimento dall'Admin Manager.
+
+**Subito, gratis** (anche prima della Partita IVA):
+- [ ] **Segreti nelle functions, prima del prossimo deploy** (senza, il deploy si ferma). Va bene un valore provvisorio:
+      `npx firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH` e `npx firebase functions:secrets:set REVENUECAT_API_KEY`.
+- [ ] Account RevenueCat, progetto Groomly, app Android `it.groomly.app` collegata alla Play Console con un account di servizio Google Cloud.
+- [ ] Chiave **segreta V2** (Project settings → API keys → New → V2, permessi in lettura su offerings, packages, products): va in `REVENUECAT_API_KEY`.
+- [ ] ID del progetto RevenueCat in `functions/.env` come `REVENUECAT_PROJECT_ID=…` (non è un segreto).
+- [ ] Chiave pubblica SDK Android (`goog_…`): Admin Manager → Piani → RevenueCat.
+- [ ] Webhook in RevenueCat: URL `https://europe-west1-groomly-3128b.cloudfunctions.net/rcWebhook`, header di autorizzazione uguale a `REVENUECAT_WEBHOOK_AUTH`. Premere «Send test event»: nel pannello di accensione la voce «Webhook attivo» diventa verde.
+- [ ] Entitlement `plus` e `salone`, offering `groomly_standard` con i 6 pacchetti (ID sopra).
+- [ ] Facoltativo: provare il flusso con il **Test Store** di RevenueCat (chiave `test_…`, solo build di debug, sugli emulatori): mostra una finestra con «acquisto riuscito / fallito / annulla». Non mettere mai la chiave `test_…` in produzione: il controllo la segna rossa.
+
+**Il giorno dei pagamenti**, in quest'ordine:
+- [ ] Partita IVA, profilo pagamenti, prodotti in Play Console con gli ID fissati, license tester.
+- [ ] Admin Manager → Piani → **Annuncio pagamenti**: scegli la data di partenza (almeno 15 giorni dopo). Parte l'avviso in Home a tutti i titolari e l'email a ex beta ed early adopter (lo promettono i termini, punto 3 e punto 8).
+- [ ] Accendere prima `mostraPiani` (si vedono i piani), poi, dalla data scelta, il **pannello di accensione**: tutte e 5 le voci verdi (chiave, offering completo, webhook, annuncio da 15 giorni, conferma «ho Partita IVA e profilo pagamenti»), poi doppia conferma con ACCENDI.
+- [ ] **Spegnere** rimette tutto come in beta. Chi ha già pagato tiene il piano **e continua a rinnovarsi** finché non disdice: per fermare tutti i rinnovi si agisce da Play Console.
 
 ## 4. Pagine legali
 - [ ] Aggiornare la data e la versione dei termini e della privacy. Scrivere la partita IVA e la sede (partita IVA o domicilio d'impresa), non l'indirizzo di casa.
