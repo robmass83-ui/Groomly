@@ -22,7 +22,7 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
   - Collaudo server `scripts/emu/beta.mjs`: 13/13 sul codice unito.
   - Collaudo dell'app sugli emulatori a 360×640, chiaro e scuro: card e pagina dell'invito, badge BETA e giorni, modulo feedback, Admin Manager (tab Beta, dettaglio, Piani). Dati di test cancellati.
   - Guida all'uso: `docs/GUIDA-ADMIN-MANAGER.md`.
-  - **Per pubblicare:** creare i segreti `REVENUECAT_WEBHOOK_AUTH` e `REVENUECAT_API_KEY` (anche provvisori), poi il deploy di functions e `firestore:rules`, poi l'APK con `npx cap sync android`.
+  - Pubblicata il 4/11: push, regole, indici, 65 functions, APK 1.1.189 (firma 96dafbcd… verificata), release GitHub, hosting. Segreti RevenueCat creati, `REVENUECAT_PROJECT_ID` in `functions/.env` (non versionato). Webhook: `https://rcwebhook-nyt2jddsxa-ew.a.run.app` (senza chiave risponde 401), da configurare in RevenueCat.
   - Aperti, minori:
     - notifiche push della beta non fatte, solo avvisi in app ed email;
     - il pannello di accensione resta su «Controllo…» se la verifica fallisce, senza «Riprova»;
