@@ -37,6 +37,8 @@ import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import type { SceltaSalonePersonale } from '../../lib/pausaSalone'
 import { livelloElenco } from '../../lib/funzioniPiano'
+import { fonteDi } from '../../lib/piano'
+import { leggiConfigPiani, type ConfigPiani, type ModificheConfigPiani } from '../../lib/configPiani'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
@@ -561,6 +563,12 @@ export async function callSegnaAvvisoPiano(): Promise<void> {
 
 export async function callImpostaTour(acceso: boolean): Promise<void> {
   await callCallable('impostaTourBenvenuto', { acceso })
+}
+
+/** Solo operatori: cambia i campi passati del blocco `piani` di config/globale e restituisce la config completa. */
+export async function callImpostaConfigPiani(modifiche: ModificheConfigPiani): Promise<ConfigPiani> {
+  const esito = await callCallableData('impostaConfigPiani', modifiche)
+  return leggiConfigPiani({ piani: (esito as { piani?: unknown } | null)?.piani })
 }
 
 /** Data di creazione dell'account in ISO; null se assente o illeggibile. */
@@ -2142,7 +2150,7 @@ export async function listSalonDirectory(): Promise<SalonDirectory> {
           enabled = data?.enabled === true
           const piano = data?.piano === 'base' || data?.piano === 'pro' || data?.piano === 'salone' ? data.piano : undefined
           const stato = data?.stato === 'attivo' || data?.stato === 'prova' || data?.stato === 'grazia' || data?.stato === 'sospeso' || data?.stato === 'disdetto' || data?.stato === 'scaduto' ? data.stato : undefined
-          const fonte = data?.fonte === 'play' || data?.fonte === 'prova' || data?.fonte === 'omaggio' || data?.fonte === 'manuale' ? data.fonte : null
+          const fonte = fonteDi(data?.fonte)
           const scadeIl = typeof data?.scadeIl === 'string' || data?.scadeIl === null ? data.scadeIl : undefined
           return {
             uid: account.uid,

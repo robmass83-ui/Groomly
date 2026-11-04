@@ -8,7 +8,34 @@ const STATI_PIANO = new Set<string>(['attivo', 'prova', 'grazia', 'sospeso', 'di
 export function statoPianoNome(value: unknown): StatoPianoNome | undefined {
   return typeof value === 'string' && STATI_PIANO.has(value) ? value as StatoPianoNome : undefined
 }
-export type FontePiano = 'play' | 'prova' | 'omaggio' | 'manuale'
+// L'unico elenco delle fonti: app, functions e admin leggono la fonte con fonteDi.
+export const FONTI_PIANO = ['play', 'prova', 'omaggio', 'manuale', 'beta'] as const
+export type FontePiano = typeof FONTI_PIANO[number]
+
+export function fonteDi(value: unknown): FontePiano | null {
+  return typeof value === 'string' && (FONTI_PIANO as readonly string[]).includes(value) ? value as FontePiano : null
+}
+
+// Traccia della beta: resta in pro/main anche dopo il ritorno a Go (nessuna scrittura la cancella).
+export interface TracciaBeta {
+  exBeta?: boolean
+  betaPiano?: 'pro' | 'salone'
+  betaDal?: string
+  betaFinoAl?: string
+  earlyAdopter?: boolean
+}
+
+export function tracciaBetaDi(doc: unknown): TracciaBeta {
+  if (!doc || typeof doc !== 'object') return {}
+  const grezzo = doc as Record<string, unknown>
+  const traccia: TracciaBeta = {}
+  if (typeof grezzo.exBeta === 'boolean') traccia.exBeta = grezzo.exBeta
+  if (grezzo.betaPiano === 'pro' || grezzo.betaPiano === 'salone') traccia.betaPiano = grezzo.betaPiano
+  if (typeof grezzo.betaDal === 'string') traccia.betaDal = grezzo.betaDal
+  if (typeof grezzo.betaFinoAl === 'string') traccia.betaFinoAl = grezzo.betaFinoAl
+  if (typeof grezzo.earlyAdopter === 'boolean') traccia.earlyAdopter = grezzo.earlyAdopter
+  return traccia
+}
 
 export type FeatureKey =
   | 'export' | 'backupAuto' | 'drive' | 'messaggiCategoria' | 'copieCloud'
@@ -16,7 +43,7 @@ export type FeatureKey =
   | 'prenotazioni' | 'listaAttesa' | 'recensioni' | 'fedelta'
   | 'team' | 'postiExtra'
 
-export interface ProMain {
+export interface ProMain extends TracciaBeta {
   piano?: Livello
   stato?: StatoPianoNome
   fonte?: FontePiano | null
@@ -72,12 +99,12 @@ function dataDi(value: string | null | undefined): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
-const FONTI_NON_PROVA = new Set<string>(['play', 'omaggio', 'manuale', 'prova'])
+const FONTI_NON_PROVA = new Set<string>(['play', 'omaggio', 'manuale', 'prova', 'beta'])
 
 export function provaConcessa(doc: ProMain | undefined, adesso: Date): boolean {
   if (!doc) return true
   if (statoPiano(doc, adesso).livello !== 'base') return false
-  if (doc.provaUsata === true) return false
+  if (doc.provaUsata === true || doc.exBeta === true) return false
   if (doc.piano === 'pro' || doc.piano === 'salone') return false
   if (doc.fonte && FONTI_NON_PROVA.has(doc.fonte)) return false
   return true

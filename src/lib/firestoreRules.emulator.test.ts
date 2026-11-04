@@ -445,4 +445,48 @@ describe('regole Firestore sull’emulatore', () => {
     })
     await assertSucceeds(updateDoc(doc(salone, 'accounts', ALTRO), { avvisiLettiFino: 123 }))
   })
+
+  it('inviti, feedback beta e config: solo le functions scrivono, il titolare legge solo il suo invito', async () => {
+    const SOCIO = 'uid-socio'
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'accounts', SOCIO), { salonId: SALON, role: 'socio', legacy: false })
+      await setDoc(doc(db, 'betaInviti', SALON), { salonId: SALON, piano: 'salone', stato: 'invitato' })
+      await setDoc(doc(db, 'betaInviti', SALON, 'storico', 'v1'), { stato: 'scaduto' })
+      await setDoc(doc(db, 'betaInviti', 'altro'), { salonId: 'altro', piano: 'pro', stato: 'invitato' })
+      await setDoc(doc(db, 'betaFeedback', 'f1'), { salonId: SALON, voto: 5 })
+      await setDoc(doc(db, 'betaFeedbackLimiti', SALON), { giorno: '2026-11-04', n: 1 })
+      await setDoc(doc(db, 'config', 'globale'), { mostraPiani: false, piani: { provaSelfService: false } })
+    })
+    const titolare = env.authenticatedContext(ALTRO).firestore()
+    const socio = env.authenticatedContext(SOCIO).firestore()
+    const collab = env.authenticatedContext(COLLAB).firestore()
+    const operatore = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true }).firestore()
+
+    await assertSucceeds(getDoc(doc(titolare, 'betaInviti', SALON)))
+    await assertFails(getDoc(doc(titolare, 'betaInviti', 'altro')))
+    await assertFails(getDoc(doc(titolare, 'betaInviti', SALON, 'storico', 'v1')))
+    await assertFails(getDoc(doc(socio, 'betaInviti', SALON)))
+    await assertFails(getDoc(doc(collab, 'betaInviti', SALON)))
+    await assertFails(setDoc(doc(titolare, 'betaInviti', SALON), { salonId: SALON, piano: 'salone', stato: 'accettato' }))
+    await assertFails(updateDoc(doc(titolare, 'betaInviti', SALON), { stato: 'accettato' }))
+    await assertFails(setDoc(doc(titolare, 'betaInviti', 'nuovo'), { stato: 'invitato' }))
+
+    await assertSucceeds(getDoc(doc(operatore, 'betaInviti', SALON)))
+    await assertSucceeds(getDoc(doc(operatore, 'betaInviti', SALON, 'storico', 'v1')))
+    await assertSucceeds(getDocs(collection(operatore, 'betaInviti')))
+    await assertFails(setDoc(doc(operatore, 'betaInviti', SALON), { stato: 'revocato' }))
+
+    await assertFails(getDoc(doc(titolare, 'betaFeedback', 'f1')))
+    await assertFails(setDoc(doc(titolare, 'betaFeedback', 'f2'), { salonId: SALON, voto: 1 }))
+    await assertSucceeds(getDocs(collection(operatore, 'betaFeedback')))
+    await assertFails(setDoc(doc(operatore, 'betaFeedback', 'f3'), { voto: 1 }))
+    await assertFails(getDoc(doc(operatore, 'betaFeedbackLimiti', SALON)))
+    await assertFails(setDoc(doc(titolare, 'betaFeedbackLimiti', SALON), { n: 0 }))
+
+    await assertSucceeds(getDoc(doc(titolare, 'config', 'globale')))
+    await assertFails(setDoc(doc(titolare, 'config', 'globale'), { piani: { provaSelfService: true } }, { merge: true }))
+    await assertFails(setDoc(doc(operatore, 'config', 'globale'), { piani: { provaSelfService: true } }, { merge: true }))
+    await assertFails(getDocs(collection(operatore, 'salons', SALON, 'interesse')))
+  })
 })

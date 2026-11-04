@@ -1,5 +1,6 @@
 import { getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
+import { provaSelfServiceAccesa } from '../../../src/lib/configPiani'
 import type { ProMain } from '../../../src/lib/piano'
 import { campiProva, decisioneProva, scriviPiano } from './scriviPiano'
 
@@ -17,6 +18,9 @@ export async function avviaProvaPer(
   const db = getFirestore()
   const ref = db.doc(`salons/${account.salonId}/pro/main`)
   await db.runTransaction(async (tx) => {
+    // La prova self-service è spenta finché l'operatore non accende provaSelfService; il «Regala 30 giorni» passa da impostaPianoManuale.
+    const config = await tx.get(db.doc('config/globale'))
+    if (!provaSelfServiceAccesa(config.data())) throw new HttpsError('failed-precondition', 'Prova non disponibile')
     const snap = await tx.get(ref)
     const decisione = decisioneProva(account.role, snap.data() as ProMain | undefined, adesso)
     if (!decisione.ok) throw new HttpsError('failed-precondition', decisione.message)

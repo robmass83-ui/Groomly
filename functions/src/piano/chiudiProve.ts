@@ -1,13 +1,13 @@
 import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
+import { fonteDi } from '../../../src/lib/piano'
 import { pianoScaduto, type CampiPiano } from './scriviPiano'
 
 function campiDi(data: DocumentData): CampiPiano {
   const piano = data.piano === 'pro' || data.piano === 'salone' ? data.piano : 'base'
   const stati = ['attivo', 'prova', 'grazia', 'sospeso', 'disdetto', 'scaduto'] as const
   const stato = stati.includes(data.stato) ? data.stato : 'scaduto'
-  const fonti = ['play', 'prova', 'omaggio', 'manuale'] as const
-  const fonte = fonti.includes(data.fonte) ? data.fonte : null
+  const fonte = fonteDi(data.fonte)
   return {
     piano,
     stato,

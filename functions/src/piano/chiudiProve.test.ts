@@ -54,4 +54,17 @@ describe('chiudiProveScadute', () => {
     expect(archivio.get('salons/c/pro/main')).toMatchObject({ piano: 'base', stato: 'scaduto' })
     expect(errore).toHaveBeenCalledWith('Piano scaduto non chiuso', expect.objectContaining({ path: 'salons/a/pro/main' }))
   })
+
+  it('chiude una beta scaduta e lascia la traccia', async () => {
+    archivio.clear()
+    archivio.set('salons/d/pro/main', {
+      piano: 'salone', stato: 'attivo', fonte: 'beta', scadeIl: passata, enabled: true,
+      exBeta: true, betaPiano: 'salone', betaDal: '2026-10-02T10:00:00.000Z', betaFinoAl: passata, earlyAdopter: true,
+    })
+    expect(await chiudiProveScadute(adesso)).toBe(1)
+    expect(archivio.get('salons/d/pro/main')).toMatchObject({
+      piano: 'base', stato: 'scaduto', fonte: null, enabled: false,
+      exBeta: true, betaPiano: 'salone', betaFinoAl: passata, earlyAdopter: true,
+    })
+  })
 })

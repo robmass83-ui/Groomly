@@ -214,6 +214,14 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Al merge: conflitto atteso in `SchedaAbbonamento.tsx` (riga della prova); chiavi nuove in `src/i18n/*`. Solo APK.
 - Lasciati, minori: prezzi oro/viola e «Attivo» oro in Abbonamento e bianco su oro della pagina Salone (file di altre sessioni); un colore del listino scelto dal salone poco scuro (es. #15905B) resta sotto 4,5 sul bianco; le icone sui fondi `--pri` in tema scuro ora sono scure; le etichette della barra (fondo a gradiente) e i fogli aperti da un'azione non sono misurati dallo script; il test della scrittura di `lastAt` copre solo la modalità locale.
 
+### Beta Plus/Salone — A1 Fondamenta (fase 1) — fatta sul ramo `claude/beta-a1-fondamenta-714da5`, non unita, non pubblicata
+- Spec `docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md` (sezione **Contratti** per l'ondata B), piano `docs/superpowers/plans/2026-11-04-beta-fondamenta.md`, decisioni D51–D54.
+- Fonte `beta` (`FONTI_PIANO`/`fonteDi` in `src/lib/piano.ts`, usata ovunque); traccia `exBeta`/`betaPiano`/`betaDal`/`betaFinoAl`/`earlyAdopter` mai cancellata; `campiBeta`/`tracciaBeta` in `scriviPiano.ts`; modelli `betaInvito.ts`, `betaFeedback.ts`; ID fissi `idAbbonamenti.ts` (anche in `PRIMA-DEI-PAGAMENTI.md`).
+- `config/globale.piani` (`configPiani.ts`) scritto dalla callable operatore `impostaConfigPiani` (client `callImpostaConfigPiani`).
+- **Prova self-service spenta**: `avviaProva` la rifiuta e l'app non mostra «Prova gratis» finché `piani.provaSelfService` non è vera. «Regala 30 giorni» invariato.
+- Regole: `betaInviti` (titolare legge il suo, storico solo operatori), `betaFeedback` (solo operatori), `betaFeedbackLimiti` chiusi; nessuna scrittura dal client.
+- Al merge: deploy functions (`avviaProva`, `impostaPianoManuale`, `chiudiProve`, nuova `impostaConfigPiani`) e **regole**; APK (vetrine senza prova). Nessuna interfaccia nuova.
+
 ## Ambiente di test (va rifatto in una sessione nuova)
 - Emulatori: `powershell Start-Process` staccato di `npx firebase emulators:start --only auth,firestore --config firebase.emu.json --project demo-groomly` con `JAVA_HOME` = jbr di Android Studio **e il suo `bin` davanti nel `PATH`** (`$env:PATH = "$jbrin;$env:PATH"`): con il solo `JAVA_HOME` firebase-tools prende il Java 17 del sistema e si ferma («no longer supports Java version before 21») (memoria `emulatori-java-credenziale`). Le callable in emulatore danno INTERNAL: per verificare il server si chiamano le funzioni compilate (`cd functions && npx tsc`, poi `functions/lib/functions/src/piano/*.js`) con script come `QA-tests/.qa-catalog/verify-a1.cjs`, `verify-a2.cjs`, `verify-a3.cjs`, `verify-a8-a9.cjs`, `verify-a7.cjs`. Per provare le callable nel browser: `verify-a7-browser.cjs` intercetta le chiamate a :5001 e le esegue con `.run()`.
 - App: `npx vite --mode emu --port 5173 --host 127.0.0.1` (staccato).
