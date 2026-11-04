@@ -14,9 +14,9 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 **Conteggio (4 novembre, dopo la 1.1.188):** critiche, alte, medie e basse dell'audit tutte chiuse. Le ultime sei righe di basse (Prenotazioni, Team, Animali e mensili, Account, Grafica, Telefono) sono state fatte in sessioni parallele, unite in `main` e pubblicate insieme nella 1.1.188.
 
 ## Stato di `main`
-- Ultima release: **1.1.188** (GitHub release v1.1.188 + hosting `release.json` aggiornati; functions ridistribuite il 4 novembre). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Ultima release: **1.1.189** (GitHub release v1.1.189 + hosting `release.json` aggiornati; functions ridistribuite il 4 novembre). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
 - Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`, `fix/medie-prenotazioni-online`, `fix/medie-piani`, `fix/medie-team-inviti`, `fix/medie-team-ruoli`, `fix/medie-agenda-incassi`, `fix/medie-animali-listino`, `fix/medie-account-profilo`, `fix/medie-home-telefono`, `fix/listino-razza-server`, `fix/basse-validazioni`.
-- **Beta Plus/Salon (4/11/2026) — unita in `main`, NON ancora pushata né pubblicata.**
+- **Beta Plus/Salon (4/11/2026) — unita in `main`, pubblicata con la 1.1.189.**
   - Ondate A (A1 fondamenta, A2 design, A3 nomi «Salon») e B (B1 server, B2 Admin Manager, B3 app del salone, B4 abbonamenti spenti) unite. Coordinamento in `docs/superpowers/specs/2026-11-04-beta-piani-ondate-coordinamento.md`. Il pannello di accensione di B4 è montato nel tab Piani.
   - Verifiche: app 3249/3250 (solo il noto `driveInvio`), functions 364/364, regole 24/24.
   - Collaudo server `scripts/emu/beta.mjs`: 13/13 sul codice unito.
