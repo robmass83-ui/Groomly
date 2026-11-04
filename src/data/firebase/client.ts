@@ -235,7 +235,7 @@ export async function callAvviaProva(): Promise<void> {
   await callCallable('avviaProva', {})
 }
 
-async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
+export async function callCallableData(name: string, data: Record<string, unknown>): Promise<unknown> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
   await attachEmulators('functions', functions)
