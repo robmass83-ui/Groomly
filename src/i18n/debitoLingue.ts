@@ -5,12 +5,7 @@ export const SEGNAPOSTO_AMMESSI = true
 
 /** File con catene di confronti sulla lingua in cui francese e tedesco cadono sull'italiano. */
 export const DEBITO_CATENE = [
-  'functions/src/piano/emailEliminazione.ts',
-  'functions/src/piano/gestisciPrenotazione.ts',
-  'functions/src/piano/rispondiRichiesta.ts',
   'src/components/piano/RiquadroRichiesta.tsx',
-  'src/i18n/emailHtml.ts',
-  'src/lib/htmlEsito.ts',
   'src/lib/messaggiManuali.ts',
 ]
 

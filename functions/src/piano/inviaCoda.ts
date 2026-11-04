@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { emailMessaggio, escapaHtml, mailPostoLibero } from '../../../src/i18n/emailHtml'
 import { dataConOra } from '../../../src/i18n/format'
-import type { Lingua } from '../../../src/i18n/lingua'
+import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { statoPiano, type ProMain } from '../../../src/lib/piano'
@@ -21,6 +21,7 @@ import { emailPermessa, serviziPerStato } from '../../../src/lib/serviziPiano'
 import { soloAutomatico, type SceltaServizio } from '../../../src/lib/serviziEmail'
 import type { PropostaRecensione } from '../../../src/lib/recensioni'
 import { postBrevoHtml } from '../brevoMail'
+import { conLingua } from '../postaHtml'
 import { offerteDaCreare } from './offerteAttesa'
 
 const TOKEN = /^[A-Za-z0-9_-]{16,128}$/
@@ -70,6 +71,7 @@ export interface CaneMinuto {
   birthMonth?: number
   birthDay?: number
   attivo: boolean
+  lingua?: Lingua
 }
 
 export interface AttesaMinuto {
@@ -112,8 +114,8 @@ export function righeDelGiro(righe: readonly RigaInvio[], accesi: readonly TipoC
   })
 }
 
-function linkSilenzio(salonId: string, token: string): string {
-  const query = new URLSearchParams({ mode: 'silenzio', salon: salonId, token })
+function linkSilenzio(salonId: string, token: string, lingua: Lingua): string {
+  const query = new URLSearchParams({ mode: 'silenzio', salon: salonId, token, lang: lingua })
   return `https://groomlyapp.it/azione?${query.toString()}`
 }
 
@@ -134,7 +136,9 @@ export async function inviaCoda(input: {
   righe: readonly RigaInvio[]
   emailOggi: number
   salonId?: string
+  /** La riserva: `settings.linguaClienti`. Ogni riga segue prima la lingua del suo cane. */
   lingua?: Lingua
+  lingueCani?: ReadonlyMap<string, Lingua>
   salone?: string
   replyTo?: { email: string; name: string }
   fetchImpl?: typeof fetch
@@ -166,16 +170,17 @@ export async function inviaCoda(input: {
     const gia = riga.token && TOKEN.test(riga.token) ? riga.token : ''
     const assegnato = gia || randomBytes(16).toString('hex')
     if (!gia) token.push({ id: riga.id, token: assegnato })
+    const linguaRiga = input.lingueCani?.get(riga.dogId) ?? lingua
     const orologio = riga.tipo === 'promemoria' && riga.inizio ? dataRoma(riga.inizio) : null
-    const quando = orologio ? dataConOra(lingua, orologio) : ''
-    const mail = emailMessaggio(lingua, riga.tipo, {
+    const quando = orologio ? dataConOra(linguaRiga, orologio) : ''
+    const mail = emailMessaggio(linguaRiga, riga.tipo, {
       cliente: riga.nomeCliente ?? '',
       cane: riga.nomeCane,
       salone: replyTo?.name && replyTo.name !== 'Groomly' ? replyTo.name : salonePassato,
       quando,
       rispondi: Boolean(replyTo),
       url: riga.url,
-      silenzio: input.salonId ? linkSilenzio(input.salonId, assegnato) : undefined,
+      silenzio: input.salonId ? linkSilenzio(input.salonId, assegnato, linguaRiga) : undefined,
     })
     try {
       await postBrevoHtml(input.apiKey, riga.email, mail.oggetto, mail.html, input.fetchImpl ?? fetch, replyTo)
@@ -197,7 +202,7 @@ function corpoHtmlPostoLibero(testo: string, url: string): string {
 export async function inviaOfferteAttesa(input: {
   apiKey: string
   offerte: readonly OffertaAttesaDoc[]
-  iscritti: readonly IscrittoAttesa[]
+  iscritti: readonly (IscrittoAttesa & { lingua?: Lingua })[]
   emailOggi: number
   lingua?: Lingua
   salone?: string
@@ -222,11 +227,13 @@ export async function inviaOfferteAttesa(input: {
     const iscritto = perId.get(offerta.iscrittoId)
     if (!iscritto || !emailValida(iscritto.email)) continue
     const inizio = dataRoma(offerta.inizio)
+    const linguaIscritto = linguaValida(iscritto.lingua) ?? lingua
+    const url = conLingua(offerta.url, linguaIscritto)
     const mail = mailPostoLibero({
-      lingua,
+      lingua: linguaIscritto,
       nomeSalone: replyTo?.name && replyTo.name !== 'Groomly' ? replyTo.name : salone,
-      quando: inizio ? dataConOra(lingua, inizio) : '',
-      url: offerta.url,
+      quando: inizio ? dataConOra(linguaIscritto, inizio) : '',
+      url,
     })
     margine -= 1
     try {
@@ -234,7 +241,7 @@ export async function inviaOfferteAttesa(input: {
         input.apiKey,
         iscritto.email.trim(),
         mail.oggetto,
-        corpoHtmlPostoLibero(mail.testo, offerta.url),
+        corpoHtmlPostoLibero(mail.testo, url),
         input.fetchImpl ?? fetch,
         replyTo,
       )

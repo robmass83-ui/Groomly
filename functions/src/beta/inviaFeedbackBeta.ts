@@ -8,7 +8,7 @@ import {
 import { chiaveGiornoRoma } from '../../../src/lib/disponibilita'
 import { eFeature, type FeatureKey } from '../../../src/lib/piano'
 import { contattoTitolare, nega, proMainDi, salonIdValido } from './comune'
-import { EMAIL_OPERATORE, emailOperatore, inviaEmail, type Posta } from './emailBeta'
+import { EMAIL_OPERATORE, emailOperatore, inviaEmail, type Posta, rigaFeedbackOperatore } from './emailBeta'
 
 const NON_VALIDO = 'beta_feedback_non_valido' as const
 const VERSIONE_MAX = 40
@@ -84,7 +84,7 @@ export async function inviaFeedbackBetaPer(input: {
   const mail = emailOperatore('feedback', [
     `Salone: ${contatto.nome || salonId} (${contatto.email || 'senza email'})`,
     `Piano: ${piano === 'salone' ? 'Salon' : 'Plus'} · voto ${risposte.voto}/5 · pagherebbe: ${risposte.pagheresti}${risposte.quanto ? ` (${risposte.quanto})` : ''}`,
-    `Ricontatto: ${risposte.ricontatto ? 'sì' : 'no'} · fine beta: ${risposte.fineBeta ? 'sì' : 'no'} · app ${risposte.versioneApp}`,
+    rigaFeedbackOperatore(risposte.ricontatto, risposte.fineBeta, risposte.versioneApp),
     ...(funzioni ? [`Funzioni: ${funzioni}`] : []),
     ...(risposte.nonVa ? [`Cosa non va: ${risposte.nonVa}`] : []),
     ...(risposte.manca ? [`Cosa manca: ${risposte.manca}`] : []),

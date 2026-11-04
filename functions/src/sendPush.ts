@@ -7,6 +7,7 @@ import {
   type PushSend,
 } from '../../src/lib/pushDue'
 import { linguaValida, type Lingua } from '../../src/i18n/lingua'
+import { t } from '../../src/i18n/t'
 import { releaseFromGithub } from '../../src/lib/appRelease'
 
 export { appointmentsForPush } from '../../src/lib/pushDue'
@@ -49,6 +50,8 @@ export type PushAppointment = {
   durationMin: number
   endMs?: number
   personalTitle?: string
+  /** Impegno senza titolo: il titolo della push lo dà la lingua di chi la riceve. */
+  personaleSenzaTitolo?: boolean
 }
 
 export type PushLoad = {
@@ -167,7 +170,7 @@ export function appointmentFromDoc(id: string, value: Record<string, unknown>): 
       status: '',
       startMs,
       durationMin: 0,
-      personalTitle: text(value.title) || 'Appuntamento personale',
+      ...(text(value.title) ? { personalTitle: text(value.title) } : { personaleSenzaTitolo: true }),
     }
   }
   const endMs = typeof value.end === 'number' && Number.isFinite(value.end) ? value.end : undefined
@@ -284,6 +287,9 @@ async function pushDelSalone(
   }))
   for (const member of members) {
     const prefs: PushPrefs = readPushPrefs(await load.prefs(member.uid))
+    const inLingua = appointments.map((appointment) => (
+      appointment.personaleSenzaTitolo ? { ...appointment, personalTitle: t(member.lingua, 'persTitolo') } : appointment
+    ))
     const devices = (devicesByUid.get(member.uid) ?? [])
       .filter((device) => activeKey.has(`${member.uid}\n${device.id}`))
     for (const device of devices) {
@@ -296,7 +302,7 @@ async function pushDelSalone(
         latestVersion,
         nowMs,
         prefs,
-        appointments,
+        appointments: inLingua,
         lingua: member.lingua,
         salonId,
       }))

@@ -54,6 +54,8 @@ function caneDi(id: string, data: Record<string, unknown>): CaneMinuto | null {
   }
   if (typeof data.birthMonth === 'number') cane.birthMonth = data.birthMonth
   if (typeof data.birthDay === 'number') cane.birthDay = data.birthDay
+  const lingua = linguaValida(data.lingua)
+  if (lingua) cane.lingua = lingua
   return cane
 }
 
@@ -136,12 +138,13 @@ function attesaDi(value: unknown): AttesaMinuto[] {
   return voci
 }
 
-export function iscrittoDi(id: string, data: Record<string, unknown>): IscrittoAttesa | null {
+export function iscrittoDi(id: string, data: Record<string, unknown>): (IscrittoAttesa & { lingua?: Lingua }) | null {
   if (data.attivo === false) return null
   const testo = (valore: unknown) => (typeof valore === 'string' ? valore : '')
   const specie = data.specie === 'gatto' || data.specie === 'altro' ? data.specie : 'cane'
   const taglia = data.taglia === 'piccola' || data.taglia === 'grande' ? data.taglia : 'media'
   const settimana = settimanaValida(data.settimana)
+  const lingua = linguaValida(data.lingua)
   return {
     id,
     nome: testo(data.nome),
@@ -155,6 +158,7 @@ export function iscrittoDi(id: string, data: Record<string, unknown>): IscrittoA
     durataMin: typeof data.durataMin === 'number' ? data.durataMin : 0,
     creatoIl: testo(data.creatoIl),
     ...(settimana ? { settimana } : {}),
+    ...(lingua ? { lingua } : {}),
   }
 }
 
@@ -347,6 +351,7 @@ export async function inviaSubitoRiga(input: {
   const emailAccount = typeof accountSnap?.get('email') === 'string' ? accountSnap.get('email') : ''
   const replyTo = emailValida(emailAccount) ? { email: emailAccount.trim(), name: nome || 'Groomly' } : undefined
   const lingua: Lingua = linguaValida(settings.linguaClienti) ?? 'it'
+  const linguaCane = linguaValida((await db.doc(`${radice}/dogs/${riga.dogId}`).get()).data()?.lingua)
   const posta = await postaOggi(db, adesso)
   const esito = await inviaCoda({
     apiKey: input.apiKey,
@@ -354,6 +359,7 @@ export async function inviaSubitoRiga(input: {
     emailOggi: usateViste(posta, input.salonId),
     salonId: input.salonId,
     lingua,
+    lingueCani: new Map(linguaCane ? [[riga.dogId, linguaCane]] : []),
     salone: nome,
     replyTo,
     fetchImpl: input.fetchImpl,
@@ -405,7 +411,7 @@ export async function giraInvioCoda(input: {
       const radice = salonCollection(salonId).join('/')
 
       const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap, tombeSnap] = await Promise.all([
-        db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay').get(),
+        db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay', 'lingua').get(),
         db.collection(`${radice}/appointments`).select('kind', 'start', 'status', 'dogId', 'services', 'chiusoIl', 'end', 'updatedAt', 'extraNotes').get(),
         db.collection(`${radice}/coda`).get(),
         db.collection('pubblici').where('salonId', '==', salonId).limit(1).get(),
@@ -466,6 +472,7 @@ export async function giraInvioCoda(input: {
         emailOggi: usateViste(posta, salonId),
         salonId,
         lingua,
+        lingueCani: new Map(cani.flatMap((cane) => (cane.lingua ? [[cane.id, cane.lingua] as const] : []))),
         salone: nome,
         replyTo,
         fetchImpl: input.fetchImpl,

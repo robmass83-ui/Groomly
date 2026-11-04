@@ -1,5 +1,5 @@
 import { escapaHtml } from '../../../src/i18n/emailHtml'
-import type { Lingua } from '../../../src/i18n/lingua'
+import { LOCALE_INTL, type Lingua } from '../../../src/i18n/lingua'
 import { postBrevoHtml } from '../brevoMail'
 
 export type TipoEmailBeta = 'invito' | 'invito-ritirato' | 'revoca' | 'estensione' | 'fine-7' | 'fine-1'
@@ -9,13 +9,11 @@ export type Posta = (apiKey: string, to: string, oggetto: string, html: string) 
 
 export const EMAIL_OPERATORE = 'info@groomlyapp.it'
 
-const LOCALE: Record<Lingua, string> = { it: 'it-IT', en: 'en-GB', es: 'es-ES', fr: 'en-GB', de: 'en-GB' } // LINGUE: da tradurre
-
 export function dataBeta(lingua: Lingua, iso: string | null | undefined): string {
   if (!iso) return ''
   const data = new Date(iso)
   if (Number.isNaN(data.getTime())) return ''
-  return new Intl.DateTimeFormat(LOCALE[lingua], { timeZone: 'Europe/Rome', day: 'numeric', month: 'long', year: 'numeric' }).format(data)
+  return new Intl.DateTimeFormat(LOCALE_INTL[lingua], { timeZone: 'Europe/Rome', day: 'numeric', month: 'long', year: 'numeric' }).format(data)
 }
 
 function nomePiano(piano: 'pro' | 'salone'): string {
@@ -26,9 +24,8 @@ const APRI: Record<Lingua, string> = {
   it: 'Apri Groomly sul telefono: trovi tutto negli Avvisi.',
   en: 'Open Groomly on your phone: you’ll find everything under Notices.',
   es: 'Abre Groomly en tu teléfono: lo encontrarás todo en Avisos.',
-  // LINGUE: da tradurre
-  fr: 'Open Groomly on your phone: you’ll find everything under Notices.',
-  de: 'Open Groomly on your phone: you’ll find everything under Notices.',
+  fr: 'Ouvrez Groomly sur votre téléphone\u00a0: vous trouverez tout dans les Alertes.',
+  de: 'Öffnen Sie Groomly auf Ihrem Telefon: Sie finden alles unter Hinweise.',
 }
 
 type Testi = (p: string, giorni: string, data: string) => { oggetto: string; titolo: string; corpo: string }
@@ -50,16 +47,15 @@ const TESTI: Record<TipoEmailBeta, Record<Lingua, Testi>> = {
       titolo: `Prueba ${p} gratis durante ${g} días`,
       corpo: `Roberto, de Groomly, te invita a probar las funciones ${p} antes que nadie. Sin pagos y sin renovación: a cambio solo te pedimos una opinión de 2 minutos. La invitación es válida hasta el ${d}.`,
     }),
-    // LINGUE: da tradurre
     fr: (p, g, d) => ({
-      oggetto: `You’re invited to the Groomly ${p} beta`,
-      titolo: `Try ${p} free for ${g} days`,
-      corpo: `Roberto from Groomly invites you to try the ${p} features before anyone else. No payment, no renewal: all we ask in return is a 2-minute feedback. The invitation is valid until ${d}.`,
+      oggetto: `Vous êtes invité à la bêta de Groomly ${p}`,
+      titolo: `Essayez ${p} gratuitement pendant ${g} jours`,
+      corpo: `Roberto, de Groomly, vous invite à essayer les fonctions ${p} avant tout le monde. Aucun paiement, aucun renouvellement\u00a0: en échange, nous vous demandons seulement un avis de 2 minutes. L’invitation est valable jusqu’au ${d}.`,
     }),
     de: (p, g, d) => ({
-      oggetto: `You’re invited to the Groomly ${p} beta`,
-      titolo: `Try ${p} free for ${g} days`,
-      corpo: `Roberto from Groomly invites you to try the ${p} features before anyone else. No payment, no renewal: all we ask in return is a 2-minute feedback. The invitation is valid until ${d}.`,
+      oggetto: `Einladung zur Beta von Groomly ${p}`,
+      titolo: `Testen Sie ${p} ${g} Tage kostenlos`,
+      corpo: `Roberto von Groomly lädt Sie ein, die ${p}-Funktionen vor allen anderen zu testen. Keine Zahlung, keine Verlängerung: Im Gegenzug bitten wir Sie nur um 2 Minuten Feedback. Die Einladung gilt bis zum ${d}.`,
     }),
   },
   'invito-ritirato': {
@@ -78,16 +74,15 @@ const TESTI: Record<TipoEmailBeta, Record<Lingua, Testi>> = {
       titolo: 'Invitación retirada',
       corpo: `La invitación para probar ${p} ya no es válida. Groomly sigue como estaba, con todos tus datos.`,
     }),
-    // LINGUE: da tradurre
     fr: (p) => ({
-      oggetto: `Your ${p} beta invitation was withdrawn`,
-      titolo: 'Invitation withdrawn',
-      corpo: `The invitation to try ${p} is no longer valid. Groomly stays as it was, with all your data.`,
+      oggetto: `L’invitation à la bêta ${p} a été retirée`,
+      titolo: 'Invitation retirée',
+      corpo: `L’invitation à essayer ${p} n’est plus valable. Groomly reste comme avant, avec toutes vos données.`,
     }),
     de: (p) => ({
-      oggetto: `Your ${p} beta invitation was withdrawn`,
-      titolo: 'Invitation withdrawn',
-      corpo: `The invitation to try ${p} is no longer valid. Groomly stays as it was, with all your data.`,
+      oggetto: `Die Einladung zur ${p}-Beta wurde zurückgezogen`,
+      titolo: 'Einladung zurückgezogen',
+      corpo: `Die Einladung, ${p} zu testen, gilt nicht mehr. Groomly bleibt, wie es war, mit all Ihren Daten.`,
     }),
   },
   revoca: {
@@ -106,16 +101,15 @@ const TESTI: Record<TipoEmailBeta, Record<Lingua, Testi>> = {
       titolo: 'Beta cerrada',
       corpo: `La beta ${p} ha terminado y Groomly vuelve al plan Go. Tus clientes, animales y citas se quedan todos. Gracias por probarla.`,
     }),
-    // LINGUE: da tradurre
     fr: (p) => ({
-      oggetto: `Your ${p} beta has been closed`,
-      titolo: 'Beta closed',
-      corpo: `The ${p} beta has ended and Groomly goes back to the Go plan. Your clients, pets and appointments all stay. Thank you for trying it.`,
+      oggetto: `Votre bêta ${p} a été clôturée`,
+      titolo: 'Bêta clôturée',
+      corpo: `La bêta ${p} est terminée et Groomly repasse à la formule Go. Vos clients, animaux et rendez-vous restent tous là. Merci de l’avoir essayée.`,
     }),
     de: (p) => ({
-      oggetto: `Your ${p} beta has been closed`,
-      titolo: 'Beta closed',
-      corpo: `The ${p} beta has ended and Groomly goes back to the Go plan. Your clients, pets and appointments all stay. Thank you for trying it.`,
+      oggetto: `Ihre ${p}-Beta wurde beendet`,
+      titolo: 'Beta beendet',
+      corpo: `Die ${p}-Beta ist beendet und Groomly wechselt zurück zum Tarif Go. Ihre Kunden, Tiere und Termine bleiben alle erhalten. Vielen Dank fürs Testen.`,
     }),
   },
   estensione: {
@@ -134,16 +128,15 @@ const TESTI: Record<TipoEmailBeta, Record<Lingua, Testi>> = {
       titolo: `${g} días más de ${p}`,
       corpo: `Buenas noticias: tu beta ${p} se ha ampliado. Ahora termina el ${d}. Sigue siendo gratis y sin renovación.`,
     }),
-    // LINGUE: da tradurre
     fr: (p, g, d) => ({
-      oggetto: `Your ${p} beta lasts longer`,
-      titolo: `${g} more days of ${p}`,
-      corpo: `Good news: your ${p} beta has been extended. It now ends on ${d}. Still free, still with no renewal.`,
+      oggetto: `Votre bêta ${p} dure plus longtemps`,
+      titolo: `${g} jours de plus avec ${p}`,
+      corpo: `Bonne nouvelle\u00a0: votre bêta ${p} a été prolongée. Elle se termine maintenant le ${d}. Toujours gratuite, toujours sans renouvellement.`,
     }),
     de: (p, g, d) => ({
-      oggetto: `Your ${p} beta lasts longer`,
-      titolo: `${g} more days of ${p}`,
-      corpo: `Good news: your ${p} beta has been extended. It now ends on ${d}. Still free, still with no renewal.`,
+      oggetto: `Ihre ${p}-Beta dauert länger`,
+      titolo: `${g} Tage mehr ${p}`,
+      corpo: `Gute Nachrichten: Ihre ${p}-Beta wurde verlängert. Sie endet jetzt am ${d}. Weiterhin kostenlos und ohne Verlängerung.`,
     }),
   },
   'fine-7': {
@@ -162,16 +155,15 @@ const TESTI: Record<TipoEmailBeta, Record<Lingua, Testi>> = {
       titolo: 'Una semana más de beta',
       corpo: `Tu beta ${p} termina el ${d}. Si tienes 2 minutos, cuéntanos qué tal: tu opinión nos ayuda a decidir funciones y precios. Después vuelves a Go con todos tus datos.`,
     }),
-    // LINGUE: da tradurre
     fr: (p, _g, d) => ({
-      oggetto: `Your ${p} beta ends on ${d}`,
-      titolo: 'One more week of beta',
-      corpo: `Your ${p} beta ends on ${d}. If you have 2 minutes, tell us how it went: your feedback helps us decide features and prices. Then you go back to Go with all your data.`,
+      oggetto: `Votre bêta ${p} se termine le ${d}`,
+      titolo: 'Encore une semaine de bêta',
+      corpo: `Votre bêta ${p} se termine le ${d}. Si vous avez 2 minutes, dites-nous comment ça s’est passé\u00a0: votre avis nous aide à décider des fonctions et des prix. Ensuite, vous repassez à Go avec toutes vos données.`,
     }),
     de: (p, _g, d) => ({
-      oggetto: `Your ${p} beta ends on ${d}`,
-      titolo: 'One more week of beta',
-      corpo: `Your ${p} beta ends on ${d}. If you have 2 minutes, tell us how it went: your feedback helps us decide features and prices. Then you go back to Go with all your data.`,
+      oggetto: `Ihre ${p}-Beta endet am ${d}`,
+      titolo: 'Noch eine Woche Beta',
+      corpo: `Ihre ${p}-Beta endet am ${d}. Wenn Sie 2 Minuten haben, erzählen Sie uns, wie es war: Ihr Feedback hilft uns bei Funktionen und Preisen. Danach wechseln Sie mit all Ihren Daten zurück zu Go.`,
     }),
   },
   'fine-1': {
@@ -190,16 +182,15 @@ const TESTI: Record<TipoEmailBeta, Record<Lingua, Testi>> = {
       titolo: 'Último día de beta',
       corpo: `Tu beta ${p} termina el ${d}. Después vuelves a Go: tus clientes, animales y citas se quedan todos. ¿Nos dices si te gustaría seguir con ${p}?`,
     }),
-    // LINGUE: da tradurre
     fr: (p, _g, d) => ({
-      oggetto: `Your ${p} beta ends tomorrow`,
-      titolo: 'Last day of beta',
-      corpo: `Your ${p} beta ends on ${d}. Then you go back to Go: your clients, pets and appointments all stay. Would you like to keep ${p}? Let us know.`,
+      oggetto: `Votre bêta ${p} se termine demain`,
+      titolo: 'Dernier jour de bêta',
+      corpo: `Votre bêta ${p} se termine le ${d}. Ensuite, vous repassez à Go\u00a0: vos clients, animaux et rendez-vous restent tous là. Souhaitez-vous continuer avec ${p}\u00a0? Dites-le-nous.`,
     }),
     de: (p, _g, d) => ({
-      oggetto: `Your ${p} beta ends tomorrow`,
-      titolo: 'Last day of beta',
-      corpo: `Your ${p} beta ends on ${d}. Then you go back to Go: your clients, pets and appointments all stay. Would you like to keep ${p}? Let us know.`,
+      oggetto: `Ihre ${p}-Beta endet morgen`,
+      titolo: 'Letzter Tag der Beta',
+      corpo: `Ihre ${p}-Beta endet am ${d}. Danach wechseln Sie zurück zu Go: Ihre Kunden, Tiere und Termine bleiben alle erhalten. Möchten Sie mit ${p} weitermachen? Sagen Sie es uns.`,
     }),
   },
 }
@@ -231,6 +222,11 @@ export function emailBeta(lingua: Lingua, tipo: TipoEmailBeta, dati: DatiEmailBe
 }
 
 /** Email semplice per Roberto (rifiuti e feedback), come quella dei Suggerimenti. */
+/** Riga del feedback per Roberto: le email all'operatore restano in italiano. */
+export function rigaFeedbackOperatore(ricontatto: boolean, fineBeta: boolean, versioneApp: string): string {
+  return `Ricontatto: ${ricontatto ? 'sì' : 'no'} · fine beta: ${fineBeta ? 'sì' : 'no'} · app ${versioneApp}`
+}
+
 export function emailOperatore(tipo: 'rifiuto' | 'feedback', righe: string[]): MailBeta {
   const oggetto = tipo === 'feedback' ? 'Feedback beta Groomly' : 'Invito beta rifiutato'
   return { oggetto, html: righe.map((riga) => `<p>${escapaHtml(riga).replaceAll('\n', '<br>')}</p>`).join('') }

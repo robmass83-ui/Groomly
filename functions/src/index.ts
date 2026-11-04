@@ -798,6 +798,7 @@ export const inviaRichiesta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, a
     razza: text(field(request.data, 'razza')),
     foto: field(request.data, 'foto'),
     servizi: Array.isArray(servizi) ? servizi.filter((id): id is string => typeof id === 'string') : [],
+    lingua: text(field(request.data, 'lingua')),
     mittente: await mittenteDi(request.rawRequest),
   }, chiaveBrevo())
 })
@@ -836,6 +837,7 @@ export const confermaAttesa = onCall(pianoCall, async (request) => {
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
     azione,
+    lingua: field(request.data, 'lingua'),
     adesso: new Date(),
   })
 })
@@ -855,6 +857,7 @@ export const iscrivitiAttesa = onCall(pianoCall, async (request) => {
     consenso: field(request.data, 'consenso') === true,
     esca: text(field(request.data, 'esca')),
     settimana: field(request.data, 'settimana'),
+    lingua: field(request.data, 'lingua'),
     mittente: await mittenteDi(request.rawRequest),
     adesso: new Date(),
   })

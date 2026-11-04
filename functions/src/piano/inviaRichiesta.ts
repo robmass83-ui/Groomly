@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { riepilogoRicevuta } from '../../../src/i18n/emailHtml'
+import { linguaValida } from '../../../src/i18n/lingua'
 import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
 import { specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import { contaAperte, ingressoRichiestaPubblica, intervalloRichiesta, templatePrenotazione } from '../../../src/lib/prenotazione'
-import { linguaClientiSalon, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
+import { linguaCliente, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } from '../postaHtml'
 import { salonPrenota } from './gatePrenotazione'
 import { riservaMittente } from './mittente'
 import { catalogoDelSalone } from './paginaPubblica'
@@ -29,6 +30,8 @@ export async function inviaRichiestaPer(input: {
   razza?: string
   foto?: unknown
   servizi?: string[]
+  /** La lingua in cui il cliente ha visto la pagina. Tutte le email di questa richiesta la seguono. */
+  lingua?: string
   /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
   mittente?: string
 }, apiKey?: string): Promise<{ ok: true; id?: string; emailStato: 'inviata' | 'non_inviata' }> {
@@ -81,6 +84,7 @@ export async function inviaRichiestaPer(input: {
   if (!liberi.orari.includes(quando.ora)) throw erroreServer('failed-precondition', 'orario_non_disponibile')
   const fine = new Date(quando.inizio.getTime() + scelta.durataMin * 60 * 1000)
   const token = randomBytes(16).toString('hex')
+  const linguaPagina = linguaValida(input.lingua)
   const ref = db.collection(`salons/${input.salonId}/richieste`).doc()
   const documento = {
     status: 'nuova',
@@ -105,6 +109,7 @@ export async function inviaRichiestaPer(input: {
     emailStato: 'non_inviata',
     consenso: true,
     consensoIl: new Date().toISOString(),
+    ...(linguaPagina ? { lingua: linguaPagina } : {}),
     ...(input.mittente ? { mittente: input.mittente } : {}),
   }
   await db.runTransaction(async (tx) => {
@@ -126,7 +131,7 @@ export async function inviaRichiestaPer(input: {
   let emailStato: 'inviata' | 'non_inviata' = 'non_inviata'
   if (apiKey) {
     try {
-      const lingua = await linguaClientiSalon(input.salonId)
+      const lingua = linguaCliente(linguaPagina, impostazioni.linguaClienti)
       const scheda = riepilogoRicevuta(lingua, {
         nome: ingresso.nome,
         cane: (input.cane ?? '').trim(),

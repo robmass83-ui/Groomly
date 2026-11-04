@@ -1,4 +1,5 @@
 import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore'
+import { linguaValida } from '../../../src/i18n/lingua'
 import { scegliCatalogo } from '../../../src/lib/catalogoPrenotazione'
 import { emailValida } from '../../../src/lib/codaEmail'
 import { decisioneAntispam } from '../../../src/lib/disponibilita'
@@ -39,6 +40,8 @@ export async function iscrivitiAttesaPer(input: {
   consenso: boolean
   /** La settimana scelta sulla pagina; se manca o non è valida si iscrive lo stesso, senza. */
   settimana?: unknown
+  /** La lingua in cui il cliente ha visto la pagina: la mail del posto libero la segue. */
+  lingua?: unknown
   /** Il campo nascosto del modulo: se un robot lo riempie, si risponde ok e non si scrive. */
   esca?: string
   /** Impronta della connessione (`mittenteDi`); vuota quando l’indirizzo non si legge. */
@@ -81,7 +84,14 @@ export async function iscrivitiAttesaPer(input: {
     const nuova = settimanaValida(input.settimana)
     const vecchia = settimanaValida(gia.data.settimana)
     const uguale = nuova ? vecchia?.inizio === nuova.inizio && vecchia.fine === nuova.fine : gia.data.settimana === undefined
-    if (!uguale) await db.doc(`${base}/attesa/${gia.id}`).update({ settimana: nuova ?? FieldValue.delete() })
+    const lingua = linguaValida(input.lingua)
+    const altraLingua = lingua !== null && lingua !== gia.data.lingua
+    if (!uguale || altraLingua) {
+      await db.doc(`${base}/attesa/${gia.id}`).update({
+        ...(uguale ? {} : { settimana: nuova ?? FieldValue.delete() }),
+        ...(altraLingua ? { lingua } : {}),
+      })
+    }
     return { ok: true, iscrittoId: gia.id }
   }
   const mittente = input.mittente ?? ''
@@ -101,6 +111,7 @@ export async function iscrivitiAttesaPer(input: {
 
   const ref = db.collection(`${base}/attesa`).doc()
   const settimana = settimanaValida(input.settimana)
+  const lingua = linguaValida(input.lingua)
   const iscritto: Omit<IscrittoAttesa, 'id'> & { attivo: true } = {
     nome,
     phone,
@@ -115,6 +126,6 @@ export async function iscrivitiAttesaPer(input: {
     attivo: true,
     ...(settimana ? { settimana } : {}),
   }
-  await ref.set(mittente ? { ...iscritto, mittente } : iscritto)
+  await ref.set({ ...iscritto, ...(mittente ? { mittente } : {}), ...(lingua ? { lingua } : {}) })
   return { ok: true, iscrittoId: ref.id }
 }

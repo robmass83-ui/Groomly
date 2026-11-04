@@ -1,13 +1,13 @@
 import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/firestore'
-import type { TipoEmail } from '../../../src/i18n/emailHtml'
-import { LOCALE_INTL, type Lingua } from '../../../src/i18n/lingua'
+import { giornoEOra, giornoMail, nomeAnimaleVuoto, oraLimite, type TipoEmail } from '../../../src/i18n/emailHtml'
+import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { minutiRichiesta, pianoRichiesta, serviziDellaRichiesta, vociSalvate, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
 import { caneDaDoc, listinoDaDoc, prezziVisita, servizioDaDoc } from '../../../src/lib/prezzoListino'
 import { linkPrenotazione } from '../../../src/lib/prenotazionePubblica'
 import { ruoloDelProprietario } from '../../../src/lib/ruoloProprietario'
 import { slugDaNome } from '../../../src/lib/slug'
-import { linguaClientiSalon, replyToDelSalone, spedisciHtml } from '../postaHtml'
+import { conLingua, linguaRichiesta, replyToDelSalone, spedisciHtml } from '../postaHtml'
 import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
 import { erroreServer } from '../erroriServer'
 
@@ -17,6 +17,9 @@ const FOTO_MAX_CHARS = 160000
 const URL_RISPOSTA = 'https://europe-west1-groomly-3128b.cloudfunctions.net/rispondiRichiesta'
 
 export type EmailStato = 'inviata' | 'non_inviata'
+
+/** La richiesta come la legge il server: `lingua` c'è solo se l'ha mandata la pagina pubblica. */
+export type RichiestaSalvata = RichiestaDoc & { lingua?: Lingua }
 
 export type ErroreGestione = 'stato' | 'scelta' | 'orario' | 'token' | 'scaduta' | 'email' | 'appuntamento'
 
@@ -38,11 +41,11 @@ function soloSegnaposto(services: unknown): boolean {
   return Boolean(riga && typeof riga === 'object' && (riga as { serviceId?: unknown }).serviceId === 'prenotazione')
 }
 
-export function linkRisposta(salonId: string, id: string, token: string, azione: 'conferma' | 'rifiuta'): string {
-  return `${URL_RISPOSTA}?${new URLSearchParams({ salonId, id, token, azione }).toString()}`
+export function linkRisposta(salonId: string, id: string, token: string, azione: 'conferma' | 'rifiuta', lingua?: Lingua): string {
+  return `${URL_RISPOSTA}?${new URLSearchParams({ salonId, id, token, azione, ...(lingua ? { lang: lingua } : {}) }).toString()}`
 }
 
-export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
+export function leggiRichiesta(data: DocumentData): RichiestaSalvata | null {
   const status = STATI.find((voce) => voce === data.status)
   if (!status) return null
   const specie = data.specie === 'gatto' || data.specie === 'altro' ? data.specie : 'cane'
@@ -51,6 +54,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
   const sceltaAnimale = testo(data.sceltaAnimale)
   const scadeIl = testo(data.scadeIl)
   const voci = vociSalvate(data.voci)
+  const lingua = linguaValida(data.lingua)
   return {
     status,
     token: typeof data.token === 'string' ? data.token : '',
@@ -69,6 +73,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaDoc | null {
     ...(scadeIl ? { scadeIl } : {}),
     ...(typeof data.durataMin === 'number' && Number.isFinite(data.durataMin) && data.durataMin >= 1 ? { durataMin: data.durataMin } : {}),
     ...(voci.length > 0 ? { voci } : {}),
+    ...(lingua ? { lingua } : {}),
   }
 }
 
@@ -97,19 +102,6 @@ export async function animaleInArchivio(salonId: string, dogId: string): Promise
   return archivioDelCane(snap.data()?.status)
 }
 
-function giornoMail(lingua: Lingua, data: Date): string {
-  const locale = LOCALE_INTL[lingua]
-  const parti = new Intl.DateTimeFormat(locale, {
-    timeZone: 'Europe/Rome',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).formatToParts(data)
-  const valore = (tipo: Intl.DateTimeFormatPartTypes) => parti.find((parte) => parte.type === tipo)?.value ?? ''
-  const mese = lingua === 'es' ? `de ${valore('month')}` : valore('month')
-  return `${valore('weekday')} ${valore('day')} ${mese}`
-}
-
 /** Orari della proposta, già nella forma che il corpo della mail inserisce. Null se un istante non si legge. */
 export function orariMailProposta(
   lingua: Lingua,
@@ -126,16 +118,12 @@ export function orariMailProposta(
   const quando = `${giornoMail(lingua, da)}, ${oraRoma(da)}\u2013${oraRoma(a)}`
   const invece = testoInvece(lingua, chiestoIl)
   const ora = oraRoma(limite)
-  const entro = lingua === 'en' ? ora : lingua === 'es' ? `las ${ora}` : `le ${ora}`
+  const entro = oraLimite(lingua, ora)
   return { quando, invece, entro }
 }
 
 function testoInvece(lingua: Lingua, chiesto: Date): string {
-  const giorno = giornoMail(lingua, chiesto)
-  const ora = oraRoma(chiesto)
-  if (lingua === 'en') return `${giorno} at ${ora}`
-  if (lingua === 'es') return `${giorno} a las ${ora}`
-  return `${giorno} alle ${ora}`
+  return giornoEOra(lingua, giornoMail(lingua, chiesto), oraRoma(chiesto))
 }
 
 function inveceRichiesta(lingua: Lingua, chiesto: string): string {
@@ -168,7 +156,7 @@ export async function inviaMailRichiesta(input: {
   apiKey: string
   salonId: string
   tipo: TipoEmail
-  richiesta: RichiestaDoc
+  richiesta: RichiestaSalvata
   url?: string
   urlRifiuta?: string
   inizio?: string
@@ -178,7 +166,7 @@ export async function inviaMailRichiesta(input: {
   if (!input.apiKey || !input.richiesta.email) return false
   try {
     const salone = await nomeSalone(input.salonId)
-    const lingua = await linguaClientiSalon(input.salonId)
+    const lingua = await linguaRichiesta(input.salonId, input.richiesta)
     const tempi = input.tipo === 'proposta'
       ? orariMailProposta(lingua, input.inizio ?? '', input.fine ?? '', input.richiesta.start, input.scadeIl ?? '')
       : null
@@ -192,8 +180,8 @@ export async function inviaMailRichiesta(input: {
       ...(input.tipo === 'conferma' ? quandoConferma(lingua, input.richiesta) : {}),
       ...scadenza,
       ...(salone ? { salone } : {}),
-      ...(input.url ? { url: input.url } : {}),
-      ...(input.urlRifiuta ? { urlRifiuta: input.urlRifiuta } : {}),
+      ...(input.url ? { url: conLingua(input.url, lingua) } : {}),
+      ...(input.urlRifiuta ? { urlRifiuta: conLingua(input.urlRifiuta, lingua) } : {}),
       ...(tempi ?? {}),
       ...(invece ? { invece } : {}),
     }
@@ -217,8 +205,8 @@ function chiaveRicerca(richiesta: RichiestaDoc, nome: string): string {
   return [base, cifre.length >= 3 ? cifre : ''].filter((parte) => parte !== '').join(' ')
 }
 
-export function documentoCane(id: string, richiesta: RichiestaDoc, adesso: Date): Record<string, unknown> {
-  const nome = richiesta.cane || richiesta.nome || 'Animale'
+export function documentoCane(id: string, richiesta: RichiestaSalvata, adesso: Date): Record<string, unknown> {
+  const nome = richiesta.cane || richiesta.nome || nomeAnimaleVuoto(richiesta.lingua ?? 'it')
   const ms = adesso.getTime()
   const [prima, ...altre] = richiesta.foto
   const gallery = altre.flatMap((photo, indice) => (fotoUsabile(photo) ? [{ id: `richiesta-${indice + 2}`, photo, takenAt: ms }] : []))
@@ -241,6 +229,7 @@ export function documentoCane(id: string, richiesta: RichiestaDoc, adesso: Date)
     gallery,
     status: 'attivo',
     daRevisionare: true,
+    ...(richiesta.lingua ? { lingua: richiesta.lingua } : {}),
     searchKey: chiaveRicerca(richiesta, nome),
     createdAt: ms,
     updatedAt: ms,
@@ -258,7 +247,7 @@ function dataValida(valore: string | undefined): Date | null {
 export async function applicaPiano(input: {
   salonId: string
   id: string
-  richiesta: RichiestaDoc
+  richiesta: RichiestaSalvata
   piano: PianoRichiesta
   adesso: Date
   emailStato?: EmailStato
@@ -301,11 +290,13 @@ export async function applicaPiano(input: {
     }
     // Prezzi della visita: stesso listino per razza dell'app. Tutte le letture prima delle scritture.
     let righeVisita = serviziDellaRichiesta(richiesta.voci)
+    let caneSenzaLingua = false
     if (piano.appuntamento === 'crea' || piano.appuntamento === 'conferma') {
       const impostazioni = await tx.get(db.doc(`${base}/settings/main`))
       const serviziSnap = await tx.get(db.collection(`${base}/services`))
       const caneSnap = dogEsistente ? await tx.get(db.doc(`${base}/dogs/${dogEsistente}`)) : null
       const cane = caneDaDoc(caneSnap?.exists ? caneSnap.data() : undefined, { breed: richiesta.razza, size: richiesta.taglia })
+      caneSenzaLingua = caneSnap?.exists === true && !linguaValida(caneSnap.data()?.lingua)
       righeVisita = prezziVisita(
         righeVisita,
         cane,
@@ -320,6 +311,8 @@ export async function applicaPiano(input: {
     if (piano.cane === 'riattiva' && dogEsistente) {
       tx.update(db.doc(`${base}/dogs/${dogEsistente}`), { status: 'attivo', archivedAt: FieldValue.delete(), updatedAt: ms })
     }
+    // Una scheda che esiste già prende la lingua del cliente solo se non ne ha una.
+    if (caneSenzaLingua && richiesta.lingua) tx.update(db.doc(`${base}/dogs/${dogEsistente}`), { lingua: richiesta.lingua })
     if (piano.appuntamento === 'crea' && visitaRef && inizio && fine) {
       tx.set(visitaRef, {
         id: visitaRef.id,
@@ -331,7 +324,7 @@ export async function applicaPiano(input: {
         kind: 'pelosetto',
         richiestaId: id,
         ...(piano.scadeIl ? { provvisorio: true, scadeIl: piano.scadeIl } : {}),
-        ...(dogId ? {} : { ospiteNome: richiesta.cane || richiesta.nome || 'Animale' }),
+        ...(dogId ? {} : { ospiteNome: richiesta.cane || richiesta.nome || nomeAnimaleVuoto(richiesta.lingua ?? 'it') }),
         createdAt: ms,
         updatedAt: ms,
       })
@@ -375,7 +368,7 @@ export async function mailDopoScrittura(input: {
   apiKey: string
   salonId: string
   id: string
-  richiesta: RichiestaDoc
+  richiesta: RichiestaSalvata
   piano: PianoRichiesta
 }): Promise<EmailStato | null> {
   const { piano } = input

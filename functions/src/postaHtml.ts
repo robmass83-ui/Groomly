@@ -23,6 +23,22 @@ export async function linguaClientiSalon(salonId: string): Promise<Lingua> {
   return linguaValida(data?.linguaClienti) ?? 'it'
 }
 
+/** La catena dei clienti: la lingua della persona, poi quella del salone, poi l'italiano. Il titolare non c'entra. */
+export function linguaCliente(propria: unknown, linguaClienti: unknown): Lingua {
+  return linguaValida(propria) ?? linguaValida(linguaClienti) ?? 'it'
+}
+
+export async function linguaRichiesta(salonId: string, richiesta: { lingua?: unknown }): Promise<Lingua> {
+  return linguaValida(richiesta.lingua) ?? linguaClientiSalon(salonId)
+}
+
+/** Il link per il cliente apre la pagina nella lingua dell'email. */
+export function conLingua(url: string, lingua: Lingua): string {
+  const link = new URL(url)
+  link.searchParams.set('lang', lingua)
+  return link.toString()
+}
+
 export function replyToDa(email: unknown, nome: string): { email: string; name: string } | undefined {
   if (typeof email !== 'string' || !emailValida(email)) return undefined
   return { email: email.trim(), name: nome.trim() || 'Groomly' }

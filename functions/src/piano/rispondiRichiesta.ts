@@ -1,16 +1,19 @@
 import type { Request, Response } from 'express'
 import { getFirestore } from 'firebase-admin/firestore'
-import { escapaHtml, saloneNellaFrase } from '../../../src/i18n/emailHtml'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
-import { htmlDomandaRisposta, quandoConferma } from '../../../src/lib/htmlEsito'
+import { htmlDomandaRisposta, paginaRisposta, quandoConferma } from '../../../src/lib/htmlEsito'
 import { pianoRichiesta } from '../../../src/lib/pianoRichiesta'
-import { linguaClientiSalon } from '../postaHtml'
+import { linguaRichiesta } from '../postaHtml'
 import { animaleInArchivio, applicaPiano, idValido, leggiRichiesta, linkRisposta, mailDopoScrittura, nomeSalone } from './gestisciPrenotazione'
 
-async function linguaPagina(salonId: string): Promise<Lingua> {
+/** Il `lang` del link, poi la lingua della richiesta (link vecchi), poi quella del salone. */
+async function linguaPagina(salonId: string, id: string, lang: string): Promise<Lingua> {
+  const scelta = linguaValida(lang)
+  if (scelta) return scelta
   if (!idValido(salonId)) return 'it'
   try {
-    return await linguaClientiSalon(salonId)
+    const richiesta = idValido(id) ? (await getFirestore().doc(`salons/${salonId}/richieste/${id}`).get()).data() : undefined
+    return await linguaRichiesta(salonId, richiesta ?? {})
   } catch {
     return 'it'
   }
@@ -20,92 +23,17 @@ function inviaPagina(res: Response, html: string): void {
   res.status(200).set('Cache-Control', 'no-store').set('Content-Type', 'text/html; charset=utf-8').send(html)
 }
 
-function luogoConferma(lingua: Lingua, nome: string): string {
-  if (lingua === 'en') return nome.trim() ? `at ${saloneNellaFrase(lingua, nome, 'dopoDi')}` : saloneNellaFrase(lingua, '', 'dopoDi')
-  if (lingua === 'es') return nome.trim() ? `en ${saloneNellaFrase(lingua, nome, 'dopoDi')}` : saloneNellaFrase(lingua, '', 'dopoDi')
-  return nome.trim() ? `da ${saloneNellaFrase('it', nome, 'da')}` : saloneNellaFrase('it', '', 'da')
-}
-
-function fraseConferma(lingua: Lingua, cane: string, dove: string, quando: string): string {
-  const animale = escapaHtml(cane.trim())
-  const ora = escapaHtml(quando.trim())
-  if (lingua === 'en') {
-    const chi = animale ? `${animale}'s appointment` : 'The appointment'
-    return `${chi} ${dove} is confirmed${ora ? ` for ${ora}` : ''}.`
-  }
-  if (lingua === 'es') {
-    const chi = animale ? `La cita de ${animale}` : 'La cita'
-    return `${chi} ${dove} está confirmada${ora ? ` para ${ora}` : ''}.`
-  }
-  const chi = animale ? `L’appuntamento di ${animale}` : 'L’appuntamento'
-  return `${chi} ${dove} è confermato${ora ? ` per ${ora}` : ''}.`
-}
-
-const TITOLO_PAGINA = {
-  confermato: { it: 'Appuntamento confermato', en: 'Appointment confirmed', es: 'Cita confirmada', fr: 'Appointment confirmed', de: 'Appointment confirmed' }, // LINGUE: da tradurre
-  liberato: { it: 'Posto liberato', en: 'Slot released', es: 'Hueco liberado', fr: 'Slot released', de: 'Slot released' }, // LINGUE: da tradurre
-  nonValido: { it: 'Link non più valido', en: 'This link is no longer valid', es: 'Este enlace ya no es válido', fr: 'This link is no longer valid', de: 'This link is no longer valid' }, // LINGUE: da tradurre
-} as const
-
-const RESTO_PAGINA = {
-  liberato: {
-    it: 'Va bene, il posto è stato liberato. Se vuoi un altro orario, puoi inviare una nuova richiesta al salone quando vuoi.',
-    en: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
-    es: 'De acuerdo, el hueco ha quedado libre. Si quieres otro horario, puedes enviar una nueva solicitud a la peluquería cuando quieras.',
-    // LINGUE: da tradurre
-    fr: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
-    de: "No problem, the slot has been released. If you'd like a different time, you can send a new request to the salon whenever you like.",
-  },
-  nonValido: {
-    it: 'Potrebbe essere scaduto o già stato usato. Per qualsiasi cosa, contatta direttamente il salone.',
-    en: 'It may have expired or already been used. For anything else, please contact the salon directly.',
-    es: 'Puede que haya caducado o que ya se haya usado. Para cualquier cosa, contacta directamente con la peluquería.',
-    // LINGUE: da tradurre
-    fr: 'It may have expired or already been used. For anything else, please contact the salon directly.',
-    de: 'It may have expired or already been used. For anything else, please contact the salon directly.',
-  },
-} as const
-
-const SPUNTA_PAGINA =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" aria-hidden="true" style="display:block;margin:0 0 16px"><circle cx="24" cy="24" r="22" fill="none" stroke="#4A9FCB" stroke-width="2.5"/><path fill="none" stroke="#2C4560" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M14 25l6 6 14-14"/></svg>'
-
-function htmlPaginaRisposta(lingua: Lingua, titolo: string, paragrafo: string, spunta: boolean): string {
-  const segno = spunta ? SPUNTA_PAGINA : ''
-  return `<!doctype html><html lang="${lingua}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${titolo}</title></head><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
-<main style="max-width:520px;margin:0 auto;padding:28px 12px"><p style="margin:0 0 18px;text-align:center"><img src="https://groomlyapp.it/groomly-logo-orizzontale.svg" alt="Groomly" width="200" style="display:inline-block;border:0;width:200px;max-width:70%;height:auto"></p><div style="background:#ffffff;border:1px solid #dfe8ef;border-radius:16px;overflow:hidden"><div style="height:6px;background:#4A9FCB;background-image:linear-gradient(90deg,#8ADBD9,#4A9FCB)"></div><div style="padding:32px 28px">${segno}<h1 style="margin:0 0 14px;font-size:26px;line-height:1.3;font-weight:800;color:#2C4560">${titolo}.</h1><p style="margin:0;font-size:16px;line-height:1.5;color:#2C4560">${paragrafo}</p></div></div>
-<p style="margin:18px 0 0;text-align:center;font-size:12px;color:#8a97a6">Groomly · groomlyapp.it</p></main></body></html>`
-}
-
-export function paginaRisposta(
-  lingua: Lingua,
-  esito: 'confermato' | 'liberato' | 'nonValido',
-  dati: { salone?: string; cane?: string; quando?: string },
-): string {
-  const codice: Lingua = linguaValida(lingua) ?? 'it'
-  const tipo = esito === 'liberato' || esito === 'nonValido' ? esito : 'confermato'
-  const titolo = TITOLO_PAGINA[tipo][codice]
-  const paragrafo = tipo === 'confermato'
-    ? introConferma(codice, fraseConferma(codice, dati.cane ?? '', luogoConferma(codice, dati.salone ?? ''), dati.quando ?? ''))
-    : RESTO_PAGINA[tipo][codice]
-  return htmlPaginaRisposta(codice, titolo, paragrafo, tipo === 'confermato')
-}
-
-function introConferma(lingua: Lingua, frase: string): string {
-  if (lingua === 'en') return `Thank you! ${frase} We look forward to seeing you.`
-  if (lingua === 'es') return `¡Gracias! ${frase} Te esperamos.`
-  return `Grazie! ${frase} Ti aspettiamo.`
-}
+export { paginaRisposta }
 
 const TIPO_PAGINA = { conferma: 'confermato', liberato: 'liberato', non_valido: 'nonValido' } as const
 
-async function inviaEsito(
+function inviaEsito(
   res: Response,
-  salonId: string,
+  lingua: Lingua,
   tipo: 'conferma' | 'liberato' | 'non_valido',
   campi: { salone: string; cane: string; quando: string } = { salone: '', cane: '', quando: '' },
-  lingua?: Lingua,
-): Promise<void> {
-  inviaPagina(res, paginaRisposta(lingua ?? await linguaPagina(salonId), TIPO_PAGINA[tipo], campi))
+): void {
+  inviaPagina(res, paginaRisposta(lingua, TIPO_PAGINA[tipo], campi))
 }
 
 function parametro(req: Request, nome: string): string {
@@ -123,35 +51,35 @@ export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey:
   const id = parametro(req, 'id')
   const token = parametro(req, 'token')
   const azione = parametro(req, 'azione')
+  const lingua = await linguaPagina(salonId, id, parametro(req, 'lang'))
   if (!idValido(salonId) || !idValido(id) || (azione !== 'conferma' && azione !== 'rifiuta')) {
-    await inviaEsito(res, salonId, 'liberato')
+    inviaEsito(res, lingua, 'liberato')
     return
   }
   if (req.method === 'GET') {
     if (token === '') {
-      await inviaEsito(res, salonId, 'non_valido')
+      inviaEsito(res, lingua, 'non_valido')
       return
     }
-    const lingua = await linguaPagina(salonId)
     const scelta = azione === 'rifiuta' ? 'rifiuta' : 'conferma'
     inviaPagina(res, htmlDomandaRisposta({
       lingua,
       azione: scelta,
-      azioneUrl: linkRisposta(salonId, id, token, scelta),
+      azioneUrl: linkRisposta(salonId, id, token, scelta, lingua),
     }))
     return
   }
   const data = (await getFirestore().doc(`salons/${salonId}/richieste/${id}`).get()).data()
   const richiesta = data ? leggiRichiesta(data) : null
   if (!richiesta) {
-    await inviaEsito(res, salonId, 'liberato')
+    inviaEsito(res, lingua, 'liberato')
     return
   }
   let animaleArchivio = false
   if (azione === 'conferma' && richiesta.sceltaAnimale && richiesta.sceltaAnimale !== 'nuovo') {
     const archivio = await animaleInArchivio(salonId, richiesta.sceltaAnimale)
     if (archivio === null) {
-      await inviaEsito(res, salonId, 'liberato')
+      inviaEsito(res, lingua, 'liberato')
       return
     }
     animaleArchivio = archivio
@@ -166,26 +94,25 @@ export async function rispondiRichiestaHttp(req: Request, res: Response, apiKey:
     animaleArchivio,
   })
   if (!piano.ok) {
-    await inviaEsito(res, salonId, piano.errore === 'token' ? 'non_valido' : 'liberato')
+    inviaEsito(res, lingua, piano.errore === 'token' ? 'non_valido' : 'liberato')
     return
   }
   const scritto = await applicaPiano({ salonId, id, richiesta, piano, adesso })
   if (!scritto.ok) {
-    await inviaEsito(res, salonId, 'liberato')
+    inviaEsito(res, lingua, 'liberato')
     return
   }
   await mailDopoScrittura({ apiKey, salonId, id, richiesta, piano }).catch(() => undefined)
   if (azione === 'rifiuta') {
-    await inviaEsito(res, salonId, 'liberato')
+    inviaEsito(res, lingua, 'liberato')
     return
   }
   const visita = richiesta.appointmentId
     ? (await getFirestore().doc(`salons/${salonId}/appointments/${richiesta.appointmentId}`).get()).data()
     : undefined
   const inizio = new Date(typeof visita?.start === 'number' ? visita.start : richiesta.start)
-  const lingua = await linguaPagina(salonId)
   const salone = await nomeSalone(salonId)
   const cane = richiesta.cane || richiesta.nome || ''
   const quando = quandoConferma(lingua, inizio)
-  await inviaEsito(res, salonId, 'conferma', { salone, cane, quando }, lingua)
+  inviaEsito(res, lingua, 'conferma', { salone, cane, quando })
 }
