@@ -339,3 +339,11 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Con B1:
   - i messaggi `failed-precondition` noti di `rispondiInvitoBeta`/`inviaFeedbackBeta` si traducono in it/en/es (`messaggioErroreBeta`); gli altri passano così come sono;
   - B1 scrive anche `salons/{id}/avvisi/beta` (con `segnaAvvisoBeta`), ma l'app non lo legge: gli avvisi li calcola da sola. Per la chiusura: valutare se mostrare gli avvisi che solo il server conosce (revoca con testo dell'operatore, estensione, invito ritirato) leggendo quel documento.
+
+
+## Cinque lingue — T2 Francese (4 novembre)
+- Ramo `claude/lingue-t2-francese-442e26`, **non unito**, niente APK. Spec `docs/superpowers/specs/2026-11-04-lingue-francese-design.md`.
+- Fatto: `src/i18n/fr.ts` con tutte le 1.965 chiavi, *vous*, spazi insecabili, terminologia del glossario. Sezione «Aggiunte del francese» in `docs/glossario-lingue.md`, dove manca ancora la colonna tedesca.
+- Controlli: chiavi e segnaposto `{{...}}` uguali a `it.ts` con uno script mio, `tsc` su `fr.ts` passa. `npm test` non è girato: il file non è collegato e il worktree non ha `node_modules`.
+- Non controllato a schermo: il file si vede solo dopo l'unione con T1. Le lunghezze a 320 px le ho guardate sul codice, la prova vera è in T7.
+- Per T1: 92 frasi `fr` sono uguali a `en` o `it`. L'elenco per il test è nelle note condivise. `ELIMINA` e `ACCENDI` devono restare nell'elenco.
