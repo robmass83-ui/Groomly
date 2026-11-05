@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { idDaAnnullare, visiteDaProgrammare, visitaDaAvvisare } from './orarioScaduto'
+import { avvisateSenzaFuture, idDaAnnullare, visiteDaProgrammare, visitaDaAvvisare } from './orarioScaduto'
 
 describe('orario scaduto', () => {
   it('avvisa solo una visita ancora programmata la cui fine è passata', () => {
@@ -36,5 +36,15 @@ describe('orario scaduto', () => {
       'disdetta',
       'sparita',
     ])
+  })
+})
+
+describe('avvisi da riscrivere', () => {
+  const ora = new Date('2026-11-05T12:00:00Z')
+  const visita = (id: string, fine: string) => ({ id, nome: '', status: 'programmato', fine: new Date(fine) })
+
+  it('toglie solo le visite che devono ancora finire: un avviso già suonato non suona di nuovo', () => {
+    const visite = [visita('dopo', '2026-11-05T15:00:00Z'), visita('prima', '2026-11-05T10:00:00Z')]
+    expect([...avvisateSenzaFuture(visite, ora, new Set(['dopo', 'prima', 'altra']))].sort()).toEqual(['altra', 'prima'])
   })
 })

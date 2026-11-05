@@ -59,6 +59,16 @@ export function visiteDaProgrammare(
     .sort((a, b) => a.fine.getTime() - b.fine.getTime())
 }
 
+/** Cambiata la lingua, le visite ancora da finire tornano da programmare: in coda c’è il testo di prima. Un avviso già suonato resta com’è. */
+export function avvisateSenzaFuture(
+  visite: readonly VisitaOrario[],
+  ora: Date,
+  giaAvvisate: ReadonlySet<string>,
+): Set<string> {
+  const future = new Set(visite.filter((visita) => visita.fine.getTime() > ora.getTime()).map((visita) => visita.id))
+  return new Set([...giaAvvisate].filter((id) => !future.has(id)))
+}
+
 export function idNotifica(id: string): number {
   let n = 0
   for (const carattere of id) n = (n * 33 + carattere.charCodeAt(0)) % 20000

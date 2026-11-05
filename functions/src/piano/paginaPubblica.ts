@@ -9,6 +9,7 @@ import { htmlPaginaAssente, htmlPaginaPubblica, testoOrari } from '../../../src/
 import { paginaPrenotabile, prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
+import { linguaCliente } from '../postaHtml'
 import { listaAttesaAccesa } from './inviaCoda'
 
 function testo(value: unknown): string {
@@ -18,19 +19,22 @@ function testo(value: unknown): string {
 export async function paginaPubblicaHttp(req: Request, res: Response): Promise<void> {
   const pezzi = (req.path || '').split('/').filter(Boolean)
   const slug = pezzi[pezzi.length - 1] ?? ''
-  const lang = linguaPagina(typeof req.query.lang === 'string' ? req.query.lang : '', (req.get('accept-language') ?? '').split(',')[0])
+  const chiesta = typeof req.query.lang === 'string' ? req.query.lang : ''
+  // Senza salone non c’è una lingua sua: resta il browser di chi ha aperto il link.
+  const langAssente = linguaPagina(chiesta, (req.get('accept-language') ?? '').split(',')[0])
   if (!/^[a-z0-9-]{1,80}$/.test(slug)) {
-    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(lang))
+    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(langAssente))
     return
   }
   const db = getFirestore()
   const pub = (await db.doc(`pubblici/${slug}`).get()).data()
   const salonId = testo(pub?.salonId)
   if (!pub || salonId === '' || salonId === 'shared') {
-    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(lang))
+    res.status(404).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaAssente(langAssente))
     return
   }
   const settings = (await db.doc(`salons/${salonId}/settings/main`).get()).data() ?? {}
+  const lang = linguaCliente(chiesta, settings.linguaClienti)
   const business = settings.business && typeof settings.business === 'object' ? settings.business as Record<string, unknown> : {}
   const profilo = profiloPubblico({
     nome: testo(business.salonName) || testo(pub.nome) || slug,

@@ -4,9 +4,9 @@ import { useEffect, useRef } from 'react'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { useSession } from '../hooks/useSession'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { appointmentKind } from '../lib/personal'
-import { fineDellaVisita, idDaAnnullare, idNotifica, oraRoma, visiteDaProgrammare, type VisitaOrario } from '../lib/orarioScaduto'
+import { avvisateSenzaFuture, fineDellaVisita, idDaAnnullare, idNotifica, oraRoma, visiteDaProgrammare, type VisitaOrario } from '../lib/orarioScaduto'
 import { programmaNotifiche } from '../lib/notificheLocali'
 
 const CANALE = 'orario-scaduto'
@@ -39,6 +39,10 @@ function dimentica(uid: string, ids: readonly string[]) {
   localStorage.setItem(chiave(uid), JSON.stringify(rimasti))
 }
 
+function chiaveLingua(uid: string): string {
+  return `${chiave(uid)}.lingua`
+}
+
 async function togliDalTelefono(ids: readonly string[]) {
   const notifiche = ids.map((id) => idNotifica(id))
   await LocalNotifications.cancel({ notifications: notifiche.map((id) => ({ id })) })
@@ -51,6 +55,7 @@ export function OrarioScadutoAvviso() {
   const { dogs, settled } = useDogs(uid)
   const { appointments, synced } = useAppointments(uid)
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const visiteRef = useRef<VisitaOrario[]>([])
   const ticket = useRef(0)
 
@@ -73,7 +78,9 @@ export function OrarioScadutoAvviso() {
     const ora = new Date()
     const avvisate = new Set(leggiAvvisate(uid))
     const daAnnullare = idDaAnnullare(visite, avvisate)
-    const scelte = visiteDaProgrammare(visite, ora, avvisate)
+    // Chi non ha ancora il segno della lingua può avere in coda avvisi scritti in un'altra: si riscrivono una volta.
+    const stessaLingua = localStorage.getItem(chiaveLingua(uid)) === lingua
+    const scelte = visiteDaProgrammare(visite, ora, stessaLingua ? avvisate : avvisateSenzaFuture(visite, ora, avvisate))
     const mine = ++ticket.current
     const pending = LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
       const extra = event.notification.extra
@@ -88,7 +95,11 @@ export function OrarioScadutoAvviso() {
           if (ticket.current !== mine) return
           dimentica(uid, daAnnullare)
         }
-        if (scelte.length === 0 || ticket.current !== mine) return
+        if (ticket.current !== mine) return
+        if (scelte.length === 0) {
+          localStorage.setItem(chiaveLingua(uid), lingua)
+          return
+        }
         await LocalNotifications.createChannel({
           id: CANALE,
           name: frasi.notificaOrarioScadutoTitolo,
@@ -118,6 +129,7 @@ export function OrarioScadutoAvviso() {
         for (const scelta of ancora) {
           if (ancoraAperta(scelta.id)) ricorda(uid, scelta.id)
         }
+        localStorage.setItem(chiaveLingua(uid), lingua)
       } catch {
         // la prossima apertura riprova le visite non ancora ricordate
       }
@@ -126,7 +138,7 @@ export function OrarioScadutoAvviso() {
       ticket.current += 1
       void pending.then((handle) => handle.remove())
     }
-  }, [uid, settled, synced, dogs, appointments, frasi])
+  }, [uid, settled, synced, dogs, appointments, frasi, lingua])
 
   return null
 }
