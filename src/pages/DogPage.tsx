@@ -1493,7 +1493,7 @@ export function DogPage() {
                     valori={{
                       nome: owner,
                       cane: dog.name,
-                      servizio: prossimaVisita?.services.map((service) => nomeServizioVisibile(lingua, service.name)).join(', ') ?? '',
+                      servizio: prossimaVisita?.services.map((service) => service.name).join(', ') ?? '',
                     }}
                   />
                 </div>

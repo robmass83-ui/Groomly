@@ -491,7 +491,8 @@ export function PriceSheetManagePage() {
                       aria-label={t(lingua, 'manNomeServizio', { n: index + 1 })}
                       onChange={(event) => setVoce(index, { nome: event.target.value })}
                       style={{
-                        flex: 1,
+                        flex: '1 1 140px',
+                        minWidth: 0,
                         height: 44,
                         borderRadius: 7,
                         border: '1px solid var(--line2)',

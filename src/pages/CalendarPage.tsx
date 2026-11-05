@@ -1080,7 +1080,7 @@ export function CalendarPage() {
                   >
                     <span style={{ display: 'block' }}>{date.getDate()}</span>
                     {face.closedLabel ? (
-                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>{frasi.chiuso}</span>
+                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>{frasi.chiusoBreve}</span>
                     ) : null}
                     {face.salonBadge || face.personalBadge ? (
                       <span style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>

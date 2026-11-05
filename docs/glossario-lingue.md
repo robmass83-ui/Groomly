@@ -167,3 +167,9 @@ Usati nelle pagine legali di `hosting`. Il nome della legge resta quello ufficia
 | Interessato | Data subject | Interesado | Personne concernée | Betroffene Person |
 
 *Titolare del trattamento* non è il *Titolare* del salone: in francese e tedesco sono parole diverse.
+## Aggiunte di T7
+
+| Italiano | Inglese | Spagnolo | Francese | Tedesco |
+|---|---|---|---|---|
+| Chiuso (casella del mese) | Closed | Cerr. | Fermé | Zu |
+| Posti (del team) | Seats | Plazas | Places | Plätze |

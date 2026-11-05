@@ -24,13 +24,47 @@ async function prenota(page, url, { cane, telefono, foto }) {
   await page.goto(url, { waitUntil: 'load' })
   await page.getByRole('button', { name: 'Hund', exact: true }).click()
   await page.getByRole('button', { name: 'Mittel', exact: true }).click()
+  await page.getByText(/^Bad · /).first().click()
+  await page.locator('button.giorno.aperto').first().waitFor({ timeout: 30000 })
+  if (foto) await page.screenshot({ path: path.join(OUT, 'de-giorni.png'), fullPage: true })
+  await page.locator('button.giorno.aperto').first().click()
+  await page.getByRole('button', { name: /^\d{2}:\d{2}$/ }).first().click()
+  await page.locator('form#dati-richiesta input[autocomplete=name]').fill('Max Müller')
+  await page.locator('form#dati-richiesta input[autocomplete=tel]').fill(telefono)
+  await page.locator('form#dati-richiesta input[autocomplete=email]').fill('kunde@example.test')
+  const liberi = page.locator('form#dati-richiesta input[autocomplete=off]:not(.esca):not([type=file]):not([type=checkbox])')
+  await liberi.nth(0).fill(cane)
+  await liberi.nth(1).fill('Pudel')
+  for (const c of await page.locator('form#dati-richiesta input[type=checkbox]').all()) await c.check({ force: true }).catch(() => {})
+  if (foto) await page.screenshot({ path: path.join(OUT, 'de-modulo.png'), fullPage: true })
+  await page.locator('form#dati-richiesta .invia').click()
+  await page.locator('.esito, p.errore').first().waitFor({ timeout: 30000 })
+  return page.evaluate(() => document.querySelector('.esito')?.innerText ?? 'ERRORE: ' + [...document.querySelectorAll('.errore, [role=alert]')].map((x) => x.innerText).join(' | '))
+}
+
+async function main() {
+  fs.mkdirSync(OUT, { recursive: true })
+  const b = await chromium.launch()
+  const s = await salone('de')
+  const idTitolare = await token(s.email)
+
+  // A. Il browser tedesco apre la pagina del salone italiano.
+  const ctx = await apriBrowser(b, 'de-DE')
+  const page = await ctx.newPage()
+  await page.goto(`${HOST}/s/${s.slug}`, { waitUntil: 'load' })
+  await page.waitForTimeout(800)
+  esito('Pagina /s/ da browser tedesco è in tedesco', (await page.evaluate(() => document.documentElement.lang)) === 'de' && (await page.getByText('Termin buchen').count()) > 0)
+  await page.getByRole('button', { name: 'Hund', exact: true }).click()
+  await page.getByRole('button', { name: 'Mittel', exact: true }).click()
+  await page.waitForTimeout(500)
+  const corpo = await page.evaluate(() => document.body.innerText)
+  esito('I servizi predefiniti si leggono in tedesco', /Bad · /.test(corpo) && !/Bagno|Unghie/.test(corpo), corpo.match(/Leistung[\s\S]{0,90}/)?.[0]?.replace(/\n/g, ' | '))
   const da = posta().length
   const finale = await prenota(page, `${HOST}/s/${s.slug}`, { cane: 'Bello', telefono: '+49 151 23456789', foto: true })
   esito('Invio vero da /s/: il server accetta e la pagina risponde in tedesco', !finale.startsWith('ERRORE') && /Anfrage|E-Mail|gesendet/i.test(finale), finale.slice(0, 160))
   await page.screenshot({ path: path.join(OUT, 'de-inviata.png'), fullPage: true })
 
   const richieste = (await db.collection(`salons/${s.uid}/richieste`).get()).docs.map((d) => ({ id: d.id, ...d.data() }))
-  console.log('richieste', JSON.stringify(richieste).slice(0, 700))
   const r1 = richieste.find((x) => x.cane === 'Bello')
   esito('La richiesta salva lingua de', r1?.lingua === 'de', JSON.stringify({ lingua: r1?.lingua, voci: r1?.voci?.map((v) => v.nome) }))
   const ricevuta = (await aspettaPosta(da)).find((m) => m.a === 'kunde@example.test')
@@ -100,9 +134,9 @@ async function prenota(page, url, { cane, telefono, foto }) {
   // G. Errori del server: codice stabile e messaggio italiano per le APK vecchie.
   const e1 = await chiama('inviaRichiesta', { salonId: s.uid, nome: 'X', phone: '', email: '', cane: '', giorno: g2, ora: '10:00', esca: '', consenso: true, lingua: 'de' })
   esito('Errore con details.codice e message italiano', Boolean(e1.error?.details?.codice) && /[aeiou]/i.test(e1.error?.message ?? ''), JSON.stringify(e1.error))
-  // Il limite vero del server, letto dalla pagina tedesca: stesso telefono, terza richiesta.
-  await prenota(page, `${HOST}/s/${s.slug}`, { cane: 'Zwei', telefono: '+49 151 23456789' })
-  const terza = await prenota(page, `${HOST}/s/${s.slug}`, { cane: 'Drei', telefono: '+49 151 23456789' })
+  // Il limite vero del server, letto dalla pagina tedesca: stesso telefono, finché il limite scatta.
+  let terza = ''
+  for (const cane of ['Zwei', 'Drei', 'Vier']) { terza = await prenota(page, `${HOST}/s/${s.slug}`, { cane, telefono: '+49 151 23456789' }); if (terza.startsWith('ERRORE')) break }
   esito('Errore vero del server tradotto sulla pagina tedesca', terza.startsWith('ERRORE') && !/Troppe|richiest/i.test(terza), terza.slice(0, 120))
 
   // H. Lista d'attesa: la lingua della pagina si salva sull'iscritto.

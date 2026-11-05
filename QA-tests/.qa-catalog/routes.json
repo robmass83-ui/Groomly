@@ -1,45 +1,945 @@
 [
-{"path":"/","sourceFile":"src/pages/HomePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/animali","sourceFile":"src/pages/DogsPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/animali/:id","sourceFile":"src/pages/DogPage.tsx","kind":"dynamic","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[{"name":"id","kind":"string"}],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/animali/attesa","sourceFile":"src/pages/AttesaPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","AttesaRoute"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":["plan:listaAttesa (Plus); without it redirects to /animali"]},
-{"path":"/animali/nuovo","sourceFile":"src/pages/DogPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/appuntamenti/:id","sourceFile":"src/pages/AppointmentPage.tsx","kind":"dynamic","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","sheet-route"],"httpMethods":[],"dynamicParams":[{"name":"id","kind":"string"}],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/appuntamenti/nuovo","sourceFile":"src/pages/AppointmentPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","sheet-route"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/appuntamenti/personale/:id","sourceFile":"src/pages/PersonalAppointmentPage.tsx","kind":"dynamic","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","sheet-route"],"httpMethods":[],"dynamicParams":[{"name":"id","kind":"string"}],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/appuntamenti/personale/nuovo","sourceFile":"src/pages/PersonalAppointmentPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","sheet-route"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/benvenuto","sourceFile":"src/pages/TourPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/calendario","sourceFile":"src/pages/CalendarPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/chiusure/:id","sourceFile":"src/pages/ClosurePage.tsx","kind":"dynamic","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","sheet-route"],"httpMethods":[],"dynamicParams":[{"name":"id","kind":"string"}],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/chiusure/nuovo","sourceFile":"src/pages/ClosurePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","sheet-route"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni","sourceFile":"src/pages/SettingsPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/abbonamento","sourceFile":"src/pages/AbbonamentoPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/abbonamento/:piano","sourceFile":"src/pages/AbbonamentoPage.tsx","kind":"dynamic","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[{"name":"piano","kind":"string"}],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/account","sourceFile":"src/pages/AccountPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/account/elimina","sourceFile":"src/pages/EliminaAccountPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/aggiornamenti","sourceFile":"src/pages/ReleaseHistoryPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock","StoricoAggiornamenti"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":["aggiornamentiApkAttivi() (APK distribution only; else redirects to /impostazioni)"]},
-{"path":"/impostazioni/archivio","sourceFile":"src/pages/ArchivePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/avvisi","sourceFile":"src/pages/AvvisiSistemaPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/info","sourceFile":"src/pages/InfoGroomlyPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/legale","sourceFile":"src/pages/LegalePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/licenze","sourceFile":"src/pages/LicenzePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/notifiche","sourceFile":"src/pages/NotificationsPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/piano","sourceFile":"src/pages/PianoPagine.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/privacy","sourceFile":"src/pages/PrivacyPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/pro","sourceFile":"src/pages/ProPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings","ProOTeam"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":["plan:team (redirects to /impostazioni/team if owned; /impostazioni if plans hidden)"]},
-{"path":"/impostazioni/servizi","sourceFile":"src/pages/ServicesPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/suggerimenti","sourceFile":"src/pages/SuggerimentiPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/impostazioni/team","sourceFile":"src/pages/ProPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings","TeamRoute"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":["plan:team (Salone); without it redirects to /impostazioni/pro"]},
-{"path":"/impostazioni/utenti","sourceFile":"src/pages/UsersPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/incassi","sourceFile":"src/pages/EarningsPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/incassi/report","sourceFile":"src/pages/EarningsReportPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/incassi/statistiche","sourceFile":"src/pages/StatistichePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/invito/:token","sourceFile":"src/pages/InvitePage.tsx","kind":"dynamic","requiresAuth":null,"rolesAllowed":["anonymous"],"guards":[],"httpMethods":[],"dynamicParams":[{"name":"token","kind":"string"}],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/listino","sourceFile":"src/pages/ListinoPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/listino/gestione","sourceFile":"src/pages/PriceSheetManagePage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/listino/prezzi","sourceFile":"src/pages/PriceSheetPricesPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go"],"guards":["Guard","StaffLock","StaffSettings"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/listino/stampa","sourceFile":"src/pages/PriceSheetExportPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/listino/vedi","sourceFile":"src/pages/PriceViewPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/login","sourceFile":"src/pages/LoginPage.tsx","kind":"page","requiresAuth":null,"rolesAllowed":["anonymous"],"guards":["LoginSwitch (redirects authenticated home sessions to /)"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]},
-{"path":"/mensili","sourceFile":"src/pages/MonthlyPage.tsx","kind":"page","requiresAuth":true,"rolesAllowed":["titolare","titolare-go","collaboratore"],"guards":["Guard","StaffLock"],"httpMethods":[],"dynamicParams":[],"layoutChain":["src/app/router.tsx#SheetLayer"],"featureFlags":[]}
+  {
+    "path": "/",
+    "sourceFile": "src/pages/HomePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/animali",
+    "sourceFile": "src/pages/DogsPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/animali/:id",
+    "sourceFile": "src/pages/DogPage.tsx",
+    "kind": "dynamic",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [
+      {
+        "name": "id",
+        "kind": "string"
+      }
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/animali/attesa",
+    "sourceFile": "src/pages/AttesaPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "AttesaRoute"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": [
+      "plan:listaAttesa (Plus); without it redirects to /animali"
+    ]
+  },
+  {
+    "path": "/animali/nuovo",
+    "sourceFile": "src/pages/DogPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/appuntamenti/:id",
+    "sourceFile": "src/pages/AppointmentPage.tsx",
+    "kind": "dynamic",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "sheet-route"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [
+      {
+        "name": "id",
+        "kind": "string"
+      }
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/appuntamenti/nuovo",
+    "sourceFile": "src/pages/AppointmentPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "sheet-route"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/appuntamenti/personale/:id",
+    "sourceFile": "src/pages/PersonalAppointmentPage.tsx",
+    "kind": "dynamic",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "sheet-route"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [
+      {
+        "name": "id",
+        "kind": "string"
+      }
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/appuntamenti/personale/nuovo",
+    "sourceFile": "src/pages/PersonalAppointmentPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "sheet-route"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/benvenuto",
+    "sourceFile": "src/pages/TourPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/calendario",
+    "sourceFile": "src/pages/CalendarPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/chiusure/:id",
+    "sourceFile": "src/pages/ClosurePage.tsx",
+    "kind": "dynamic",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "sheet-route"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [
+      {
+        "name": "id",
+        "kind": "string"
+      }
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/chiusure/nuovo",
+    "sourceFile": "src/pages/ClosurePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "sheet-route"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni",
+    "sourceFile": "src/pages/SettingsPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/abbonamento",
+    "sourceFile": "src/pages/AbbonamentoPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/abbonamento/:piano",
+    "sourceFile": "src/pages/AbbonamentoPage.tsx",
+    "kind": "dynamic",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [
+      {
+        "name": "piano",
+        "kind": "string"
+      }
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/account",
+    "sourceFile": "src/pages/AccountPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/account/elimina",
+    "sourceFile": "src/pages/EliminaAccountPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/aggiornamenti",
+    "sourceFile": "src/pages/ReleaseHistoryPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StoricoAggiornamenti"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": [
+      "aggiornamentiApkAttivi() (APK distribution only; else redirects to /impostazioni)"
+    ]
+  },
+  {
+    "path": "/impostazioni/archivio",
+    "sourceFile": "src/pages/ArchivePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/avvisi",
+    "sourceFile": "src/pages/AvvisiSistemaPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/info",
+    "sourceFile": "src/pages/InfoGroomlyPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/legale",
+    "sourceFile": "src/pages/LegalePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/licenze",
+    "sourceFile": "src/pages/LicenzePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/notifiche",
+    "sourceFile": "src/pages/NotificationsPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/piano",
+    "sourceFile": "src/pages/PianoPagine.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/privacy",
+    "sourceFile": "src/pages/PrivacyPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/pro",
+    "sourceFile": "src/pages/ProPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings",
+      "ProOTeam"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": [
+      "plan:team (redirects to /impostazioni/team if owned; /impostazioni if plans hidden)"
+    ]
+  },
+  {
+    "path": "/impostazioni/servizi",
+    "sourceFile": "src/pages/ServicesPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/suggerimenti",
+    "sourceFile": "src/pages/SuggerimentiPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/impostazioni/team",
+    "sourceFile": "src/pages/ProPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings",
+      "TeamRoute"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": [
+      "plan:team (Salone); without it redirects to /impostazioni/pro"
+    ]
+  },
+  {
+    "path": "/impostazioni/utenti",
+    "sourceFile": "src/app/router.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/incassi",
+    "sourceFile": "src/pages/EarningsPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/incassi/report",
+    "sourceFile": "src/pages/EarningsReportPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/incassi/statistiche",
+    "sourceFile": "src/pages/StatistichePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/invito/:token",
+    "sourceFile": "src/pages/InvitePage.tsx",
+    "kind": "dynamic",
+    "requiresAuth": null,
+    "rolesAllowed": [
+      "anonymous"
+    ],
+    "guards": [],
+    "httpMethods": [],
+    "dynamicParams": [
+      {
+        "name": "token",
+        "kind": "string"
+      }
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/listino",
+    "sourceFile": "src/pages/ListinoPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/listino/gestione",
+    "sourceFile": "src/pages/PriceSheetManagePage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/listino/prezzi",
+    "sourceFile": "src/pages/PriceSheetPricesPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock",
+      "StaffSettings"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/listino/stampa",
+    "sourceFile": "src/pages/PriceSheetExportPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/listino/vedi",
+    "sourceFile": "src/pages/PriceViewPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/login",
+    "sourceFile": "src/pages/LoginPage.tsx",
+    "kind": "page",
+    "requiresAuth": null,
+    "rolesAllowed": [
+      "anonymous"
+    ],
+    "guards": [
+      "LoginSwitch (redirects authenticated home sessions to /)"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/mensili",
+    "sourceFile": "src/pages/MonthlyPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  }
 ]

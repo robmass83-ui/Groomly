@@ -242,7 +242,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
                   <span style={{ display: 'block', fontWeight: 700, ...USER_TEXT }}>{frasi.proPianoSalone}</span>
                   <span style={{ display: 'block', color: 'var(--tx2)', fontSize: TYPE.meta }}>
                     <span style={{ color: access.enabled ? 'var(--ok)' : 'var(--tx2)', fontWeight: 700 }}>{access.enabled ? frasi.servAttivo : frasi.proNonAttivo}</span>
-                    {access.enabled ? <> · <span>{seats} di {access.seats ?? PRO_SEAT_LIMIT} posti</span></> : null}
+                    {access.enabled ? <> · <span>{t(lingua, 'teamPosti', { n: seats, max: access.seats ?? PRO_SEAT_LIMIT })}</span></> : null}
                   </span>
                 </span>
                 {operator ? (

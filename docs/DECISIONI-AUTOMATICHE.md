@@ -555,3 +555,18 @@ Spec: `docs/superpowers/specs/2026-11-04-lingue-pagine-design.md`.
 - **Nomi dei piani nei termini:** «Base, Pro, Salone» restano come nell'italiano in vigore. In francese e tedesco *Base*, *Pro*, *Salon*. Il testo italiano non è stato cambiato: vedi la nota in `PROGRESS.md`.
 - **Parole di legge:** art. 59 del Codice del consumo citato come legge italiana. Il tedesco dice `Base` per il piano, non una traduzione.
 - **Titolo della scheda del browser:** attributi `data-titolo-<lingua>` su `<html>`, letti da `lingua-pagina.js`. `meta description` resta in italiano: la leggono i motori di ricerca, non chi usa la pagina.
+
+## Cinque lingue — T7 Audit (5 novembre)
+
+Spec: `docs/superpowers/specs/2026-11-04-lingue-audit-design.md`.
+
+- **Niente brainstorm né domande a metà.** Il compito è una verifica e le regole erano già decise.
+- **Nomi predefiniti nelle caselle di modifica.** In Listino e Servizi si leggono tradotti. Se la persona non li tocca resta il nome salvato; se li cambia diventano testo suo.
+- **Nome del servizio sul server.** `paginaPubblica` traduce solo ciò che si legge. La richiesta rilegge il catalogo salvato, quindi `voci` resta in italiano e il salone vede i suoi nomi.
+- **Messaggi WhatsApp.** Il servizio segue la lingua scelta nel dialogo, non quella dell'app.
+- **`chiusoBreve`.** Nella casella del mese `Zu` in tedesco e `Cerr.` in spagnolo. Nella vista settimana resta `chiuso`, che ha posto.
+- **`hubBackup` tedesco.** Trattino morbido in `Wiederherstellung`, come dice il glossario.
+- **Trattino automatico.** `hyphens: auto` su `USER_TEXT`, titoli di pagina ed etichette strette. Prima le parole si spezzavano senza trattino.
+- **Date numeriche.** Solo il tedesco cambia, `05.10.2026`. Le altre lingue restano `05/10/2026`.
+- **Logo.** Non toccato: è un disegno del marchio e decide Roberto.
+- **Catalogo QA.** Aggiornate le impronte senza rifare analisi e task: le modifiche alle 36 rotte sono di testo, non di percorso. `/impostazioni/utenti` ora punta a `router.tsx`.

@@ -1,8 +1,11 @@
+import { readFileSync } from 'node:fs'
 import { render, screen } from '@testing-library/react'
+import ts from 'typescript'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthMark } from '../components/brand/AuthMark'
 import { buildExportData } from '../lib/earningsExport'
 import { mailPostoLibero } from './emailHtml'
+import { fileTsx } from './frasiFisse'
 import { fr } from './fr'
 import { LinguaProvider } from './LinguaContext'
 
@@ -26,6 +29,21 @@ describe('audit delle cinque lingue', () => {
     expect(dati('de').rows[0].date).toBe('05.10.2026')
     expect(dati('de').periodLabel).toBe('01.10.2026 - 31.10.2026')
     expect(dati('fr').rows[0].date).toBe('05/10/2026')
+  })
+
+  // `frasiFisse` legge le stringhe tra virgolette: il testo scritto dentro i tag gli sfugge.
+  it('nessuna parola fissa dentro i tag', () => {
+    const ammesse = new Set(['Groomly', 'PDF', 'Excel', 'WhatsApp', 'POS', 'info@groomlyapp.it'])
+    const trovate: string[] = []
+    for (const file of fileTsx('src')) {
+      const sorgente = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+      const guarda = (nodo: ts.Node): void => {
+        if (ts.isJsxText(nodo) && /\p{L}{2,}/u.test(nodo.text) && !ammesse.has(nodo.text.trim())) trovate.push(`${file}: ${nodo.text.trim()}`)
+        ts.forEachChild(nodo, guarda)
+      }
+      guarda(sorgente)
+    }
+    expect(trovate).toEqual([])
   })
 
   it('il francese tiene lo spazio insecabile', () => {

@@ -215,8 +215,8 @@ const closeActions: CSSProperties = {
 }
 
 const closeAction: CSSProperties = {
-  flex: '1 1 0',
-  minWidth: 0,
+  flex: '1 1 auto',
+  minWidth: 'min-content',
   width: 'auto',
   minHeight: 'auto',
   height: 'auto',
@@ -229,7 +229,7 @@ const closeAction: CSSProperties = {
   justifyContent: 'center',
   gap: 4,
   textAlign: 'center',
-  whiteSpace: 'normal',
+  whiteSpace: 'nowrap',
   overflowWrap: 'normal',
 }
 

@@ -5,6 +5,7 @@ import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { OPZIONI_LINGUA, type Lingua } from '../../i18n/lingua'
+import { nomeServizioVisibile } from '../../i18n/servizioVisibile'
 import { useSettings } from '../../hooks/useSettings'
 import { usePlus } from '../../hooks/usePlus'
 import { dataConOra } from '../../i18n/format'
@@ -132,7 +133,8 @@ export function MessaggiPronti({
   const [toccata, setToccata] = useState(false)
   const [lingua, setLingua] = useState<Lingua>(() => leggiLinguaMessaggio(telefono, predefinita))
   const conOrario = tipo === 'promemoria' || tipo === 'conferma' || tipo === 'richiamo'
-  const compilati = { ...valori, quando: conOrario && quando ? dataConOra(lingua, quando) : '' }
+  const servizio = valori.servizio.split(', ').map((nome) => nomeServizioVisibile(lingua, nome)).join(', ')
+  const compilati = { ...valori, servizio, quando: conOrario && quando ? dataConOra(lingua, quando) : '' }
   const testo = toccata ? bozza : testoMessaggio(lingua, tipo, compilati)
   if (!strumentoVisibile('messaggi', settings)) return null
   if (!plus.visibile) return null

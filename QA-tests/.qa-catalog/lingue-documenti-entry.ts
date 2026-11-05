@@ -34,7 +34,7 @@ export function tutto() {
     altri.push({ lingua, tipo: 'posto-libero', testo: posto.oggetto + '\n' + posto.testo })
     for (const esito of ['confermato', 'liberato', 'nonValido'] as const) altri.push({ lingua, tipo: 'pagina-' + esito, testo: paginaRisposta(lingua, esito, { salone: 'Pelo & Coda', cane: 'Luna', quando }) })
     for (const azione of ['conferma', 'rifiuta'] as const) altri.push({ lingua, tipo: 'domanda-' + azione, testo: htmlDomandaRisposta({ lingua, azione, azioneUrl: 'https://x.test' }) })
-    for (const tipo of ['conferma', 'rifiuta', 'scaduto', 'errore'] as never[]) { try { altri.push({ lingua, tipo: 'esito-' + String(tipo), testo: htmlEsito({ lingua, tipo, salone: 'Pelo & Coda', cane: 'Luna', quando } as never) }) } catch { /* tipo assente */ } }
+    for (const tipo of ['conferma', 'liberato', 'non_valido'] as never[]) { try { altri.push({ lingua, tipo: 'esito-' + String(tipo), testo: htmlEsito({ lingua, tipo, salone: 'Pelo & Coda', cane: 'Luna', quando } as never) }) } catch { /* tipo assente */ } }
     const ora = Date.UTC(2026, 10, 12, 12, 0)
     const sends = selectPushes({
       deviceId: 'd', token: 't', salonId: 's', appVersion: '1.0.0', latestVersion: '2.0.0', lingua, nowMs: ora, delivered: [],

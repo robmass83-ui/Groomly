@@ -2118,4 +2118,7 @@ export const it = {
   bakLeggimiFileListino: 'File del listino: {{n}}',
   bakLeggimiFotoNonLette: 'Foto non lette: {{n}}',
   bakLeggimiFotoElenco: 'L\'elenco è in dati/foto-mancanti.txt.',
+  // Lingue T7
+  teamPosti: '{{n}} di {{max}} posti',
+  chiusoBreve: 'Chiuso',
 } as const

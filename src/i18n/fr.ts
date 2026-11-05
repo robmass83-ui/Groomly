@@ -2120,4 +2120,7 @@ export const fr = {
   bakLeggimiFileListino: 'Fichiers de tarifs : {{n}}',
   bakLeggimiFotoNonLette: 'Photos non lues : {{n}}',
   bakLeggimiFotoElenco: 'La liste se trouve dans dati/foto-mancanti.txt.',
+  // Lingue T7
+  teamPosti: '{{n}} sur {{max}} places',
+  chiusoBreve: 'Fermé',
 } as const satisfies Record<keyof typeof italiano, string>

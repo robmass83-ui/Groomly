@@ -84,3 +84,11 @@ L’AAB esce in `android/app/build/outputs/bundle/playRelease/app-play-release.a
 **Non devi fare niente per le lingue.** Tutte le email partono dal codice, già in cinque lingue. I template Brevo non vengono usati, nemmeno il 5 (invito nel salone), quindi tradurli non servirebbe.
 
 Facoltativo, per ordine: i template 1-5 sono ancora attivi, solo in italiano, e si possono spegnere nel pannello Brevo. Lasciarli accesi non cambia nulla.
+
+## Logo con «TOELETTATURA» (5 novembre)
+
+Il logo orizzontale ha la parola «TOELETTATURA» disegnata dentro. Si vede in italiano sulle pagine pubbliche, sulla pagina di prenotazione e in testa a ogni email, anche per un cliente tedesco. Scegli tu:
+
+a) logo senza scritta per chi non legge italiano, *(consigliata)*;
+b) logo senza scritta per tutti;
+c) resta com'è.

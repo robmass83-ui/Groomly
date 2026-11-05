@@ -41,7 +41,7 @@ async function main() {
   // Telefono: scelta, telefono, inglese. Il fuso non conta.
   for (const [locale, tz, atteso] of [['pt-BR', 'America/Sao_Paulo', 'en'], ['pt-PT', 'Europe/Rome', 'en'], ['de-DE', 'Europe/Berlin', 'de'], ['fr-FR', 'Europe/Rome', 'fr'], ['es-ES', 'Europe/Rome', 'es'], ['it-IT', 'Europe/London', 'it'], ['ja-JP', 'Asia/Tokyo', 'en']]) {
     const c = await contesto(b, locale, tz); const p = await c.newPage()
-    await p.goto(`${APP}/login`); await p.waitForTimeout(1500)
+    await p.goto(`${APP}/login`); await p.waitForFunction(() => document.getElementById('root')?.childElementCount > 0, null, { timeout: 30000 }); await p.waitForTimeout(800)
     const lang = await p.evaluate(() => document.documentElement.lang)
     esito(`Installazione nuova, telefono ${locale}, fuso ${tz} → ${atteso}`, lang === atteso && (await p.getByText(FRASI[atteso].authEntra).count()) > 0, `lang=${lang}`)
     await c.close()
@@ -52,9 +52,9 @@ async function main() {
     const c = await contesto(b, locale, tz)
     await c.addInitScript(() => { try { if (localStorage.getItem('groomly.linguaPassaggio') === null) localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: 'u1', email: 'prova@example.test' })) } catch { /* niente */ } })
     const p = await c.newPage()
-    await p.goto(`${APP}/login`); await p.waitForTimeout(1500)
+    await p.goto(`${APP}/login`); await p.waitForFunction(() => document.getElementById('root')?.childElementCount > 0, null, { timeout: 30000 }); await p.waitForTimeout(800)
     const stato = await p.evaluate(() => ({ lang: document.documentElement.lang, salvata: localStorage.getItem('groomly.lingua'), segno: localStorage.getItem('groomly.linguaPassaggio') }))
-    await p.reload(); await p.waitForTimeout(800)
+    await p.reload(); await p.waitForFunction(() => document.getElementById('root')?.childElementCount > 0, null, { timeout: 30000 }); await p.waitForTimeout(800)
     const dopo = await p.evaluate(() => document.documentElement.lang)
     esito(`Chi ha già l'app, ${locale} a ${tz} → ${atteso}${nota ? ` (${nota})` : ''}`, stato.lang === atteso && stato.salvata === atteso && stato.segno !== null && dopo === atteso, JSON.stringify(stato))
     await c.close()
@@ -94,8 +94,36 @@ async function main() {
     await c.close()
   }
 
-  // Pagine senza accesso, stati ed errori, nelle cinque lingue e tre larghezze.
   const misure = []
+  // Giro di benvenuto: ogni schermata, finché si può andare avanti.
+  for (const w of [320, 390]) for (const l of LINGUE) {
+    const t = await titolare(`tour${l}${w}`)
+    await db.doc(`salons/${t.uid}/settings/main`).set({ tourBenvenuto: { stato: 'in-corso', saltati: [] }, listinoConfermato: false }, { merge: true })
+    const c = await contesto(b, 'it-IT', 'Europe/Rome', w)
+    await c.addInitScript((x) => { try { localStorage.setItem('groomly.lingua', x) } catch { /* niente */ } }, l)
+    const p = await c.newPage()
+    await p.goto(`${APP}/login`)
+    await entra(p, t, l)
+    await p.evaluate(() => { window.history.pushState({}, '', '/benvenuto'); window.dispatchEvent(new PopStateEvent('popstate')) })
+    await aspettaStabile(p)
+    const viste = new Set()
+    for (let i = 0; i < 16; i++) {
+      const m = await p.evaluate(MISURA).catch(() => null)
+      if (!m) { await p.waitForTimeout(800); continue }
+      const firma = m.testi.slice(0, 6).join('|')
+      if (viste.has(firma) || !m.url.startsWith('/benvenuto')) break
+      viste.add(firma)
+      misure.push({ ruolo: 'nuovo', larghezza: w, lingua: l, rotta: `/benvenuto passo ${i}`, url: m.url, lang: m.lang, hscroll: m.hscroll, estranee: valuta(m, l), tagli: m.tagli, fuori: m.fuori, spezzate: m.spezzate, frasi: m.testi.length })
+      if (w === 320) await p.screenshot({ path: path.join(OUT, `${l}-tour-${i}.png`), fullPage: true }).catch(() => {})
+      const avanti = p.locator('button:not([disabled])').filter({ hasText: new RegExp(`${FRASI[l].tourIniziamo}|${FRASI[l].tourAvanti ?? '^$'}|${FRASI[l].tourDopo}`) }).first()
+      if (!(await avanti.count())) { await p.locator('main button:not([disabled]), button:not([disabled])').last().click({ timeout: 1500 }).catch(() => {}) } else await avanti.click({ timeout: 1500 }).catch(() => {})
+      await p.waitForTimeout(500)
+    }
+    esito(`Giro di benvenuto in ${l} a ${w} px`, viste.size >= 2, `${viste.size} schermate`)
+    await c.close()
+  }
+
+  // Pagine senza accesso, stati ed errori, nelle cinque lingue e tre larghezze.
   const u = await titolare('errori')
   for (const w of [320, 360, 390]) for (const l of LINGUE) {
     const c = await contesto(b, 'it-IT', 'Europe/Rome', w)

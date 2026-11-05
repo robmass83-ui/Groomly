@@ -560,7 +560,7 @@ function AppointmentRead({
             valori={{
               nome: dog?.contact.name ?? '',
               cane: dog?.name ?? '',
-              servizio: appointment.services.map((service) => nomeServizioVisibile(lingua, service.name)).join(', '),
+              servizio: appointment.services.map((service) => service.name).join(', '),
             }}
           />
         </div>

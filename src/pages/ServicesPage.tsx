@@ -61,7 +61,9 @@ export function ServicesPage() {
     })
   }
 
-  function submit(input: ServiceInput): string | void {
+  function submit(scritto: ServiceInput): string | void {
+    // Il nome predefinito si legge tradotto: se non cambia, resta quello salvato.
+    const input = editing && editing !== 'new' && scritto.name === nomeServizioVisibile(lingua, editing.name) ? { ...scritto, name: editing.name } : scritto
     const nomeInvariato = editing !== 'new' && editing !== null && normalizeSearch(input.name) === normalizeSearch(editing.name)
     const doppio = nomeInvariato ? undefined : servizioDoppio(input.name, api.services, editing === 'new' || !editing ? undefined : editing.id)
     if (doppio) return t(lingua, 'servNomeDoppio', { nome: doppio.name })
@@ -220,7 +222,7 @@ export function ServicesPage() {
         {editing ? (
           <ServiceSheet
             mode={editing === 'new' ? 'create' : 'edit'}
-            initial={editing === 'new' ? undefined : editing}
+            initial={editing === 'new' || !editing ? undefined : { ...editing, name: nomeServizioVisibile(lingua, editing.name) }}
             onSubmit={submit}
             onRemove={editing !== 'new' && api.services.length > 1 ? () => {
               setRemoving(editing)

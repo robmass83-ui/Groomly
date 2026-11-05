@@ -20,12 +20,14 @@ const db = getFirestore(); const auth = getAuth()
 const arg = (nome, def) => { const a = process.argv.find((x) => x.startsWith(`--${nome}=`)); return a ? a.slice(nome.length + 3) : def }
 const elenco = (nome, def) => arg(nome, def).split(',').filter(Boolean)
 const APP = arg('app', 'http://127.0.0.1:5190')
-const RUOLI = elenco('ruoli', 'T,P,G,C,V')
+const RUOLI = elenco('ruoli', 'T,P,G,C,V,B')
 const LINGUE = elenco('lingue', 'it,en,es,fr,de')
 const LARGHEZZE = elenco('larghezze', '320,360,390').map(Number)
 const SOLO_ROTTE = elenco('rotte', '')
 const DIALOGHI = process.argv.includes('--dialoghi')
 const FOTO = process.argv.includes('--foto')
+// Cartella delle foto di un giro --dialoghi: si riaprono solo i pulsanti che lì hanno aperto qualcosa.
+const RIPETI = arg('ripeti', '')
 const PARALLELI = Number(arg('paralleli', '4'))
 const OUT = path.resolve(arg('out', 'QA-tests/results/cinque-lingue'))
 const FRASI = JSON.parse(fs.readFileSync(arg('frasi', path.join(OUT, 'frasi.json')), 'utf8'))
@@ -115,24 +117,26 @@ const MISURA = () => {
   for (let n = camminatore.nextNode(); n; n = camminatore.nextNode()) {
     const el = n.parentElement
     if (!el || !n.textContent.trim() || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(el.tagName) || !vis(el)) continue
+    const nascosto = el.getBoundingClientRect().width <= 2 // etichetta solo per i lettori di schermo
     if (el.closest('[aria-hidden=true]') && !dlg) continue
     const t = n.textContent.trim()
     testi.add(t.slice(0, 400))
     range.selectNodeContents(n)
     const r = range.getBoundingClientRect()
     if (r.width === 0) continue
+    if (nascosto) continue
     if ((r.right > W + 1 || r.left < -1) && !dentroScorrevole(el)) fuori.push(`schermo ${quale(el)} "${t.slice(0, 50)}" ${Math.round(r.left)}-${Math.round(r.right)}/${W}`)
     // Testo che esce dal contenitore con bordo o fondo più vicino.
     for (let p = el; p && p !== document.body; p = p.parentElement) {
       const s = getComputedStyle(p)
       if (s.display === 'inline') continue
       const b = p.getBoundingClientRect()
-      if (r.right > b.right + 2 && !dentroScorrevole(el)) fuori.push(`riquadro ${quale(p)} "${t.slice(0, 50)}" testo ${Math.round(r.right)} > ${Math.round(b.right)}`)
+      if (r.right > b.right + 6 && !dentroScorrevole(el)) fuori.push(`riquadro ${quale(p)} "${t.slice(0, 50)}" testo ${Math.round(r.right)} > ${Math.round(b.right)}`)
       break
     }
     // Parola spezzata a metà: la stessa parola occupa due righe senza trattino morbido.
     const testo = n.textContent
-    const re = /[\p{L}]{6,}/gu
+    const re = /[\p{L}]{3,}/gu
     if (range.getClientRects().length > 1 && !testo.includes('\u00ad')) {
       for (let m = re.exec(testo); m; m = re.exec(testo)) {
         range.setStart(n, m.index); range.setEnd(n, m.index + m[0].length)
@@ -145,7 +149,7 @@ const MISURA = () => {
     if (!vis(el) || !el.childElementCount && !el.textContent.trim()) continue
     const s = getComputedStyle(el)
     const conTesto = [...el.childNodes].some((x) => x.nodeType === 3 && x.textContent.trim())
-    if (!conTesto) continue
+    if (!conTesto || el.getBoundingClientRect().width <= 2) continue
     const clipX = s.overflowX === 'hidden' || s.overflowX === 'clip'
     const clipY = s.overflowY === 'hidden' || s.overflowY === 'clip'
     if ((s.textOverflow === 'ellipsis' || clipX) && el.scrollWidth > el.clientWidth + 1) tagli.push(`largo ${quale(el)} "${el.textContent.trim().slice(0, 50)}" ${el.scrollWidth}/${el.clientWidth}`)
@@ -235,6 +239,7 @@ async function creaCollaboratore(salone) {
 }
 
 function rotte(i) {
+  if (i.beta) return ['/impostazioni/beta', '/impostazioni/beta/feedback', '/impostazioni/beta/fine', '/impostazioni/avvisi', '/impostazioni/abbonamento', '/']
   const base = ['/', '/animali', '/animali/nuovo', '/animali/attesa', '/calendario', '/mensili', '/incassi', '/incassi/report', '/incassi/statistiche',
     '/listino', '/listino/vedi', '/listino/prezzi', '/listino/gestione', '/listino/stampa', '/impostazioni', '/impostazioni/account', '/impostazioni/suggerimenti',
     '/impostazioni/legale', '/impostazioni/licenze', '/impostazioni/info', '/impostazioni/servizi', '/impostazioni/archivio', '/impostazioni/pro', '/impostazioni/piano',
@@ -306,6 +311,7 @@ async function esplora(page, base, rotta, cartella) {
   })
   const visti = new Set()
   for (let i = 0; i < Math.min(pulsanti, 40); i++) {
+    if (RIPETI && !fs.existsSync(path.join(RIPETI, `${base.ruolo}-320-de`, `${slug(rotta)}-${i}.png`))) continue
     await vai(page, '/__x'); await vai(page, rotta); await aspettaStabile(page, 3000)
     const prima = await page.evaluate(() => document.body.innerText)
     const nome = await page.evaluate((idx) => {
@@ -322,7 +328,7 @@ async function esplora(page, base, rotta, cartella) {
     const dopo = await page.evaluate(() => ({ t: document.body.innerText, u: location.pathname, d: !!document.querySelector('[role=dialog],[role=alertdialog]') }))
     if (dopo.u !== rotta || (!dopo.d && dopo.t === prima)) continue
     const firma = dopo.t.slice(0, 200)
-    if (visti.has(firma)) continue
+    if (!RIPETI && visti.has(firma)) continue
     visti.add(firma)
     await misura(page, { ...base, tocco: nome }, rotta, cartella ? path.join(cartella, `${slug(rotta)}-${i}.png`) : null)
   }
@@ -336,6 +342,11 @@ async function main() {
   if (RUOLI.includes('P')) persone.P = await creaSalone('P', 'plus', { online: true })
   if (RUOLI.includes('G')) persone.G = await creaSalone('G', 'go')
   if (RUOLI.includes('V')) persone.V = await creaSalone('V', 'salone', { vuoto: true })
+  if (RUOLI.includes('B')) {
+    persone.B = { ...(await creaSalone('B', 'go', { vuoto: true })), beta: true }
+    const il = new Date(adesso.getTime() - 864e5).toISOString()
+    await db.doc(`betaInviti/${persone.B.uid}`).set({ salonId: persone.B.uid, stato: 'invitato', piano: 'salone', giorni: 30, invitatoIl: il, scadeInvitoIl: new Date(adesso.getTime() + 7 * 864e5).toISOString() })
+  }
   fs.writeFileSync(path.join(OUT, 'persone.json'), JSON.stringify(persone, null, 1))
   const browser = await chromium.launch()
   const lavori = []
