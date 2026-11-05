@@ -38,7 +38,7 @@ import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
-import { archivioDaDb, impostaEmailClientePer, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
@@ -909,6 +909,13 @@ export const disiscriviPromo = onCall(pianoCall, async (request) => {
 
 export const silenzioEmail = onCall(pianoCall, async (request) => {
   return silenzioEmailPer({
+    salonId: text(field(request.data, 'salonId')),
+    token: text(field(request.data, 'token')),
+  }, archivioDaDb(getFirestore()))
+})
+
+export const riattivaEmail = onCall(pianoCall, async (request) => {
+  return riattivaEmailPer({
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
   }, archivioDaDb(getFirestore()))

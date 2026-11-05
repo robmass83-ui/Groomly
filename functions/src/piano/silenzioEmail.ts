@@ -132,11 +132,10 @@ function salonePermesso(salonId: string): boolean {
   return salonId !== '' && salonId !== 'shared' && !salonId.includes('/')
 }
 
-// Chi si disiscrive esce da tutto il salone: l'indirizzo va in elenco e si fermano tutti i suoi cani.
-export async function silenzioEmailPer(
+async function destinatarioDelLink(
   input: { salonId: string; token: string },
   archivio: ArchivioSilenzio,
-): Promise<{ ok: true }> {
+): Promise<{ email: string; dogId: string | null }> {
   if (!salonePermesso(input.salonId) || !TOKEN.test(input.token)) {
     throw erroreServer('invalid-argument', 'link_non_valido')
   }
@@ -145,13 +144,36 @@ export async function silenzioEmailPer(
   const offerta = riga ? null : await archivio.leggiOfferta(input.salonId, input.token)
   if (!riga && !offerta) throw erroreServer('not-found', 'link_non_valido')
   if (riga && !(await archivio.caneEsiste(input.salonId, riga.dogId))) throw erroreServer('not-found', 'cane_assente')
-  const email = riga?.email ?? offerta?.email ?? ''
-  const cani = new Set(riga ? [riga.dogId] : [])
+  return { email: riga?.email ?? offerta?.email ?? '', dogId: riga?.dogId ?? null }
+}
+
+// Chi si disiscrive esce da tutto il salone: l'indirizzo va in elenco e si fermano tutti i suoi cani.
+export async function silenzioEmailPer(
+  input: { salonId: string; token: string },
+  archivio: ArchivioSilenzio,
+): Promise<{ ok: true }> {
+  const { email, dogId } = await destinatarioDelLink(input, archivio)
+  const cani = new Set(dogId ? [dogId] : [])
   if (emailValida(email)) {
     await archivio.scriviBlocco(input.salonId, email, 'link')
-    for (const dogId of await archivio.caniConEmail(input.salonId, email)) cani.add(dogId)
+    for (const id of await archivio.caniConEmail(input.salonId, email)) cani.add(id)
   }
-  for (const dogId of cani) await fermaCane(input.salonId, dogId, archivio)
+  for (const id of cani) await fermaCane(input.salonId, id, archivio)
+  return { ok: true }
+}
+
+// Il ritorno è del cliente: chi ha il link della sua email toglie il blocco, chiunque l'abbia messo.
+export async function riattivaEmailPer(
+  input: { salonId: string; token: string },
+  archivio: ArchivioSilenzio,
+): Promise<{ ok: true }> {
+  const { email, dogId } = await destinatarioDelLink(input, archivio)
+  const cani = new Set(dogId ? [dogId] : [])
+  if (emailValida(email)) {
+    await archivio.togliBlocco(input.salonId, email)
+    for (const id of await archivio.caniConEmail(input.salonId, email)) cani.add(id)
+  }
+  for (const id of cani) await archivio.segnaBloccata(input.salonId, id, false)
   return { ok: true }
 }
 

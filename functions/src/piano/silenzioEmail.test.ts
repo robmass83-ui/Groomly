@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chiaveEmail, impostaEmailClientePer, silenzioEmailPer, type ArchivioSilenzio } from './silenzioEmail'
+import { chiaveEmail, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer, type ArchivioSilenzio } from './silenzioEmail'
 import type { RigaCoda } from '../../../src/lib/codaEmail'
 
 const base: RigaCoda = {
@@ -134,6 +134,40 @@ describe('silenzio email', () => {
     await expect(impostaEmailClientePer({ salonId: 'shared', ruolo: 'titolare', dogId: 'd', bloccata: true }, store)).rejects.toThrow()
     expect(store.bloccati).toEqual([])
     expect(store.elenco.size).toBe(0)
+  })
+})
+
+describe('riattivaEmailPer', () => {
+  const carta = { salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [base], email: 'a@b.it', cani: { d: 'a@b.it', e: ' A@B.it ' } }
+
+  it('il cliente che ha cambiato idea torna per tutti i suoi cani', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    expect(store.elenco.size).toBe(0)
+    expect(store.sbloccati.sort()).toEqual(['s/d', 's/e'])
+  })
+
+  it('dopo il ritorno il salone può di nuovo decidere dalla scheda', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store)).resolves.toEqual({ ok: true })
+  })
+
+  it('vale anche per il token del posto libero', async () => {
+    const store = memoria({ ...carta, offerta: { token: 'c'.repeat(32), email: 'i@s.it' } })
+    await silenzioEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
+    expect(store.elenco.size).toBe(0)
+  })
+
+  it('un token sbagliato o il salone shared non cambiano nulla', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(riattivaEmailPer({ salonId: 's', token: 'b'.repeat(32) }, store)).rejects.toThrow()
+    await expect(riattivaEmailPer({ salonId: 'shared', token: 'a'.repeat(32) }, store)).rejects.toThrow()
+    expect(store.elenco.size).toBe(1)
   })
 })
 

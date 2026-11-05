@@ -61,6 +61,12 @@ describe('tabelle delle pagine', () => {
     expect(pagina).not.toContain('legate a una tua prenotazione')
   })
 
+  it('chi si disiscrive può tornare dalla stessa pagina', () => {
+    const pagina = readFileSync('hosting/azione/index.html', 'utf8')
+    expect(pagina).toContain("'riattivaEmail'")
+    expect(pagina).toContain('Ho cambiato idea')
+  })
+
   it('azione ha le stesse chiavi in cinque lingue', () => {
     chiaviUguali(tabellaDi(readFileSync('hosting/azione/index.html', 'utf8'), 'const COPY = {', '\n    }[LANG]'))
   })
