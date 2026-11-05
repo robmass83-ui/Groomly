@@ -48,6 +48,17 @@ export function margineConsole(totale: number): number {
   return Math.floor(Math.max(0, TETTO_EMAIL_GIORNO - totale) / 2)
 }
 
+/** Restituisce i posti di email prenotate ma non partite. */
+export async function liberaEmail(db: Firestore, adesso: Date, n: number): Promise<void> {
+  if (n <= 0) return
+  const giorno = romeDay(adesso)
+  const ref = db.doc(POSTA_GIORNO)
+  await db.runTransaction(async (tx) => {
+    const letta = postaDi((await tx.get(ref)).data(), giorno)
+    tx.set(ref, { giorno, n: Math.max(0, letta.totale - n), perSalone: letta.perSalone, accesi: letta.accesi })
+  })
+}
+
 /** Prenota i posti prima dell'invio. I conti dei saloni non cambiano: il loro margine scende col totale. */
 export async function prenotaEmail(db: Firestore, adesso: Date, n: number): Promise<boolean> {
   if (n <= 0) return true

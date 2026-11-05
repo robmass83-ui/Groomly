@@ -67,7 +67,7 @@ export function ComunicazioniPage() {
                     <div style={AIUTO}>{dettagli(voce)}</div>
                     {voce.email > 0 ? <div style={AIUTO}>{frasi.consInviateSu.replace('{{n}}', String(voce.inviate)).replace('{{tot}}', String(voce.email))}</div> : null}
                   </div>
-                  {voce.email > voce.inviate ? (
+                  {voce.email > voce.inviate && !voce.eliminata && !voce.inCorso ? (
                     <Button variant="secondary" size="sm" disabled={occupata !== null} onClick={() => { void agisci(voce.id, () => callRiprendiComunicazione(voce.id)) }}>{frasi.consRiprendi}</Button>
                   ) : null}
                   {voce.eliminata ? null : <Button variant="secondary" size="sm" disabled={occupata !== null} onClick={() => setDaEliminare(voce)}>{frasi.consElimina}</Button>}

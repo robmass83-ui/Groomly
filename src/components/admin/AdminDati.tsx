@@ -55,6 +55,7 @@ export type AdminDati = {
   note: SuggerimentoArrivato[]
   richieste: RichiestaAssistenza[]
   richiestePronte: boolean
+  erroreAssistenza: boolean
   contatori: ContatoriAdmin | null
   erroreContatori: boolean
   config: ConfigGlobale | null
@@ -104,8 +105,9 @@ export function AdminDatiProvider({ children }: { children: ReactNode }) {
   const [feedback, setFeedback] = useState<FeedbackLetto[]>([])
   const [feedbackPronti, setFeedbackPronti] = useState(false)
   const [erroreFeedback, setErroreFeedback] = useState(false)
-  const [documenti, setDocumenti] = useState<Record<string, DocAssistenza>>({})
+  const [documenti, setDocumenti] = useState<Record<string, DocAssistenza> | null>(null)
   const [assistenzaDal, setAssistenzaDal] = useState<string | null>(null)
+  const [erroreAssistenza, setErroreAssistenza] = useState(false)
   const [contatori, setContatori] = useState<ContatoriAdmin | null>(null)
   const [erroreContatori, setErroreContatori] = useState(false)
   const ultimiContatori = useRef(0)
@@ -136,7 +138,7 @@ export function AdminDatiProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const ricaricaAssistenza = useCallback(() => {
-    void elencoAssistenza().then(setDocumenti).catch(() => undefined)
+    void elencoAssistenza().then(setDocumenti).catch(() => setErroreAssistenza(true))
   }, [])
 
   useEffect(() => {
@@ -145,7 +147,11 @@ export function AdminDatiProvider({ children }: { children: ReactNode }) {
     caricaDirectory()
     caricaInviti()
     ricaricaAssistenza()
-    void callAvviaAssistenza().then((dal) => { if (vivo && dal !== '') setAssistenzaDal(dal) }).catch(() => undefined)
+    void callAvviaAssistenza().then((dal) => {
+      if (!vivo) return
+      if (dal === '') setErroreAssistenza(true)
+      else setAssistenzaDal(dal)
+    }).catch(() => { if (vivo) setErroreAssistenza(true) })
     void elencoSuggerimenti().then((lista) => {
       if (!vivo) return
       setNote(lista)
@@ -211,7 +217,9 @@ export function AdminDatiProvider({ children }: { children: ReactNode }) {
     const fine = fineBetaDi(row)
     if (fine) fineBeta[row.salonId] = fine
   }
-  const richieste = useMemo(() => unisciRichieste(note, feedback, documenti, assistenzaDal), [note, feedback, documenti, assistenzaDal])
+  // Senza data di taglio e documenti gli stati non si sanno: meglio nessuna richiesta che tutta la storia come nuova.
+  const richiestePronte = notePronte && (feedbackPronti || erroreFeedback) && assistenzaDal !== null && documenti !== null && !erroreAssistenza
+  const richieste = useMemo(() => (richiestePronte ? unisciRichieste(note, feedback, documenti ?? {}, assistenzaDal) : []), [richiestePronte, note, feedback, documenti, assistenzaDal])
   const nuoveRichieste = contaNuove(richieste)
   const daFare = daFareOggi({ inviti, fineBeta, richiesteNuove: nuoveRichieste, nuoviSaloni: contatori?.nuoviSaloni.length ?? 0 }, adesso)
 
@@ -280,7 +288,8 @@ export function AdminDatiProvider({ children }: { children: ReactNode }) {
     erroreFeedback,
     note,
     richieste,
-    richiestePronte: notePronte && (feedbackPronti || erroreFeedback),
+    richiestePronte,
+    erroreAssistenza,
     contatori,
     erroreContatori,
     config,

@@ -84,6 +84,7 @@ describe('rispondiAssistenzaPer', () => {
     await expect(rispondi({ dati: { ...dati, anchEmail: true } })).resolves.toEqual({ ok: true, email: 'non_inviata' })
     expect(archivio.get('accounts/u1/avvisi/r1')).toBeDefined()
     expect(archivio.get('assistenza/suggerimento_x')?.risposte).toMatchObject([{ email: 'non_inviata' }])
+    expect(archivio.get('sistema/postaGiorno')?.n).toBe(0)
   })
 
   it('oltre il limite del giorno l’email non parte ma la risposta sì', async () => {

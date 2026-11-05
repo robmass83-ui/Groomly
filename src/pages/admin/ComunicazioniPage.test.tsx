@@ -178,6 +178,17 @@ describe('Comunicazioni', () => {
     await waitFor(() => expect(c.elimina).toHaveBeenCalledWith('c2'))
   })
 
+  it('Riprendi non c’è su una comunicazione eliminata o ancora in corso', async () => {
+    const base = { quando: '2026-11-05T09:00:00.000Z', tipo: 'novita', saloni: 2, emailTipo: 'servizio', account: 3, email: 90, inviate: 40 }
+    c.elenco.mockResolvedValue([
+      { ...base, id: 'c1', titolo: 'Eliminata', eliminata: true, inCorso: false },
+      { ...base, id: 'c2', titolo: 'Parte ora', eliminata: false, inCorso: true },
+    ])
+    apri()
+    expect(await screen.findByText('Parte ora')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Riprendi' })).not.toBeInTheDocument()
+  })
+
   it('c’è l’Annuncio pagamenti', async () => {
     apri()
     expect(await screen.findByText('Annuncio pagamenti')).toBeInTheDocument()

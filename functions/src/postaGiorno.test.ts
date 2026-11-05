@@ -4,7 +4,7 @@ const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string
 vi.mock('firebase-admin/firestore', async () => (await import('./piano/firestoreFinto.testutil')).firestoreFinto(archivio))
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
-import { emailOggi, margineConsole, prenotaEmail } from './postaGiorno'
+import { emailOggi, liberaEmail, margineConsole, prenotaEmail } from './postaGiorno'
 
 const db = () => getFirestore() as unknown as Firestore
 const ADESSO = new Date('2026-11-05T10:00:00.000Z')
@@ -39,6 +39,28 @@ describe('prenotaEmail', () => {
 
   it('zero email passa senza scrivere', async () => {
     await expect(prenotaEmail(db(), ADESSO, 0)).resolves.toBe(true)
+    expect(archivio.get('sistema/postaGiorno')?.n).toBe(120)
+  })
+})
+
+describe('liberaEmail', () => {
+  beforeEach(() => {
+    archivio.clear()
+    archivio.set('sistema/postaGiorno', { giorno: '2026-11-05', n: 120, perSalone: { s1: 100 }, accesi: ['s1'] })
+  })
+
+  it('restituisce i posti delle email non partite', async () => {
+    await liberaEmail(db(), ADESSO, 20)
+    expect(archivio.get('sistema/postaGiorno')).toMatchObject({ n: 100, perSalone: { s1: 100 }, accesi: ['s1'] })
+  })
+
+  it('non va sotto zero', async () => {
+    await liberaEmail(db(), ADESSO, 500)
+    expect(archivio.get('sistema/postaGiorno')?.n).toBe(0)
+  })
+
+  it('zero posti non scrive', async () => {
+    await liberaEmail(db(), ADESSO, 0)
     expect(archivio.get('sistema/postaGiorno')?.n).toBe(120)
   })
 })

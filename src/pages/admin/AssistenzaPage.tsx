@@ -46,7 +46,7 @@ export function AssistenzaPage() {
   const nomeStato = useNomeStato()
   const etichettaCategoria = useEtichettaCategoria()
   const [params, setParams] = useSearchParams()
-  const { richieste, richiestePronte, nomeDi, feedback, feedbackPronti, erroreFeedback } = useAdminDati()
+  const { richieste, richiestePronte, erroreAssistenza, nomeDi, feedback, feedbackPronti, erroreFeedback } = useAdminDati()
   const [cerca, setCerca] = useState('')
   const [esporta, setEsporta] = useState(false)
   const [formato, setFormato] = useState<Formato>('pdf')
@@ -133,7 +133,7 @@ export function AssistenzaPage() {
           </select>
         ) : null}
         <SearchBar mode="input" placeholder={frasi.amCercaSalone} value={cerca} onChange={setCerca} />
-        {!richiestePronte ? <AttesaRiga testo={frasi.uteCarica} /> : visibili.length === 0 ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{frasi.consNessunaRichiesta}</p> : (
+        {erroreAssistenza ? <p style={{ margin: 0 }}>{frasi.consAssistenzaKo}</p> : !richiestePronte ? <AttesaRiga testo={frasi.uteCarica} /> : visibili.length === 0 ? <p style={{ margin: 0, color: 'var(--tx3)' }}>{frasi.consNessunaRichiesta}</p> : (
           <Card>
             {visibili.map((r, indice) => (
               <Link key={r.chiave} to={`${PERCORSO_ASSISTENZA}/${encodeURIComponent(r.chiave)}`} style={{ ...RIGA, borderTop: indice === 0 ? 'none' : RIGA.borderTop, alignItems: 'flex-start', textDecoration: 'none' }}>

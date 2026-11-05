@@ -158,6 +158,7 @@ export type VoceComunicazione = {
   email: number
   inviate: number
   eliminata: boolean
+  inCorso: boolean
 }
 
 function intero(value: unknown): number {
@@ -209,6 +210,7 @@ export async function elencoComunicazioni(): Promise<VoceComunicazione[]> {
       email: intero(d.email),
       inviate: intero(d.inviate),
       eliminata: d.eliminata === true,
+      inCorso: typeof d.inCorsoFino === 'number' && d.inCorsoFino > Date.now(),
     }
   })
 }

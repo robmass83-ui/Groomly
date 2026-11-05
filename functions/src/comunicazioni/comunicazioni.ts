@@ -7,7 +7,7 @@ import { postBrevoHtml } from '../brevoMail'
 import { riservaAvviso, traduzioniValide } from '../config/avvisiSistema'
 import { scriviAvvisoAccount } from '../config/avvisiAccount'
 import { erroreServer } from '../erroriServer'
-import { emailOggi, margineConsole, prenotaEmail } from '../postaGiorno'
+import { emailOggi, liberaEmail, margineConsole, prenotaEmail } from '../postaGiorno'
 import { archivioPromo } from '../promo/consensoPromo'
 import { inviaPromo } from '../promo/inviaPromo'
 import { selezionaDestinatari, type Destinatario } from './destinatari'
@@ -29,6 +29,8 @@ const EMAIL: readonly TipoEmailComunicazione[] = ['nessuna', 'promozionale', 'se
 const GRUPPO_EMAIL = 10
 const GRUPPO_AVVISI = 50
 const ID_MAX = 64
+// Quanto vale il segno «invio in corso»: un po' più del tempo massimo della function, così un invio morto si può riprendere.
+const IN_CORSO_MS = 330_000
 
 function richiediAdmin(admin: boolean | undefined): void {
   if (!operatoreAutorizzato({ admin })) throw erroreServer('failed-precondition', 'accesso_negato')
@@ -150,15 +152,27 @@ export async function inviaComunicazionePer(input: {
   if (c.salonIds === 'tutti') controllaAccessoRecente(input.authTime, adesso.getTime())
   const db = getFirestore()
   const ref = db.doc(`comunicazioni/${c.idRichiesta}`)
-  const esistente = (await ref.get()).data()
+  // In transazione: due richieste con lo stesso id non possono partire entrambe.
+  const esistente = await db.runTransaction(async (tx) => {
+    const dati = (await tx.get(ref)).data()
+    if (dati) return dati
+    tx.set(ref, { quando: adesso.toISOString(), email: 0, inviate: 0, uids: [], eliminata: false, inCorsoFino: adesso.getTime() + IN_CORSO_MS })
+    return null
+  })
   if (esistente) return { id: c.idRichiesta, inviate: esistente.inviate as number, nonInviate: (esistente.email as number) - (esistente.inviate as number) }
-  if (!await riservaAvviso(input.adminUid, db, adesso.getTime())) throw erroreServer('resource-exhausted', 'troppe_richieste')
-  const { account, titolari } = await selezionaDestinatari(db, c.salonIds)
-  const destinatari = ricevonoEmail(c.email, titolari)
-  if (!await prenotaEmail(db, adesso, destinatari.length)) throw erroreServer('failed-precondition', 'email_limite')
+  const riservata = async (): Promise<Destinatario[][]> => {
+    if (!await riservaAvviso(input.adminUid, db, adesso.getTime())) throw erroreServer('resource-exhausted', 'troppe_richieste')
+    const { account: tutti, titolari } = await selezionaDestinatari(db, c.salonIds)
+    const scelti = ricevonoEmail(c.email, titolari)
+    if (!await prenotaEmail(db, adesso, scelti.length)) throw erroreServer('failed-precondition', 'email_limite')
+    return [tutti, scelti]
+  }
+  const [account, destinatari] = await riservata().catch(async (error: unknown) => {
+    await ref.delete()
+    throw error
+  })
 
   await ref.set({
-    quando: adesso.toISOString(),
     tipo: c.tipo,
     testo: c.testo,
     salonIds: c.salonIds,
@@ -166,12 +180,11 @@ export async function inviaComunicazionePer(input: {
     uids: [...new Set([...account, ...destinatari].map((d) => d.uid))],
     account: account.length,
     email: destinatari.length,
-    inviate: 0,
-    eliminata: false,
-  })
+  }, { merge: true })
   await scriviAvvisi(db, c, account)
   const inviate = await mandaEmail(db, c.idRichiesta, c.email, c.testo, destinatari, input.posta ?? postaBrevo(input.apiKey), input.apiKey, adesso)
-  await ref.set({ inviate }, { merge: true })
+  await liberaEmail(db, adesso, destinatari.length - inviate)
+  await ref.set({ inviate, inCorsoFino: null }, { merge: true })
   return { id: c.idRichiesta, inviate, nonInviate: destinatari.length - inviate }
 }
 
@@ -190,8 +203,9 @@ export async function riprendiComunicazionePer(input: {
   const db = getFirestore()
   const ref = db.doc(`comunicazioni/${id}`)
   const doc = (await ref.get()).data()
-  valida(doc !== undefined)
+  valida(doc !== undefined && doc.eliminata !== true)
   const dati = doc as Record<string, unknown>
+  if (typeof dati.inCorsoFino === 'number' && dati.inCorsoFino > adesso.getTime()) throw erroreServer('failed-precondition', 'invio_in_corso')
   const tipo = dati.emailTipo as TipoEmailComunicazione
   const partite = new Set((await ref.collection('invii').get()).docs.map((invio) => invio.id))
   const previsti = new Set(dati.uids as string[])
@@ -199,9 +213,11 @@ export async function riprendiComunicazionePer(input: {
   const mancanti = ricevonoEmail(tipo, titolari).filter((d) => previsti.has(d.uid) && !partite.has(d.uid))
   if (mancanti.length > 0 && !await riservaAvviso(input.adminUid, db, adesso.getTime())) throw erroreServer('resource-exhausted', 'troppe_richieste')
   if (!await prenotaEmail(db, adesso, mancanti.length)) throw erroreServer('failed-precondition', 'email_limite')
+  await ref.set({ inCorsoFino: adesso.getTime() + IN_CORSO_MS }, { merge: true })
   const nuove = await mandaEmail(db, id, tipo, dati.testo as Testo, mancanti, input.posta ?? postaBrevo(input.apiKey), input.apiKey, adesso)
+  await liberaEmail(db, adesso, mancanti.length - nuove)
   const inviate = partite.size + nuove
-  await ref.set({ inviate }, { merge: true })
+  await ref.set({ inviate, inCorsoFino: null }, { merge: true })
   return { id, inviate, nonInviate: mancanti.length - nuove }
 }
 

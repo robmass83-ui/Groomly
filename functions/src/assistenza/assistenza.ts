@@ -14,7 +14,7 @@ import { operatoreAutorizzato } from '../../../src/lib/salonPath'
 import { postBrevoHtml } from '../brevoMail'
 import { emailConsole } from '../comunicazioni/emailConsole'
 import { erroreServer } from '../erroriServer'
-import { prenotaEmail } from '../postaGiorno'
+import { liberaEmail, prenotaEmail } from '../postaGiorno'
 import { risposteRateDecision } from '../rateLimit'
 
 const ORIGINE: Record<FonteAssistenza, string> = { suggerimento: 'suggerimenti', feedback: 'betaFeedback' }
@@ -122,6 +122,7 @@ async function mandaRisposta(db: Firestore, to: unknown, lingua: Lingua, testo: 
     await posta(to, titolo, emailConsole({ titolo, testo, piede: PER_CONTINUARE[lingua] }))
     return 'inviata'
   } catch {
+    await liberaEmail(db, adesso, 1)
     return 'non_inviata'
   }
 }

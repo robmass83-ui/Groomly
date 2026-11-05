@@ -2222,4 +2222,5 @@ export const it = {
   consTitolare: 'Titolare',
   consUltimoAccesso: 'Ultimo accesso',
   consCitta: 'Città',
+  consAssistenzaKo: 'Richieste non disponibili',
 } as const

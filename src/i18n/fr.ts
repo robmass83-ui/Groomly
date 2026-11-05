@@ -2224,4 +2224,5 @@ export const fr = {
   consTitolare: 'Titulaire',
   consUltimoAccesso: 'Dernier accès',
   consCitta: 'Ville',
+  consAssistenzaKo: 'Demandes indisponibles',
 } as const satisfies Record<keyof typeof italiano, string>

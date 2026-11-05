@@ -16,6 +16,7 @@ const admin = vi.hoisted(() => ({
   contatori: vi.fn(async (): Promise<unknown> => ({})),
   inviti: vi.fn(async (): Promise<InvitoAdmin[]> => []),
   feedback: vi.fn(async (): Promise<FeedbackLetto[]> => []),
+  avvia: vi.fn(async (): Promise<string> => '2026-01-01T00:00:00.000Z'),
   storico: vi.fn(async (_id: string): Promise<InvitoBeta[]> => []),
   invita: vi.fn(async (_input: unknown) => ({ invitati: [] as string[], saltati: [] as { salonId: string; motivo: 'vip' }[] })),
   revoca: vi.fn(async (_input: unknown) => ({ ok: true as const, emailStato: null })),
@@ -32,6 +33,8 @@ vi.mock('../../data/firebase/adminClient', async () => {
     callContatoriAdmin: async () => contatoriDi(await admin.contatori()),
     elencoInvitiBeta: () => admin.inviti(),
     elencoFeedbackBeta: () => admin.feedback(),
+    callAvviaAssistenza: () => admin.avvia(),
+    elencoAssistenza: async () => ({}),
     storicoInvitoBeta: (id: string) => admin.storico(id),
     callInvitaBeta: (input: unknown) => admin.invita(input),
     callRevocaBeta: (input: unknown) => admin.revoca(input),
@@ -122,6 +125,8 @@ describe('Admin Manager: beta', () => {
   beforeEach(() => {
     localStorage.clear()
     for (const f of [admin.contatori, admin.inviti, admin.feedback, admin.storico, admin.invita, admin.revoca, admin.estendi, admin.early, admin.mostra, client.directory, client.imposta, client.config, scarica]) f.mockClear()
+    admin.avvia.mockReset()
+    admin.avvia.mockResolvedValue('2026-01-01T00:00:00.000Z')
     admin.contatori.mockResolvedValue({})
     admin.inviti.mockResolvedValue([])
     admin.feedback.mockResolvedValue([])
@@ -187,6 +192,25 @@ describe('Admin Manager: beta', () => {
     await apri('/admin/piani')
     expect(await screen.findByRole('heading', { name: 'Abbonamenti spenti' })).toBeInTheDocument()
     expect(screen.queryByText('Annuncio pagamenti')).not.toBeInTheDocument()
+  })
+
+  it('Assistenza: finché il taglio non arriva nessuna richiesta vale nuova', async () => {
+    let finisci: (dal: string) => void = () => undefined
+    admin.avvia.mockImplementation(() => new Promise((ok) => { finisci = ok }))
+    admin.feedback.mockResolvedValue([feedback('f1', 'eva', { creatoIl: '2026-01-01T00:00:00.000Z' })])
+    await apri('/admin/assistenza')
+    expect(screen.queryByText('Lento')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('1 nuovi')).not.toBeInTheDocument()
+    await act(async () => { finisci('2026-11-01T00:00:00.000Z') })
+    expect(await screen.findByText('Nessuna richiesta')).toBeInTheDocument()
+  })
+
+  it('Assistenza: se il taglio non si legge lo dice, non mostra tutto come nuovo', async () => {
+    admin.avvia.mockRejectedValue(new Error('internal'))
+    admin.feedback.mockResolvedValue([feedback('f1', 'eva', { creatoIl: '2026-01-01T00:00:00.000Z' })])
+    await apri('/admin/assistenza')
+    expect(await screen.findByText('Richieste non disponibili')).toBeInTheDocument()
+    expect(screen.queryByLabelText('1 nuovi')).not.toBeInTheDocument()
   })
 
   it('se i numeri non arrivano lo dice e Riprova li richiede', async () => {

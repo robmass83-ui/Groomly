@@ -41,7 +41,7 @@ export function RichiestaPage() {
   const nomeStato = useNomeStato()
   const etichettaCategoria = useEtichettaCategoria()
   const { id = '' } = useParams()
-  const { richieste, richiestePronte, feedback, nomeDi, ricaricaAssistenza } = useAdminDati()
+  const { richieste, richiestePronte, erroreAssistenza, feedback, nomeDi, ricaricaAssistenza } = useAdminDati()
   const [testo, setTesto] = useState('')
   const [anchEmail, setAnchEmail] = useState(false)
   const [occupato, setOccupato] = useState(false)
@@ -59,7 +59,7 @@ export function RichiestaPage() {
     return (
       <>
         <TestataAdmin titolo={frasi.consAssistenza} onBack={indietro} />
-        <div style={CORPO}>{richiestePronte ? <p style={{ margin: 0 }}>{frasi.consNessunaRichiesta}</p> : <AttesaRiga testo={frasi.uteCarica} />}</div>
+        <div style={CORPO}>{erroreAssistenza ? <p style={{ margin: 0 }}>{frasi.consAssistenzaKo}</p> : richiestePronte ? <p style={{ margin: 0 }}>{frasi.consNessunaRichiesta}</p> : <AttesaRiga testo={frasi.uteCarica} />}</div>
       </>
     )
   }

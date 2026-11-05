@@ -190,6 +190,51 @@ describe('inviaComunicazionePer', () => {
   })
 })
 
+describe('email che non partono', () => {
+  it('restituiscono il posto al conto del giorno', async () => {
+    posta.mockImplementation(async (to) => {
+      if (to === 't2@a.it') throw new Error('Brevo')
+    })
+    await invia({ email: 'servizio' })
+    expect(archivio.get('sistema/postaGiorno')?.n).toBe(1)
+  })
+
+  it('anche alla ripresa', async () => {
+    posta.mockRejectedValue(new Error('Brevo'))
+    await invia({ email: 'servizio' })
+    await riprendiComunicazionePer({ admin: true, adminUid: 'adm', id: 'c1', posta, adesso: ADESSO })
+    expect(archivio.get('sistema/postaGiorno')?.n).toBe(0)
+  })
+})
+
+describe('invio in corso', () => {
+  it('mentre parte il primo invio un secondo con lo stesso id non rimanda e Riprendi si ferma', async () => {
+    let sblocca: () => void = () => undefined
+    posta.mockImplementationOnce(() => new Promise<undefined>((ok) => { sblocca = () => ok(undefined) }))
+    const primo = invia({ email: 'servizio', salonIds: ['s1'] })
+    await vi.waitFor(() => expect(posta).toHaveBeenCalledTimes(1))
+    await invia({ email: 'servizio', salonIds: ['s1'] })
+    await expect(riprendiComunicazionePer({ admin: true, adminUid: 'adm', id: 'c1', posta, adesso: ADESSO })).rejects.toThrow('Invio ancora in corso')
+    expect(posta).toHaveBeenCalledTimes(1)
+    sblocca()
+    await primo
+    expect(archivio.get('comunicazioni/c1')).toMatchObject({ inviate: 1, inCorsoFino: null })
+  })
+
+  it('un invio morto a metà si può riprendere dopo la scadenza', async () => {
+    await invia({ email: 'servizio', salonIds: ['s1'] })
+    archivio.set('comunicazioni/c1', { ...archivio.get('comunicazioni/c1'), inCorsoFino: ADESSO.getTime() - 1 })
+    await expect(riprendiComunicazionePer({ admin: true, adminUid: 'adm', id: 'c1', posta, adesso: ADESSO })).resolves.toMatchObject({ id: 'c1' })
+  })
+
+  it('una comunicazione bloccata dal limite non resta in storico e si può ritentare', async () => {
+    archivio.set('sistema/postaGiorno', { giorno: '2026-11-05', n: 299 })
+    await expect(invia({ email: 'servizio' })).rejects.toThrow('Limite di email di oggi raggiunto')
+    archivio.delete('sistema/postaGiorno')
+    await expect(invia({ email: 'servizio' })).resolves.toMatchObject({ inviate: 2 })
+  })
+})
+
 describe('riprendiComunicazionePer', () => {
   it('manda solo a chi manca', async () => {
     posta.mockImplementation(async (to) => {
@@ -215,6 +260,15 @@ describe('riprendiComunicazionePer', () => {
     await invia({ email: 'servizio' })
     archivio.set('sistema/postaGiorno', { giorno: '2026-11-05', n: 300 })
     await expect(riprendiComunicazionePer({ admin: true, adminUid: 'adm', id: 'c1', posta, adesso: ADESSO })).rejects.toThrow('Limite di email di oggi raggiunto')
+  })
+
+  it('una comunicazione eliminata non riprende', async () => {
+    posta.mockRejectedValue(new Error('Brevo'))
+    await invia({ email: 'servizio' })
+    await eliminaComunicazionePer({ admin: true, id: 'c1' })
+    posta.mockClear()
+    await expect(riprendiComunicazionePer({ admin: true, adminUid: 'adm', id: 'c1', posta, adesso: ADESSO })).rejects.toThrow('Richiesta non valida')
+    expect(posta).not.toHaveBeenCalled()
   })
 
   it('una comunicazione che non c’è è una richiesta non valida', async () => {
