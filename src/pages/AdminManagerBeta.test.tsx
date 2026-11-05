@@ -3,7 +3,8 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
-import { createAccount } from '../data/local/auth'
+import { createAccount, getAccount } from '../data/local/auth'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { InvitoBeta } from '../lib/betaInvito'
 import type { FeedbackLetto, InvitoAdmin } from '../lib/adminManager'
 import { CONFIG_PIANI_DEFAULT } from '../lib/configPiani'
@@ -104,8 +105,11 @@ const TRE_SALONI = {
   ],
 }
 
-async function apri(percorso = '/impostazioni/admin-manager') {
-  await createAccount('laura.masala@tiscali.it', 'segretissimo')
+async function apri(percorso = '/admin') {
+  await createAccount('masala.roberto@hotmail.it', 'segretissimo')
+  const account = getAccount()
+  if (!account) throw new Error('account assente')
+  writeJson(storageKeys.auth, { ...account, admin: true })
   render(<App memory isDev={false} initialPath={percorso} />)
   await screen.findByRole('heading', { name: /Admin Manager|Bauci|Pelo|Zampa/ })
 }
@@ -169,7 +173,7 @@ describe('Admin Manager: beta', () => {
   it('Saloni: filtra chi ha toccato Avvisami e lo seleziona per la beta', async () => {
     admin.contatori.mockResolvedValue({ ultimoAccesso: { ada: null, leo: null, eva: null }, interesse: { ada: ['piano-plus'], eva: ['piano-salone'] } })
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=saloni')
+    await apri('/admin?tab=saloni')
     await screen.findByRole('button', { name: 'Bauci, Ada Neri' })
     await user.click(await screen.findByRole('button', { name: /^Avvisami Plus 1/ }))
     expect(screen.getByRole('button', { name: 'Bauci, Ada Neri' })).toHaveTextContent('Avvisami Plus')
@@ -181,7 +185,7 @@ describe('Admin Manager: beta', () => {
   it('Saloni: filtra, seleziona più saloni e invita insieme con i saltati spiegati', async () => {
     admin.invita.mockResolvedValue({ invitati: ['ada'], saltati: [{ salonId: 'leo', motivo: 'vip' }] })
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=saloni')
+    await apri('/admin?tab=saloni')
     await screen.findByRole('button', { name: 'Bauci, Ada Neri' })
     await user.click(screen.getByRole('button', { name: /^VIP 1/ }))
     expect(screen.queryByRole('button', { name: 'Bauci, Ada Neri' })).not.toBeInTheDocument()
@@ -236,7 +240,7 @@ describe('Admin Manager: beta', () => {
 
   it('Regala 30 giorni a tutti i selezionati dopo la conferma', async () => {
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=saloni')
+    await apri('/admin?tab=saloni')
     await user.click(await screen.findByRole('button', { name: 'Seleziona tutti' }))
     expect(screen.getByRole('heading', { name: '3 selezionati' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Altre azioni' }))
@@ -252,7 +256,7 @@ describe('Admin Manager: beta', () => {
     admin.inviti.mockResolvedValue([{ ...invito('eva', { stato: 'accettato', rispostoIl: tra(-57) }), estensioni: [{ il: tra(-10), giorni: 30, scadeIl: tra(3) }] }])
     admin.storico.mockResolvedValue([invito('eva', { stato: 'rifiutato', invitatoIl: tra(-90), rispostoIl: tra(-88), motivoRifiuto: 'complicato' })])
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=saloni&id=eva')
+    await apri('/admin?tab=saloni&id=eva')
     expect(await screen.findByText('Plus · in beta')).toBeInTheDocument()
     expect(screen.getByText('BETA')).toBeInTheDocument()
     expect(screen.getByText(/Beta accettata il/)).toBeInTheDocument()
@@ -283,7 +287,7 @@ describe('Admin Manager: beta', () => {
 
   it('Dettaglio: un salone mai invitato si invita da solo', async () => {
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=saloni&id=ada')
+    await apri('/admin?tab=saloni&id=ada')
     await user.click(await screen.findByRole('button', { name: 'Invita alla beta Salon' }))
     const foglio = screen.getByRole('dialog', { name: 'Invita alla beta' })
     expect(within(foglio).getByRole('radio', { name: 'Salon' })).toHaveAttribute('aria-checked', 'true')
@@ -294,7 +298,7 @@ describe('Admin Manager: beta', () => {
   it('Dettaglio: un invito aperto si revoca dopo la conferma', async () => {
     admin.inviti.mockResolvedValue([invito('ada')])
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=saloni&id=ada')
+    await apri('/admin?tab=saloni&id=ada')
     await user.click(await screen.findByRole('button', { name: 'Revoca invito' }))
     expect(admin.revoca).not.toHaveBeenCalled()
     await user.click(within(screen.getByRole('dialog', { name: 'Revocare l’invito?' })).getByRole('button', { name: 'Conferma' }))
@@ -334,7 +338,7 @@ describe('Admin Manager: beta', () => {
   it('Piani: interruttori ottimistici con rollback, mostraPiani e offerta early adopter', async () => {
     client.config.mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup()
-    await apri('/impostazioni/admin-manager?tab=piani')
+    await apri('/admin?tab=piani')
     const prova = await screen.findByRole('switch', { name: 'Prova gratis self-service' })
     await user.click(prova)
     expect(client.config).toHaveBeenCalledWith({ provaSelfService: true })

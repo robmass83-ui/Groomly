@@ -162,7 +162,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const legacy = account?.legacy === true
     const hasAccountDoc = Boolean(account?.salonId)
     // Prima della risposta di Firebase vale il segno dell'ultimo accesso: l'admin non deve aprire pagine del salone.
-    const admin = firebase && (cloudSeen ? account?.admin === true : readSignInHint()?.admin === true)
+    const admin = !firebase || cloudSeen ? account?.admin === true : readSignInHint()?.admin === true
     const entry: EntryGate = account && (!firebase || cloudSeen || admin)
       ? entryGate({ firebase, email: account.email, emailVerified, legacy, hasAccountDoc, salonUnreachable, admin })
       : { kind: 'home' }

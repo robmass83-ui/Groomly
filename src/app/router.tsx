@@ -64,19 +64,36 @@ import { haAccesso } from '../lib/piano'
 import { isOperator } from '../lib/salonPath'
 import { useFrasi } from '../i18n/LinguaContext'
 import { AdminManagerPage } from '../pages/AdminManagerPage'
-import { percorsoAdminDaUtenti } from '../lib/percorsoAdmin'
+import { PERCORSO_ADMIN, PERCORSO_AVVISI_ADMIN, percorsoAdminDaUtenti } from '../lib/percorsoAdmin'
 import { TourPage } from '../pages/TourPage'
 
 function Guard({ children }: { children: ReactElement }) {
   const { gate, entry } = useSession()
   const { pathname, search } = useLocation()
   if (gate.kind === 'pending') return null
+  if (entry.kind === 'admin') return <Navigate to={PERCORSO_ADMIN} replace />
   if (gate.kind !== 'in' || entry.kind !== 'home') {
     ricordaDestinazione(pathname + search)
     return <Navigate to="/login" replace />
   }
   segnaEntrato()
   return <StaffLock>{children}</StaffLock>
+}
+
+// L'admin entra solo qui; chi ha un salone torna alla sua Home.
+function AdminGuard({ children }: { children: ReactElement }) {
+  const { gate, entry } = useSession()
+  const { pathname, search } = useLocation()
+  if (gate.kind === 'pending') return null
+  if (entry.kind === 'admin') {
+    segnaEntrato()
+    return children
+  }
+  if (gate.kind !== 'in') {
+    ricordaDestinazione(pathname + search)
+    return <Navigate to="/login" replace />
+  }
+  return <Navigate to="/" replace />
 }
 
 function ProOTeam() {
@@ -159,6 +176,11 @@ function VecchiUtenti() {
   return <Navigate to={percorsoAdminDaUtenti(search)} replace />
 }
 
+function VecchioAdminManager() {
+  const { search } = useLocation()
+  return <Navigate to={`${PERCORSO_ADMIN}${search}`} replace />
+}
+
 function StoricoAggiornamenti() {
   if (!aggiornamentiApkAttivi()) return <Navigate to="/impostazioni" replace />
   return <ReleaseHistoryPage />
@@ -204,7 +226,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
-    { path: '/impostazioni/admin-manager', element: <Guard><AdminManagerPage /></Guard> },
+    { path: '/impostazioni/admin-manager', element: <VecchioAdminManager /> },
+    { path: PERCORSO_ADMIN, element: <AdminGuard><AdminManagerPage /></AdminGuard> },
+    { path: PERCORSO_AVVISI_ADMIN, element: <AdminGuard><AvvisiSistemaPage /></AdminGuard> },
     { path: '/impostazioni/utenti', element: <VecchiUtenti /> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
     { path: '/benvenuto', element: <Guard><StaffSettings><TourPage /></StaffSettings></Guard> },
@@ -234,7 +258,18 @@ function LoginSwitch() {
   if (gate.kind === 'pending') return null
   // Chi è entrato ma deve confermare l'email o riparare il salone resta qui, anche se autenticato.
   if (gate.kind === 'in' && entry.kind === 'home') return <VersoDestinazione />
+  if (gate.kind === 'in' && entry.kind === 'admin') return <VersoAdmin />
   return <LoginPage />
+}
+
+// Dal login l'admin resta in /admin: una pagina del salone ricordata non vale per lui.
+function VersoAdmin() {
+  const [destinazione] = useState(() => {
+    const ricordata = destinazioneRicordata()
+    return ricordata === PERCORSO_ADMIN || ricordata.startsWith(`${PERCORSO_ADMIN}/`) || ricordata.startsWith(`${PERCORSO_ADMIN}?`) ? ricordata : PERCORSO_ADMIN
+  })
+  useEffect(() => dimenticaDestinazione(), [])
+  return <Navigate to={destinazione} replace />
 }
 
 // Unica strada da /login verso l'app: dopo accesso, registrazione o conferma (anche da sola, all'avvio) porta alla pagina chiesta.

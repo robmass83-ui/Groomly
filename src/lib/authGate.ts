@@ -15,8 +15,8 @@ export function entryGate(input: {
   /** Il claim del token: l'admin non ha salone, quindi nessun altro esito lo riguarda. */
   admin?: boolean
 }): EntryGate {
-  if (!input.firebase) return { kind: 'home' }
   if (input.admin === true) return { kind: 'admin' }
+  if (!input.firebase) return { kind: 'home' }
   if (input.salonUnreachable && !isSharedEmail(input.email)) return { kind: 'offline-salone' }
   if (!input.hasAccountDoc) return isSharedEmail(input.email) ? { kind: 'home' } : { kind: 'repair-salon' }
   if (!input.legacy && !input.emailVerified) return { kind: 'confirm-email' }

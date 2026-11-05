@@ -17,6 +17,8 @@ export const FRASI_AMMESSE: Record<string, readonly string[]> = {
   'src/pages/PriceSheetManagePage.tsx': ['Bagno', 'Bagno + sistemazione', 'Pelo corto', 'Pelo lungo'],
   // Il messaggio italiano accanto al codice, per le APK già installate.
   'functions/src/piano/silenzioEmail.ts': ['Cane assente'],
+  // Nome di prodotto, uguale in tutte le lingue.
+  'src/components/admin/AdminFrame.tsx': ['Groomly Admin'],
   // Nomi su Drive: la conservazione delle copie in Android cerca questo prefisso e il registro si sovrascrive per nome.
   'src/lib/backupCompleto.ts': ['Groomly Backup completo – ${nomeSicuro(nomeSalone(raccolto.manifest))} – ${romeDay(now)}.zip'],
   'src/lib/backupZip.ts': ['Groomly Backup – ${nomeSicuro(nomeSalone(raccolto.manifest))} – ${romeDay(now)}.zip'],

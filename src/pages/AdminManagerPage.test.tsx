@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { App } from '../app/App'
 import { AppError } from '../data/errors'
-import { createAccount } from '../data/local/auth'
+import { createAccount, getAccount } from '../data/local/auth'
+import { storageKeys, writeJson } from '../data/local/storage'
 import type { SuggerimentoArrivato } from '../data/firebase/client'
 import type { PianoValore } from '../hooks/usePiano'
 
@@ -68,6 +69,13 @@ function pianoAttivo(): string {
   return document.querySelector('[aria-current="true"]')?.textContent ?? ''
 }
 
+async function accountAdmin() {
+  await createAccount('masala.roberto@hotmail.it', 'segretissimo')
+  const account = getAccount()
+  if (!account) throw new Error('account assente')
+  writeJson(storageKeys.auth, { ...account, admin: true })
+}
+
 describe('Admin Manager: funzioni di Utenti Groomly', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -77,6 +85,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     tourMock.imposta.mockReset()
     tourMock.imposta.mockResolvedValue(undefined)
     directory.load.mockReset()
+    directory.load.mockResolvedValue({ accountCount: 0, salonCount: 0, entries: [], pro: [] })
     directory.setPro.mockReset()
     directory.setPro.mockResolvedValue(undefined)
     directory.imposta.mockReset()
@@ -95,28 +104,25 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
 
     view.unmount()
     render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
-    expect(await screen.findByRole('heading', { name: 'Impostazioni' })).toBeInTheDocument()
+    expect(await screen.findByTestId('phone-shell')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Admin Manager' })).not.toBeInTheDocument()
     expect(directory.load).not.toHaveBeenCalled()
   })
 
-  it('mostra l’Admin Manager a Roberto senza il campione delle email', async () => {
-    await createAccount('masala.roberto@hotmail.it', 'segretissimo')
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    expect(screen.getByRole('link', { name: /Admin Manager/ })).toBeInTheDocument()
+  it('mostra l’Admin Manager all’admin senza il campione delle email', async () => {
+    await accountAdmin()
+    render(<App memory isDev={false} initialPath="/admin" />)
+    expect(await screen.findByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Spedisci il campione delle email' })).not.toBeInTheDocument()
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
   })
 
-  it('mostra Utenti all’operatrice e segnala che l’elenco non è disponibile', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+  it('mostra Utenti all’admin e segnala che l’elenco non è disponibile', async () => {
+    await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
+    render(<App memory isDev={false} initialPath="/admin" />)
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
     expect(await screen.findByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(await screen.findByText('Elenco non disponibile')).toBeInTheDocument()
@@ -124,7 +130,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('mostra il riepilogo e le toelettature senza rendere cliccabili i titolari', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 2,
       salonCount: 1,
@@ -132,10 +138,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
       pro: [{ uid: 'a', salonId: 'a', enabled: false }],
     })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     expect(await screen.findByText('2 account creati · 1 toelettatura creata')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.getByText('Ada Neri')).toBeInTheDocument()
@@ -149,7 +152,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('attiva Salone e torna a Go dalle schede piano e non mostra shared', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 3,
       salonCount: 3,
@@ -165,9 +168,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
       ],
     })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.queryByText('Shared')).not.toBeInTheDocument()
@@ -218,7 +219,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('mostra Accesso negato sopra le schede se Plus non si accende', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 2,
       salonCount: 2,
@@ -233,9 +234,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     })
     directory.imposta.mockRejectedValueOnce(new Error('Accesso negato'))
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
@@ -247,7 +246,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('tiene una sola scheda piano per titolare e socio dello stesso salone', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 2,
       salonCount: 1,
@@ -261,9 +260,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
       ],
     })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
@@ -286,7 +283,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('mostra il bollino del piano nell’elenco e una scheda per salone', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 4,
       salonCount: 2,
@@ -305,9 +302,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
       ],
     })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     expect(await screen.findByText('4 account creati · 2 toelettature create')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.getByText('Laura')).toBeInTheDocument()
@@ -329,7 +324,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('un salone vuoto non ha schede piano', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 4,
       salonCount: 2,
@@ -350,9 +345,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
       ],
     })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     expect(screen.queryByText('Senza nome')).not.toBeInTheDocument()
@@ -370,7 +363,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('non spegne un piano VIP e la scheda non ha interruttori per funzione', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 1,
       salonCount: 1,
@@ -378,9 +371,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
       pro: [{ uid: 'ada', salonId: 'ada', enabled: true, livello: 'vip' }],
     })
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
@@ -402,16 +393,14 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     voce: { uid: string; salonId: string; enabled: boolean; livello?: string; piano?: string; fonte?: string; stato?: string; scadeIl?: string | null },
     pulsante: string,
   ) {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 1,
       salonCount: 1,
       entries: [{ uid: voce.uid, ownerName: 'Ada Neri', salonName: 'Bauci' }],
       pro: [voce],
     })
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
     await user.click(screen.getByRole('tab', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: pulsante }))
@@ -591,7 +580,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('raggruppa i suggerimenti, li segna e li tiene tra i visti', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockResolvedValue({
       accountCount: 2,
       salonCount: 2,
@@ -606,9 +595,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     })
     directory.elenco.mockResolvedValue(NOTE)
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni" />)
-    await screen.findByRole('heading', { name: 'Impostazioni' })
-    await user.click(screen.getByRole('link', { name: /Admin Manager/ }))
+    render(<App memory isDev={false} initialPath="/admin" />)
     await user.click(await screen.findByRole('tab', { name: /Suggerimenti/ }))
     expect(await screen.findByText('3 arrivati')).toBeInTheDocument()
     const agenda = screen.getByRole('button', { name: 'Agenda, orari o appuntamenti, 2' })
@@ -658,7 +645,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   })
 
   it('mostra l’interruttore del tour e lo accende con callImpostaTour(true)', async () => {
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
@@ -673,7 +660,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   it('rispecchia tour.acceso e su errore torna indietro con il messaggio di salvataggio', async () => {
     tourMock.acceso = true
     tourMock.imposta.mockRejectedValue(new Error('offline'))
-    await createAccount('masala.roberto@hotmail.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
@@ -688,7 +675,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   it('ignora il secondo tocco sul tour mentre il primo salvataggio è in volo', async () => {
     let risolvi: () => void = () => undefined
     tourMock.imposta.mockImplementation(() => new Promise<undefined>((resolve) => { risolvi = () => resolve(undefined) }))
-    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)

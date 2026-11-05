@@ -30,7 +30,7 @@ import {
   type MotivoSaltato,
 } from '../data/firebase/adminClient'
 import { elencoSuggerimenti, listSalonDirectory, type SuggerimentoArrivato } from '../data/firebase/client'
-import { useSession } from '../hooks/useSession'
+import { useRuolo } from '../hooks/useRuolo'
 import { dataCorta } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import {
@@ -48,10 +48,9 @@ import {
 } from '../lib/adminManager'
 import { leggiRevisione, scriviRevisione, type SegnoSuggerimento } from '../lib/revisioneSuggerimenti'
 import { accountSummary, salonSummary, type SalonDirectory } from '../lib/salonDirectory'
-import { isOperator } from '../lib/salonPath'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
-import { ShellFrame } from './ShellFrame'
+import { AdminFrame } from '../components/admin/AdminFrame'
 
 const CHIAVE_FEEDBACK_VISTI = 'groomly.am.feedbackVisti'
 const CACHE_CONTATORI_MS = 60_000
@@ -81,9 +80,7 @@ function vistaDi(valore: string | null): VistaScheda {
 export function AdminManagerPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
-  const session = useSession()
-  const email = session.gate.kind === 'in' ? session.gate.account.email : null
-  const operator = isOperator(email)
+  const { admin: operator } = useRuolo()
   const toast = useToast()
   const etichettaCategoria = useEtichettaCategoria()
   const [params, setParams] = useSearchParams()
@@ -191,7 +188,7 @@ export function AdminManagerPage() {
     caricaDirectory()
   })
 
-  if (!operator) return <Navigate to="/impostazioni" replace />
+  if (!operator) return <Navigate to="/" replace />
 
   const nomi = new Map<string, string>()
   for (const entry of directory?.entries ?? []) {
@@ -306,24 +303,19 @@ export function AdminManagerPage() {
   let titolo: string = frasi.adminManager
   let sottotitolo: string | undefined
   let onBack: (() => void) | undefined
-  let backTo: string | undefined = '/impostazioni'
   let azioneTestata: ReactNode = null
   if (inDettaglio && rigaAperta) {
     titolo = nomeSalone(rigaAperta.row)
     sottotitolo = [rigaAperta.row.salonName.trim() !== '' ? rigaAperta.row.ownerName : '', rigaAperta.info.citta ?? ''].filter(Boolean).join(' · ') || undefined
     onBack = () => vai({ tab })
-    backTo = undefined
   } else if (inDettaglio) {
     onBack = () => vai({ tab })
-    backTo = undefined
   } else if (inCoda) {
     titolo = etichettaCategoria(categoria)
     onBack = () => vai({ tab: 'suggerimenti' })
-    backTo = undefined
   } else if (selezione) {
     titolo = frasi.amSelezionati.replace('{{n}}', String(selezione.size))
     onBack = () => setSelezione(null)
-    backTo = undefined
     azioneTestata = (
       <button type="button" onClick={() => setSelezione(new Set(rows.map((r) => r.salonId)))} style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 700, minHeight: 44, padding: '0 6px' }}>
         {frasi.amTutti}
@@ -341,9 +333,9 @@ export function AdminManagerPage() {
   const salonEstendi = estendi30 ? nomeDi(estendi30) : ''
 
   return (
-    <ShellFrame>
+    <AdminFrame>
       <style>{STILE_ADMIN}</style>
-      <Header title={titolo} subtitle={sottotitolo} backTo={backTo} onBack={onBack} action={azioneTestata} />
+      <Header title={titolo} subtitle={sottotitolo} onBack={onBack} action={azioneTestata} />
       {inDettaglio || inCoda ? null : <BarraTab tab={tab} onTab={cambiaTab} nuovi={nuovi} />}
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {inDettaglio ? (
@@ -466,6 +458,6 @@ export function AdminManagerPage() {
           </Button>
         </div>
       </Dialog>
-    </ShellFrame>
+    </AdminFrame>
   )
 }

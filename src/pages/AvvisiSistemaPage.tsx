@@ -11,7 +11,9 @@ import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { dataCorta } from '../i18n/format'
 import { dividiAvvisi, lettiDopoApertura, TESTO_MAX, TIPI_AVVISO, TITOLO_MAX, type AvvisoSistema, type TipoAvviso } from '../lib/avvisiSistema'
-import { isOperator } from '../lib/salonPath'
+import { useRuolo } from '../hooks/useRuolo'
+import { AdminFrame } from '../components/admin/AdminFrame'
+import { PERCORSO_ADMIN } from '../lib/percorsoAdmin'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
@@ -30,7 +32,8 @@ export function AvvisiSistemaPage() {
   const { lingua } = useLingua()
   const session = useSession()
   const account = session.gate.kind === 'in' ? session.gate.account : null
-  const operatore = isOperator(account?.email)
+  const { admin: operatore } = useRuolo()
+  const Cornice = operatore ? AdminFrame : ShellFrame
   const { avvisi, lettiFino, pronti, segnaLetti } = useAvvisiSistema(account?.uid ?? '')
   const avvisiBeta = useBeta().avvisi
   // Cosa era già letto quando si è aperta la pagina: decide cosa resta in evidenza durante la visita.
@@ -43,10 +46,11 @@ export function AvvisiSistemaPage() {
 
   const fino = lettiDopoApertura(avvisi, lettiFino)
   useEffect(() => {
-    if (!pronti || fino <= lettiFino) return
+    // L'admin non ha il documento account su cui segnare la lettura.
+    if (operatore || !pronti || fino <= lettiFino) return
     const id = setTimeout(() => segnaLetti(fino), ATTESA_SPUNTA_MS)
     return () => clearTimeout(id)
-  }, [pronti, fino, lettiFino, segnaLetti])
+  }, [operatore, pronti, fino, lettiFino, segnaLetti])
 
   const { evidenza, altri } = dividiAvvisi(avvisi, lettiAllApertura)
   const stato = (avviso: AvvisoSistema) => ({
@@ -67,10 +71,10 @@ export function AvvisiSistemaPage() {
   }
 
   return (
-    <ShellFrame>
+    <Cornice>
       <Header
         title={frasi.hubAvvisi}
-        backTo="/impostazioni"
+        backTo={operatore ? PERCORSO_ADMIN : '/impostazioni'}
         action={operatore ? (
           <IconButton label={frasi.avsScrivi} onClick={() => setScrivi(true)}>
             <Plus size={16} strokeWidth={2} aria-hidden />
@@ -139,7 +143,7 @@ export function AvvisiSistemaPage() {
         <p style={{ margin: 0, lineHeight: 1.45 }}>{daEliminare?.titolo}</p>
         <Button variant="bad" onClick={() => { void elimina() }}>{frasi.avsElimina}</Button>
       </Dialog>
-    </ShellFrame>
+    </Cornice>
   )
 }
 

@@ -34,7 +34,24 @@ async function apri(path: string) {
   render(<App memory isDev={false} initialPath={path} />)
 }
 
+async function apriDaAdmin() {
+  await createAccount('masala.roberto@hotmail.it', 'segretissimo')
+  const account = getAccount()
+  if (!account) throw new Error('account assente')
+  writeJson(storageKeys.auth, { ...account, admin: true })
+  render(<App memory isDev={false} initialPath="/admin/avvisi" />)
+}
+
 describe('Avvisi di sistema', () => {
+  it('l’admin non segna la lettura: non ha il documento account', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    finto.avvisi = [{ id: 'a', tipo: 'novita', titolo: 'Grazie', testo: '', creato: giorno(29) }]
+    await apriDaAdmin()
+    expect(await screen.findByText('Grazie')).toBeInTheDocument()
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000) })
+    expect(finto.segnati).toEqual([])
+  })
+
   beforeEach(() => {
     localStorage.clear()
     finto.avvisi = []
