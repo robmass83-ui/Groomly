@@ -1,3 +1,6 @@
+import { Button } from '../components/ui/Button'
+import { PRODOTTI_PLAY } from '../lib/idAbbonamenti'
+import { apriEsterno } from '../lib/openDocument'
 import type { CSSProperties } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
@@ -16,7 +19,7 @@ import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import type { Chiave } from '../i18n/t'
 import { haAccesso } from '../lib/piano'
-import { COLORE_PIANO, LINK_PLAY_ABBONAMENTI, PREZZI, avvisoPiano, ePianoVetrina, pianoAttivo, pianoInCorso, type PianoVetrina } from '../lib/abbonamento'
+import { COLORE_PIANO, PREZZI, avvisoPiano, ePianoVetrina, linkGestionePlay, mostraGestionePlay, pianoAttivo, pianoInCorso, type PianoVetrina } from '../lib/abbonamento'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -65,7 +68,7 @@ export function AbbonamentoPage() {
             {avviso.tipo === 'grazia' ? (
               <>
                 {frasi.abbGrazia}{' · '}
-                <a href={LINK_PLAY_ABBONAMENTI} target="_blank" rel="noreferrer" style={{ color: 'var(--pri)' }}>{frasi.abbGraziaLink}</a>
+                <a href={linkGestionePlay()} target="_blank" rel="noreferrer" style={{ color: 'var(--pri)' }}>{frasi.abbGraziaLink}</a>
               </>
             ) : frasi.abbDisdetto.replace('{{data}}', avviso.fine.toLocaleDateString(lingua))}
           </p>
@@ -95,6 +98,12 @@ export function AbbonamentoPage() {
             </Link>
           )
         })}
+        {session.gate.kind === 'in' && mostraGestionePlay(stato, ruolo !== 'socio' && ruolo !== 'collaboratore') ? (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Button variant="secondary" onClick={() => { void apriEsterno(linkGestionePlay(stato.livello === 'salone' ? PRODOTTI_PLAY.salone : PRODOTTI_PLAY.plus)) }}>{frasi.abbGestisci}</Button>
+            <p style={{ margin: 0, fontSize: TYPE.meta, color: 'var(--tx2)', lineHeight: 1.4 }}>{frasi.abbDopoDisdetta}</p>
+          </section>
+        ) : null}
         {account && titolareDelSalone && pronto !== false && !haAccesso(stato, 'team') ? <PersoneCollegate salonId={account.uid} /> : null}
       </div>
     </ShellFrame>

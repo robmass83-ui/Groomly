@@ -62,7 +62,24 @@ export function offertaPiano(input: { provaConcessa: boolean; abbonamentiAttivi:
 
 export type AvvisoPiano = { tipo: 'grazia' } | { tipo: 'disdetto'; fine: Date }
 
-export const LINK_PLAY_ABBONAMENTI = 'https://play.google.com/store/account/subscriptions'
+const PACCHETTO_APP = 'it.groomly.app'
+const GIORNI_PROVA = 30
+
+// Con il prodotto Google Play apre direttamente la gestione di quell'abbonamento.
+export function linkGestionePlay(prodotto?: string): string {
+  const query = new URLSearchParams({ ...(prodotto ? { sku: prodotto } : {}), package: PACCHETTO_APP })
+  return `https://play.google.com/store/account/subscriptions?${query.toString()}`
+}
+
+export function mostraGestionePlay(stato: StatoPiano, titolare: boolean): boolean {
+  return titolare && stato.fonte === 'play' && (stato.stato === 'attivo' || stato.stato === 'grazia' || stato.stato === 'disdetto')
+}
+
+export function fineProva(adesso: Date): Date {
+  const fine = new Date(adesso)
+  fine.setDate(fine.getDate() + GIORNI_PROVA)
+  return fine
+}
 
 // Avviso per chi ha un piano in grazia (pagamento non riuscito) o disdetto ma ancora attivo. Solo il titolare lo vede.
 export function avvisoPiano(stato: StatoPiano, titolare: boolean): AvvisoPiano | null {

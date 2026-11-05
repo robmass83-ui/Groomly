@@ -1,3 +1,4 @@
+import { linkGestionePlay } from '../lib/abbonamento'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
@@ -18,7 +19,7 @@ import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
 
-const PLAY = 'https://play.google.com/store/account/subscriptions?package=it.groomly.app'
+const PLAY = linkGestionePlay()
 
 export function EliminaAccountPage() {
   const frasi = useFrasi()

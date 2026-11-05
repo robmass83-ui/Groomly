@@ -115,6 +115,14 @@ describe('Vetrina Plus', () => {
     expect(screen.getByText('Nessun pagamento ora')).toBeInTheDocument()
   })
 
+  it('a piani spenti non si parla di rinnovo', async () => {
+    await createAccount('ada@salone.it', 'segretissimo')
+    pianoForzato.valore = { ...pianoDa(undefined), provaConcessa: false }
+    render(<Providers><MemoryRouter><Vetrina piano="plus" /></MemoryRouter></Providers>)
+    expect(await screen.findByText('Nessun pagamento ora')).toBeInTheDocument()
+    expect(screen.queryByText(/Rinnovo automatico/)).not.toBeInTheDocument()
+  })
+
   it('con l’interruttore dei prezzi in beta il prezzo si vede anche ad abbonamenti spenti', async () => {
     await createAccount('ada@salone.it', 'segretissimo')
     pianoForzato.valore = { ...pianoDa(undefined), provaConcessa: false, configPiani: { ...CONFIG_PIANI_DEFAULT, showPrezziInBeta: true } }

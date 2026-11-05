@@ -337,11 +337,11 @@ describe('footer fisso della pagina del piano', () => {
     const footer = await screen.findByRole('contentinfo')
     expect(within(footer).getByText('9,99 €')).toBeInTheDocument()
     expect(within(footer).getByText('/ mese')).toBeInTheDocument()
-    expect(within(footer).getByText('30 giorni gratis, poi 9,99 €/mese')).toBeInTheDocument()
+    expect(within(footer).getByText(/30 giorni gratis fino al .*senza carta.*torni a Go, senza addebiti/)).toBeInTheDocument()
     const bottoni = within(footer).getAllByRole('button')
     expect(bottoni.map((b) => b.textContent)).toEqual(['Prova Plus gratis per 30 giorni', 'Abbonati', 'Ripristina acquisti'])
     expect(bottoni[1].getAttribute('style')).toContain('text-decoration: underline')
-    expect(within(footer).getByText('Disdici quando vuoi')).toBeInTheDocument()
+    expect(within(footer).getByText('Rinnovo automatico ogni mese a 9,99 €. Disdici quando vuoi su Google Play.')).toBeInTheDocument()
     // Il prezzo grande sotto lo slogan non c'è più: il prezzo sta solo nel footer.
     expect(screen.getAllByText('/ mese')).toHaveLength(1)
   })
@@ -349,7 +349,7 @@ describe('footer fisso della pagina del piano', () => {
   it('Plus con la prova già usata: Abbonati torna il pulsante principale, senza la riga della prova', async () => {
     await apri('/impostazioni/abbonamento/plus', 'base')
     const footer = await screen.findByRole('contentinfo')
-    expect(within(footer).queryByText('30 giorni gratis, poi 9,99 €/mese')).not.toBeInTheDocument()
+    expect(within(footer).queryByText(/30 giorni gratis fino al/)).not.toBeInTheDocument()
     expect(within(footer).getAllByRole('button').map((b) => b.textContent)).toEqual(['Abbonati', 'Ripristina acquisti'])
   })
 
@@ -374,7 +374,20 @@ describe('footer fisso della pagina del piano', () => {
     const stato = statoPiano({ piano: 'salone', stato: 'grazia', fonte: 'play', scadeIl: new Date(2026, 11, 20).toISOString() }, new Date(2026, 10, 2))
     await apri('/impostazioni/abbonamento', 'salone', undefined, { stato })
     expect(await screen.findByText(/Pagamento non riuscito/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Aggiorna il pagamento su Google Play/ })).toHaveAttribute('href', 'https://play.google.com/store/account/subscriptions')
+    expect(screen.getByRole('link', { name: /Aggiorna il pagamento su Google Play/ })).toHaveAttribute('href', 'https://play.google.com/store/account/subscriptions?package=it.groomly.app')
+  })
+
+  it('il titolare con un abbonamento Play ha Gestisci e la riga sul ritorno a Go', async () => {
+    const stato = statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: new Date(2026, 11, 20).toISOString() }, new Date(2026, 10, 2))
+    await apri('/impostazioni/abbonamento', 'pro', undefined, { stato })
+    expect(await screen.findByRole('button', { name: 'Gestisci o disdici su Google Play' })).toBeInTheDocument()
+    expect(screen.getByText(/torni a Go.*dati restano/)).toBeInTheDocument()
+  })
+
+  it('senza abbonamento Play non c’è Gestisci', async () => {
+    await apri('/impostazioni/abbonamento', 'base')
+    await screen.findByRole('heading', { name: 'Abbonamento' }).catch(() => undefined)
+    expect(screen.queryByRole('button', { name: 'Gestisci o disdici su Google Play' })).not.toBeInTheDocument()
   })
 
   it('disdetto mostra fino a quando il piano resta attivo', async () => {
