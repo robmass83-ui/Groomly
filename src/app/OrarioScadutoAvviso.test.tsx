@@ -7,6 +7,7 @@ import { createAppointment, setAppointmentStatus } from '../data/local/appointme
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
 import { notifyLocalWrite } from '../lib/dataRefresh'
+import { it as frasiIt } from '../i18n/it'
 import { idNotifica } from '../lib/orarioScaduto'
 import type { DogWrite } from '../types/models'
 import { Providers } from './providers'
@@ -56,6 +57,13 @@ function haAnnullato(idVisita: string): boolean {
   )
 }
 
+function titoliProgrammati(idVisita: string): string[] {
+  const atteso = idNotifica(idVisita)
+  return vi.mocked(LocalNotifications.schedule).mock.calls.flatMap((call) =>
+    call[0].notifications.filter((voce) => voce.id === atteso).map((voce) => voce.title),
+  )
+}
+
 describe('avviso orario scaduto', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -81,5 +89,21 @@ describe('avviso orario scaduto', () => {
 
     await waitFor(() => expect(haAnnullato(visita.id)).toBe(true))
     expect(localStorage.getItem(`groomly.orario-scaduto.${account.uid}`)).not.toContain(visita.id)
+  })
+
+  it('cambiata la lingua, l’avviso già in coda si riscrive nella lingua nuova', async () => {
+    localStorage.setItem('groomly.lingua', 'en')
+    const account = await createAccount('laura@salone.it', 'segretissimo')
+    const peggie = createDog(account.uid, cane('Peggie'))
+    const visita = visitaTraUnOra(account.uid, peggie.id)
+    const primo = render(<Providers><span>app</span></Providers>)
+    await waitFor(() => expect(titoliProgrammati(visita.id)).toEqual(['Overdue time']))
+    await waitFor(() => expect(localStorage.getItem(`groomly.orario-scaduto.${account.uid}`)).toContain(visita.id))
+    primo.unmount()
+
+    localStorage.setItem('groomly.lingua', 'it')
+    render(<Providers><span>app</span></Providers>)
+
+    await waitFor(() => expect(titoliProgrammati(visita.id)).toEqual(['Overdue time', frasiIt.notificaOrarioScadutoTitolo]))
   })
 })
