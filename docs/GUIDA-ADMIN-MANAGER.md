@@ -1,9 +1,25 @@
-# Admin Manager — come si usa
+# Console Admin — come si usa
 
-L'Admin Manager prende il posto di «Utenti Groomly». Lo vede solo chi ha il claim `admin`, cioè la hotmail di Roberto.
-La hotmail entra direttamente in `/admin`, senza salone. I vecchi indirizzi `/impostazioni/admin-manager` e `/impostazioni/utenti` portano qui.
-In alto a destra ci sono **Avvisi** (scrivere ed eliminare gli avvisi di sistema) ed **Esci**.
-In alto ci sono sei tab: **Panoramica · Saloni · Beta · Feedback · Suggerimenti · Piani**.
+La Console Admin prende il posto dell'Admin Manager. La vede solo chi ha il claim `admin`, cioè la hotmail di Roberto, che entra direttamente in `/admin`, senza salone.
+
+Si apre in due modi, con lo stesso login:
+
+- **Dall'app.** Stesse pagine, con la barra in basso: Panoramica, Saloni, Assistenza, Beta, Altro.
+- **Dal PC, su `admin.groomlyapp.it`.** Menu fisso a sinistra e tabelle larghe. Non ci si registra, la sessione finisce quando si chiude il browser e sul PC non resta nessun dato. Chi non ha il claim vede «Accesso riservato».
+
+| Rotta | Cosa c'è |
+|---|---|
+| `/admin` | Panoramica: numeri, Da fare oggi, +30 gg, Email oggi |
+| `/admin/saloni` | Elenco, ricerca, filtri, selezione multipla, inviti |
+| `/admin/saloni/:salonId` | Scheda del salone: piano, azioni, storico, feedback, numeri aggregati |
+| `/admin/beta` | Inviti per stato |
+| `/admin/assistenza` | Suggerimenti e feedback, con stato e risposta |
+| `/admin/comunicazioni` | Avvisi e email ai saloni, Annuncio pagamenti |
+| `/admin/piani` | Interruttori, offerta early adopter, RevenueCat, accensione |
+| `/admin/registro` | Tutte le azioni fatte dalla Console |
+| `/admin/sistema` | Versioni, Email oggi, tour, collegamenti |
+
+Le Metriche arrivano col blocco successivo: fino ad allora non c'è la voce e i numeri stanno in Panoramica. I vecchi link (`/impostazioni/admin-manager`, `/impostazioni/utenti`, `/admin?tab=…`) portano alla pagina giusta.
 
 ## Passaggio degli accessi
 
@@ -18,16 +34,35 @@ I Pelosetti sta in `salons/{uid di Laura}`. Lo script `scripts/imposta-admin.ts`
 
 ## Sicurezza
 
-Ogni azione finisce in `adminLog`, che scrivono solo le functions. Elimina salone, Accendi e Spegni pagamenti e la pubblicazione di un avviso chiedono di nuovo la password se l'ultimo accesso ha più di 15 minuti. Gli avvisi hanno un limite di 10 all'ora.
+Ogni azione finisce in `adminLog`, che scrivono solo le functions e che si legge in **Registro**, senza testi né email. Elimina salone, Accendi e Spegni pagamenti e l'invio a tutti chiedono di nuovo la password se l'ultimo accesso ha più di 15 minuti. Le comunicazioni hanno un limite di 10 all'ora, le risposte di 30.
+
+La scheda del salone mostra solo numeri aggregati: mai nomi o telefoni dei clienti finali. Quando si cancella un account o un salone si cancellano anche i suoi feedback beta, lo storico di Assistenza e il suo uid nelle comunicazioni.
+
+## Sito `admin.groomlyapp.it`
+
+Una volta sola, a mano:
+
+1. Firebase Hosting: crea il sito `groomly-admin`.
+2. Collega il dominio `admin.groomlyapp.it` con i record DNS su Hostinger.
+3. Firebase Auth: aggiungi `admin.groomlyapp.it` ai domini autorizzati.
+4. App Check: registra il sito, quando App Check viene acceso.
+
+Per pubblicare, da `D:\Groomly` dove c'è `.env.local`:
+
+```bash
+npm run deploy:admin
+```
+
+`build:admin` controlla da solo che nel sito non siano finiti plugin nativi o pagine del salone. Da ora il sito pubblico si pubblica con `firebase deploy --only hosting:pubblico`: senza il nome del target Firebase cercherebbe anche `dist-admin`.
 
 ## La beta è pronta da usare
 
 Dopo il deploy di functions e regole e dopo la nuova APK puoi invitare i saloni.
-Per gli abbonamenti non serve niente: restano spenti finché non li accendi tu dal tab Piani.
+Per gli abbonamenti non serve niente: restano spenti finché non li accendi tu da Piani.
 
 ## Invitare saloni alla beta
 
-1. Apri il tab **Saloni**. Cerca un salone per nome, titolare o città, oppure usa i filtri: Avvisami Plus o Salon, piano, stato beta, attivi o inattivi.
+1. Apri **Saloni**. Cerca un salone per nome, titolare o città, oppure usa i filtri: Avvisami Plus o Salon, piano, stato beta, attivi o inattivi.
    - **Avvisami Plus / Avvisami Salon** mostrano chi ha toccato Avvisami sulla vetrina del piano o su una funzione di quel piano. Insieme a «Mai invitati» trovi subito a chi offrire la prova.
 2. Per sceglierne più di uno tieni premuto su un salone, oppure tocca **Seleziona**. «Tutti» seleziona i saloni filtrati.
 3. Nella barra scura in basso tocca **Beta Plus** o **Beta Salon**.
@@ -53,30 +88,47 @@ Cosa succede dopo:
 ## Seguire la beta
 
 - **Panoramica.** Mostra il riquadro Beta (invitati, in beta, quanti pagherebbero), i saloni attivi a 7 e 30 giorni, i piani e le fonti, gli «Avvisami».
-  - La lista **Da fare oggi** raccoglie inviti in scadenza, beta che finiscono, nuovi feedback e suggerimenti da vedere.
+  - La lista **Da fare oggi** raccoglie inviti in scadenza, beta che finiscono, richieste da leggere e saloni nuovi della settimana.
   - Il pulsante **+30 gg** allunga una beta al volo.
 - **Beta.** Elenca gli inviti divisi per stato: invitati, in beta, rifiutati, scaduti, revocati.
-- **Dettaglio salone.** Si apre toccando un salone. Mostra il piano effettivo e il **perché**: VIP, Play, prova, beta, manuale o Go. Sotto, la scadenza e tre viste: **Azioni**, **Storico**, **Feedback**.
+- **Dettaglio salone.** Si apre toccando un salone. Mostra il piano effettivo e il **perché**: VIP, Play, prova, beta, manuale o Go. Sotto, la scadenza e tre viste: **Azioni**, **Storico**, **Feedback**. In **Azioni** ci sono anche i numeri: animali, appuntamenti, persone, versione app e lingua.
   - **Estendi** allunga la beta di 15, 30 o 60 giorni, o del numero che vuoi.
   - **Revoca** riporta il salone a Go subito. I dati restano e il salone riceve un avviso.
   - **Early adopter** è l'interruttore per il prezzo di favore al lancio. Si accende da solo quando il salone accetta.
   - Restano i pulsanti di prima: **Attiva Plus**, **Attiva Salon**, **Regala 30 giorni**, **Torna a Go** ed **Elimina toelettatura**, che chiede di scrivere ELIMINA.
 
-## Leggere i feedback
+## Assistenza
 
-Il tab **Feedback** ha:
-- il filtro per piano e la ricerca per salone;
-- il voto medio e la risposta a «Pagheresti?», con quanto al mese;
-- quanto è utile ogni funzione;
-- **Esporta**, in PDF o Excel come i Suggerimenti.
+Una casella sola con suggerimenti e feedback beta. Le segnalazioni sono i suggerimenti con categoria «Qualcosa non funziona».
 
-Toccando un feedback si apre il salone.
+- **Stato.** Nuove, In corso, Risolte. Aprire una richiesta non cambia lo stato: lo cambi tu. Le richieste arrivate prima del primo accesso alla nuova Console valgono Risolte.
+- **Filtri.** Stato, fonte, categoria, salone. **Esporta** salva in PDF o Excel ciò che vedi.
+- **Rispondere.** Apri la richiesta, scrivi o scegli una risposta rapida, tocca **Invia la risposta**.
+  - La risposta arriva **solo a chi ha scritto**, negli Avvisi di sistema dell'app, con l'invito a scrivere a `info@groomlyapp.it` per continuare. Non è una conversazione.
+  - Con **Invia anche via email** parte anche un'email di servizio, senza «Disiscriviti». Mittente `noreply@`, le risposte vanno a `info@`.
+  - Se l'account non esiste più la risposta non parte e la Console lo dice.
+  - Una risposta inviata non si modifica. La richiesta passa a Risolte, ma puoi riaprirla.
+- **Chi non ha aggiornato l'app** non vede la risposta: l'email gli arriva comunque.
+- Con **Feedback beta** come fonte, sotto la lista c'è il riepilogo: voto medio, «Pagheresti?», utilità delle funzioni, esportazione completa.
 
-Il titolare manda il feedback da Abbonamento → «Invia feedback beta». Gli arriva un promemoria dopo circa 7 giorni e a 7 giorni dalla fine. A fine beta gli chiediamo «Vorresti continuare a pagamento?».
+Il titolare manda il feedback da Abbonamento → «Invia feedback beta». Gli arriva un promemoria dopo circa 7 giorni e a 7 giorni dalla fine.
 
-## Suggerimenti
+## Comunicazioni
 
-È la coda di prima, invariata. Ora è un tab.
+1. Scegli il tipo di avviso e i destinatari: **Tutti i saloni** o **Saloni scelti**, con gli stessi filtri di Saloni.
+2. Scrivi in italiano, obbligatorio. Le altre lingue sono facoltative: chi ha una lingua senza testo riceve l'italiano.
+3. **Invia anche via email**, se serve, scegliendo il tipo:
+   - **Promozionale** (preselezionata): solo a chi ha dato il consenso, con il link «Disiscriviti».
+   - **Di servizio**: a tutti i titolari, senza link. Solo ciò che serve a usare il servizio, come manutenzione, sicurezza e modifiche importanti. Mai offerte.
+4. L'**Anteprima** dice quanti account ricevono l'avviso, quante email partono, chi riceve l'italiano, chi è escluso per mancanza di consenso e quante email restano oggi.
+
+L'invio a tutti chiede di nuovo la password se l'ultimo accesso ha più di 15 minuti. I saloni di test restano sempre esclusi.
+
+Nello **Storico** vedi ogni invio. **Riprendi** manda solo a chi manca, se un invio si è interrotto. **Elimina** toglie l'avviso dall'app, ma le email già partite restano partite.
+
+### Il limite delle email
+
+Brevo gratuito dà **300 email al giorno**, in comune con i promemoria che i saloni mandano ai clienti. La Console può usarne al massimo la **metà di quelle rimaste**, così i promemoria non si fermano. Il numero si vede in Panoramica, in Sistema e nell'Anteprima («Email oggi: 120 su 300»). Oltre il limite l'invio con email è bloccato; l'avviso nell'app può partire sempre.
 
 ## Piani e pagamenti
 
@@ -86,7 +138,7 @@ Il titolare manda il feedback da Abbonamento → «Invia feedback beta». Gli ar
   - **Prezzi durante la beta**: spento, quindi le vetrine dicono «In arrivo · Avvisami» senza prezzo.
 - **Offerta early adopter**: il testo dell'offerta in it/en/es. Una lingua vuota usa l'italiano.
 - **RevenueCat**: la chiave pubblica SDK (`goog_…`) e l'ID offering (`groomly_standard`).
-- **Annuncio pagamenti**: avvisa tutti nell'app e manda un'email a ex beta ed early adopter. Gli abbonamenti si possono accendere solo 15 giorni dopo.
+- **Annuncio pagamenti**: ora sta in Comunicazioni. Avvisa tutti nell'app e manda un'email a ex beta ed early adopter. Gli abbonamenti si possono accendere solo 15 giorni dopo.
 - **Pannello di accensione**: in alto, con un semaforo ✅/❌ su cinque voci:
   - chiave SDK;
   - offering completo;

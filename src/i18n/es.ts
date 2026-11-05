@@ -2221,4 +2221,7 @@ export const es = {
   consCollegamenti: 'Enlaces',
   consRiservato: 'Acceso reservado',
   consRiservatoTesto: 'Esta página es solo para quien administra Groomly. Tu salón se abre desde la app.',
+  consTitolare: 'Titular',
+  consUltimoAccesso: 'Último acceso',
+  consCitta: 'Ciudad',
 } as const satisfies Record<keyof typeof italiano, string>

@@ -2221,4 +2221,7 @@ export const de = {
   consCollegamenti: 'Links',
   consRiservato: 'Zugang beschränkt',
   consRiservatoTesto: 'Diese Seite ist nur für die Verwaltung von Groomly. Ihr Salon öffnet sich in der App.',
+  consTitolare: 'Inhaber',
+  consUltimoAccesso: 'Letzter Zugriff',
+  consCitta: 'Stadt',
 } as const satisfies Record<keyof typeof italiano, string>

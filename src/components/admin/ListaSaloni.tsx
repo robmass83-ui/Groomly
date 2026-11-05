@@ -1,5 +1,5 @@
 import { Check, ChevronRight, MoreHorizontal } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { Sheet } from '../layout/Sheet'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
@@ -7,7 +7,9 @@ import { FilterChip } from '../ui/FilterChip'
 import { SearchBar } from '../ui/SearchBar'
 import { StatusPill } from '../ui/StatusPill'
 import { AttesaRiga } from '../ui/Zampette'
-import { useFrasi } from '../../i18n/LinguaContext'
+import { useDesktop } from '../../hooks/useDesktop'
+import { dataCorta } from '../../i18n/format'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import {
   fineBetaDi,
   filtraSaloni,
@@ -26,6 +28,9 @@ import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, AvatarSalone, CON_ICONA, MarchioLivello, NOME, RIGA, SFUMATURA_PLUS, SFUMATURA_SALONE } from './comuni'
 import { BOTTOM_NAV_CONTENT_PAD } from '../layout/BottomNav'
+
+const CELLA: CSSProperties = { padding: '8px 12px', textAlign: 'left', verticalAlign: 'middle' }
+const CELLA_TESTA: CSSProperties = { ...CELLA, fontSize: 12, fontWeight: 700, color: 'var(--tx2)' }
 
 export type FiltroInvito = 'tutti' | StatoInvitoBeta
 
@@ -90,6 +95,8 @@ export function ListaSaloni({
   adesso: Date
 }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
+  const desktop = useDesktop()
   const timer = useRef<number | null>(null)
   const premuto = useRef(false)
 
@@ -216,6 +223,48 @@ export function ListaSaloni({
       </div>
       {visibili.length === 0 ? (
         <p style={{ margin: 0, color: 'var(--tx3)' }}>{righe.length === 0 ? frasi.uteNessuna : modo === 'beta' ? frasi.amNessunInvito : frasi.amNessunSalone}</p>
+      ) : desktop ? (
+        <Card style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr>
+                {selezione ? <th style={CELLA_TESTA} aria-hidden /> : null}
+                {[frasi.consSalone, frasi.consTitolare, frasi.amPiano, frasi.amTabBeta, frasi.consUltimoAccesso, frasi.consCitta].map((nome) => <th key={nome} style={CELLA_TESTA}>{nome}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {visibili.map((riga) => {
+                const nome = nomeSalone(riga.row)
+                const pillola = pillolaInvito(riga, inviti.get(riga.row.salonId))
+                const scelto = selezione?.has(riga.row.salonId) === true
+                return (
+                  <tr key={riga.row.salonId} style={{ borderTop: '1px solid var(--line)' }}>
+                    {selezione ? (
+                      <td style={{ ...CELLA, width: 36 }}>
+                        <input type="checkbox" aria-label={nome} checked={scelto} onChange={() => alternaSelezione(riga.row.salonId)} />
+                      </td>
+                    ) : null}
+                    <td style={CELLA}>
+                      <button
+                        type="button"
+                        aria-label={`${nome}, ${riga.row.ownerName}`}
+                        onClick={() => { if (selezione) alternaSelezione(riga.row.salonId); else onApri(riga.row.salonId) }}
+                        style={{ border: 0, background: 'transparent', color: 'var(--pri)', font: 'inherit', fontWeight: 600, padding: 0, textAlign: 'left', cursor: 'pointer' }}
+                      >
+                        {nome}
+                      </button>
+                    </td>
+                    <td style={CELLA}>{riga.row.ownerName}</td>
+                    <td style={CELLA}><MarchioLivello livello={riga.livello} /></td>
+                    <td style={CELLA}>{pillola ? <StatusPill tone={pillola.tono}>{frasi[pillola.chiave]}</StatusPill> : null}</td>
+                    <td style={CELLA}>{riga.info.ultimaAttivita ? dataCorta(lingua, new Date(riga.info.ultimaAttivita)) : ''}</td>
+                    <td style={CELLA}>{riga.info.citta ?? ''}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </Card>
       ) : (
         <Card>
           {visibili.map((riga, index) => {

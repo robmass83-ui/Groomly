@@ -192,13 +192,8 @@ function mapMailError(error: unknown): AppError {
   return mapAuthError(error)
 }
 
-async function attachEmulators(kind: 'auth' | 'firestore' | 'functions', target: unknown): Promise<void> {
+async function attachEmulators(kind: 'firestore' | 'functions', target: unknown): Promise<void> {
   if (import.meta.env.VITE_EMULATORS !== '1') return
-  if (kind === 'auth') {
-    const { connectAuthEmulator } = await import('firebase/auth')
-    connectAuthEmulator(target as Auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-    return
-  }
   if (kind === 'firestore') {
     const { connectFirestoreEmulator } = await import('firebase/firestore')
     try {
@@ -779,7 +774,8 @@ async function auth(): Promise<Auth> {
       const modulo = await import('firebase/auth')
       const app = await firebaseApp()
       const session = solaAdmin() ? modulo.initializeAuth(app, { persistence: modulo.browserSessionPersistence }) : modulo.getAuth(app)
-      await attachEmulators('auth', session)
+      // Nello stesso giro: la sessione in memoria si controlla subito, e deve già parlare con l'emulatore.
+      if (import.meta.env.VITE_EMULATORS === '1') modulo.connectAuthEmulator(session, 'http://127.0.0.1:9099', { disableWarnings: true })
       return session
     })().catch((error: unknown) => {
       authPromise = null

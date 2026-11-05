@@ -2219,4 +2219,7 @@ export const it = {
   consCollegamenti: 'Collegamenti',
   consRiservato: 'Accesso riservato',
   consRiservatoTesto: 'Questa pagina è solo per chi amministra Groomly. Il tuo salone si apre dall’app.',
+  consTitolare: 'Titolare',
+  consUltimoAccesso: 'Ultimo accesso',
+  consCitta: 'Città',
 } as const

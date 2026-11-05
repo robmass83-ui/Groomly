@@ -116,7 +116,9 @@ export function ModuloComunicazione({ onInviata }: { onInviata: () => void }) {
 
   return (
     <>
-      <Segmented fill label={frasi.avsTipo} value={tipo} onChange={setTipo} options={TIPI_AVVISO.map((t) => ({ value: t, label: nomiTipo[t] }))} />
+      <select aria-label={frasi.avsTipo} value={tipo} onChange={(e) => setTipo(e.target.value as TipoAvviso)} style={{ ...CAMPO, minHeight: 40 }}>
+        {TIPI_AVVISO.map((t) => <option key={t} value={t}>{nomiTipo[t]}</option>)}
+      </select>
       <Segmented
         fill
         label={frasi.consDestinatari}
@@ -175,8 +177,8 @@ export function ModuloComunicazione({ onInviata }: { onInviata: () => void }) {
           {tipoEmail === 'servizio' ? <p style={{ ...AIUTO, margin: 0 }}>{frasi.consPromemoriaServizio}</p> : null}
         </>
       ) : null}
-      <SectionTitle color="var(--tx3)">{frasi.consAnteprima}</SectionTitle>
-      <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {visto.titolo !== '' || anteprima ? <SectionTitle color="var(--tx3)">{frasi.consAnteprima}</SectionTitle> : null}
+      {visto.titolo !== '' || anteprima ? <Card style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
         {visto.titolo !== '' ? <strong style={USER_TEXT}>{visto.titolo}</strong> : null}
         {visto.testo !== '' ? <span style={{ whiteSpace: 'pre-line', ...USER_TEXT }}>{visto.testo}</span> : null}
         {anteprima ? (
@@ -189,7 +191,7 @@ export function ModuloComunicazione({ onInviata }: { onInviata: () => void }) {
           </>
         ) : null}
         {bloccata ? <strong style={{ color: 'var(--bad)' }}>{frasi.consBloccata}</strong> : null}
-      </Card>
+      </Card> : null}
       <p style={{ ...AIUTO, margin: 0 }}>{frasi.consNotaApk}</p>
       <Button disabled={!pronta || occupato} onClick={() => { void invia() }}>{frasi.consInvia}</Button>
       {dialogo}
