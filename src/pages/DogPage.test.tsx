@@ -101,19 +101,19 @@ describe('scheda del cane', () => {
     expect(screen.queryByRole('textbox', { name: 'Email' })).not.toBeInTheDocument()
   })
 
-  it('con le mail spente il collaboratore vede Mail spente e Riattiva le riaccende', async () => {
+  it('con le mail spente l’interruttore le riaccende', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Ada', phone: '333', email: 'ada@cliente.it' } }))
     const chiave = storageKeys.dogs(account.uid)
     const mappa = readJson<Record<string, { emailBloccata?: boolean }>>(chiave) ?? {}
     mappa[created.id].emailBloccata = true
     writeJson(chiave, mappa)
-    writeJson(storageKeys.auth, { ...account, role: 'collaboratore' })
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
-    expect(await screen.findByText('Mail spente')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Riattiva' }))
-    await waitFor(() => expect(screen.queryByText('Mail spente')).not.toBeInTheDocument())
+    const interruttore = await screen.findByRole('switch', { name: 'Email al cliente' })
+    expect(interruttore).toHaveAttribute('aria-checked', 'false')
+    await user.click(interruttore)
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Email al cliente' })).toHaveAttribute('aria-checked', 'true'))
     const dopo = readJson<Record<string, { emailBloccata?: boolean; contact?: { email?: string } }>>(chiave)
     expect(dopo?.[created.id]?.emailBloccata).not.toBe(true)
     expect(dopo?.[created.id]?.contact?.email).toBe('ada@cliente.it')

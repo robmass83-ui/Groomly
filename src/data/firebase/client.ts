@@ -525,6 +525,10 @@ export async function segnaAvvisiLetti(uid: string, lettiFino: number): Promise<
 /** Acceso mentre il titolare elimina il suo account: il server cancella il salone e niente deve ricrearlo. */
 let eliminazioneInCorso = false
 
+export async function callImpostaEmailCliente(dogId: string, bloccata: boolean): Promise<void> {
+  await callCallable('impostaEmailCliente', { dogId, bloccata })
+}
+
 /** La prova dell'accettazione la scrive il server; qui si aggiorna solo la copia in memoria. */
 export async function callRegistraAccettazione(): Promise<void> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
