@@ -10,7 +10,7 @@ import { useAvvisiSistema } from '../hooks/useAvvisiSistema'
 import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { dataCorta } from '../i18n/format'
-import { dividiAvvisi, lettiDopoApertura, TESTO_MAX, TIPI_AVVISO, TITOLO_MAX, type AvvisoSistema, type TipoAvviso } from '../lib/avvisiSistema'
+import { dividiAvvisi, lettiDopoApertura, testoPerLingua, TESTO_MAX, TIPI_AVVISO, TITOLO_MAX, type AvvisoSistema, type TipoAvviso } from '../lib/avvisiSistema'
 import { useRuolo } from '../hooks/useRuolo'
 import { AdminFrame } from '../components/admin/AdminFrame'
 import { useRiconferma } from '../components/admin/RiconfermaPassword'
@@ -54,6 +54,7 @@ export function AvvisiSistemaPage() {
   }, [operatore, pronti, fino, lettiFino, segnaLetti])
 
   const { evidenza, altri } = dividiAvvisi(avvisi, lettiAllApertura)
+  const tradotto = (avviso: AvvisoSistema): AvvisoSistema => ({ ...avviso, ...testoPerLingua(avviso, lingua) })
   const stato = (avviso: AvvisoSistema) => ({
     letto: avviso.creato <= lettiFino,
     appenaLetto: avviso.creato > lettiAllApertura,
@@ -95,7 +96,7 @@ export function AvvisiSistemaPage() {
           </div>
         ) : null}
 
-        {evidenza.map((avviso) => (
+        {evidenza.map(tradotto).map((avviso) => (
           <article key={avviso.id} aria-label={avviso.titolo} style={{ background: 'var(--bad-s)', borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--bad)', fontWeight: 700, fontSize: 12, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               <TriangleAlert size={16} strokeWidth={2.2} aria-hidden />
@@ -116,7 +117,7 @@ export function AvvisiSistemaPage() {
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--tx2)', margin: '6px 2px 0' }}>{frasi.avsAltri}</div>
         ) : null}
 
-        {altri.map((avviso) => {
+        {altri.map(tradotto).map((avviso) => {
           const { icon: Icona, tone, soft, etichetta } = ASPETTO[avviso.tipo]
           const { letto, appenaLetto } = stato(avviso)
           return (

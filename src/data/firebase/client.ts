@@ -45,7 +45,7 @@ import { livelloElenco } from '../../lib/funzioniPiano'
 import { fonteDi, tracciaBetaDi } from '../../lib/piano'
 import { leggiConfigPiani, type ConfigPiani, type ModificheConfigPiani } from '../../lib/configPiani'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
-import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
+import { tipoAvviso, traduzioniDi, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
 import { readSignInHint } from '../local/signInHint'
@@ -481,18 +481,30 @@ export async function elencoSuggerimenti(): Promise<SuggerimentoArrivato[]> {
 
 const LIMITE_AVVISI_SISTEMA = 50
 
+function avvisoDaDocSistema(id: string, data: Record<string, unknown>): AvvisoSistema[] {
+  const creato = millisecondi(data.creato)
+  const titolo = typeof data.titolo === 'string' ? data.titolo : ''
+  if (creato === null || titolo === '') return []
+  const traduzioni = traduzioniDi(data.traduzioni)
+  return [{ id, tipo: tipoAvviso(data.tipo), titolo, testo: typeof data.testo === 'string' ? data.testo : '', creato, ...(traduzioni ? { traduzioni } : {}) }]
+}
+
 export async function listenAvvisiSistema(onData: (avvisi: AvvisoSistema[]) => void): Promise<() => void> {
   const db = await database()
   const { collection, limit, onSnapshot, orderBy, query } = await loadFirestore()
   const q = query(collection(db, 'avvisiSistema'), orderBy('creato', 'desc'), limit(LIMITE_AVVISI_SISTEMA))
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.flatMap((doc) => {
-      const data = doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>
-      const creato = millisecondi(data.creato)
-      const titolo = typeof data.titolo === 'string' ? data.titolo : ''
-      if (creato === null || titolo === '') return []
-      return [{ id: doc.id, tipo: tipoAvviso(data.tipo), titolo, testo: typeof data.testo === 'string' ? data.testo : '', creato }]
-    }))
+    onData(snap.docs.flatMap((doc) => avvisoDaDocSistema(doc.id, doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>)))
+  }, () => onData([]))
+}
+
+/** Risposte di Assistenza e comunicazioni mirate: le vede solo questo account. */
+export async function listenAvvisiAccount(uid: string, onData: (avvisi: AvvisoSistema[]) => void): Promise<() => void> {
+  const db = await database()
+  const { collection, limit, onSnapshot, orderBy, query } = await loadFirestore()
+  const q = query(collection(db, 'accounts', uid, 'avvisi'), orderBy('creato', 'desc'), limit(LIMITE_AVVISI_SISTEMA))
+  return onSnapshot(q, (snap) => {
+    onData(snap.docs.flatMap((doc) => avvisoDaDocSistema(doc.id, doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>)))
   }, () => onData([]))
 }
 
