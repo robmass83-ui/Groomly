@@ -118,7 +118,7 @@ async function apriSenzaAttesa(percorso: string) {
 
 async function apri(percorso = '/admin') {
   await apriSenzaAttesa(percorso)
-  await screen.findAllByRole('heading', { name: /Panoramica|Saloni|Beta|Assistenza|Piani|Bauci|Pelo|Zampa/ })
+  await screen.findAllByRole('heading', { name: /Oggi|Saloni|Beta|Assistenza|Piani|Bauci|Pelo|Zampa/ })
 }
 
 describe('Admin Manager: beta', () => {
@@ -136,10 +136,10 @@ describe('Admin Manager: beta', () => {
     admin.config = { mostraPiani: false, abbonamentiAttivi: false, piani: CONFIG_PIANI_DEFAULT }
   })
 
-  it('la barra del telefono ha cinque voci e i link vecchi portano alla pagina giusta', async () => {
+  it('la barra del telefono ha quattro voci col tasto + e i link vecchi portano alla pagina giusta', async () => {
     await apri('/impostazioni/utenti?zona=saloni')
     const barra = await screen.findByRole('navigation', { name: 'Menu della Console' })
-    expect(within(barra).getAllByRole('link').map((l) => l.textContent?.replace(/\d+.*$/, ''))).toEqual(['Panoramica', 'Saloni', 'Assistenza', 'Beta', 'Altro'])
+    expect(within(barra).getAllByRole('link').map((l) => l.textContent?.replace(/\d+.*$/, ''))).toEqual(['Oggi', 'Saloni', 'Assistenza', 'Altro'])
     expect(within(barra).getByRole('link', { name: /Saloni/ })).toHaveAttribute('aria-current', 'page')
     const user = userEvent.setup()
     await user.click(within(barra).getByRole('link', { name: 'Altro' }))
@@ -165,7 +165,7 @@ describe('Admin Manager: beta', () => {
     expect(admin.estendi).toHaveBeenCalledWith({ salonId: 'eva', giorni: 30 })
 
     await user.click(screen.getByRole('button', { name: 'In beta: 1' }))
-    expect(await screen.findByRole('link', { name: /Beta/, current: 'page' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Beta' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Zampa, Eva Blu' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bauci, Ada Neri' })).not.toBeInTheDocument()
   })

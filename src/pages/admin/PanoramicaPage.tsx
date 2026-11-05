@@ -17,7 +17,7 @@ export function PanoramicaPage() {
   }
   return (
     <>
-      <TestataAdmin titolo={frasi.amTabPanoramica} />
+      <TestataAdmin titolo={frasi.consOggi} />
       <div style={CORPO}>
         <PanoramicaAdmin
           contatori={dati.contatori}

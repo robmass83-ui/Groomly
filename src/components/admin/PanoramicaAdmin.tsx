@@ -1,5 +1,5 @@
-import { ChevronRight, FlaskConical } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { Clock, FlaskConical, LifeBuoy, Mail, Store, type LucideIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
 import { Card, Row } from '../ui/Card'
@@ -19,7 +19,7 @@ import type { LivelloElenco } from '../../lib/funzioniPiano'
 import { TETTO_EMAIL_GIORNO } from '../../lib/promemoriaEmail'
 import { eFeature, type FeatureKey } from '../../lib/piano'
 import { USER_TEXT } from '../../theme/text'
-import { AIUTO, COLORI_LIVELLO, NOME, RIGA, type Frasi } from './comuni'
+import { AIUTO, COLORI_LIVELLO, NOME, type Frasi } from './comuni'
 
 export type ApriTab = (tab: 'beta' | 'feedback' | 'assistenza' | 'saloni', stato?: string) => void
 
@@ -60,6 +60,28 @@ const STATI_PILLOLA: { stato: StatoInvitoBeta; tono: 'prim' | 'ok' | 'bad' | 'ne
   { stato: 'revocato', tono: 'warn', chiave: 'amRevocati' },
 ]
 
+type CartaDaFare = { titolo: string; aiuto?: string; icona: LucideIcon; sfondo: string; colore: string; azione: string; fai: () => void; altra?: { nome: string; fai: () => void } }
+
+function Carta({ titolo, aiuto, icona: Icona, sfondo, colore, azione, fai, altra }: CartaDaFare) {
+  return (
+    <Card style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span aria-hidden style={{ width: 44, height: 44, borderRadius: 14, background: sfondo, color: colore, display: 'grid', placeItems: 'center', flex: 'none' }}>
+          <Icona size={20} strokeWidth={2} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={NOME}>{titolo}</span>
+          {aiuto ? <span style={AIUTO}>{aiuto}</span> : null}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button size="md" style={{ flex: 1 }} onClick={fai}>{azione}</Button>
+        {altra ? <Button size="md" variant="secondary" style={{ flex: 1 }} onClick={altra.fai}>{altra.nome}</Button> : null}
+      </div>
+    </Card>
+  )
+}
+
 function Numero({ valore, etichetta, colore, onClick }: { valore: number; etichetta: string; colore?: string; onClick: () => void }) {
   return (
     <button
@@ -98,33 +120,64 @@ export function PanoramicaAdmin({
   const frasi = useFrasi()
   const { lingua } = useLingua()
 
-  function rigaDaFare(voce: VoceDaFare): { titolo: string; aiuto?: string; azione: () => void; extra?: ReactNode } {
+  function cartaDaFare(voce: VoceDaFare): CartaDaFare {
     if (voce.tipo === 'invito-scade') {
       return {
         titolo: frasi.amNonHaRisposto.replace('{{salone}}', nomeDi(voce.salonId)),
         aiuto: frasi.amInvitoScadeTra.replace('{{n}}', String(voce.giorni)),
-        azione: () => onSalone(voce.salonId),
+        icona: Mail,
+        sfondo: 'var(--pri-s)',
+        colore: 'var(--pri-ink)',
+        azione: frasi.consApriScheda,
+        fai: () => onSalone(voce.salonId),
       }
     }
     if (voce.tipo === 'beta-finisce') {
       return {
         titolo: frasi.amBetaFinisce.replace('{{salone}}', nomeDi(voce.salonId)).replace('{{data}}', dataCorta(lingua, new Date(voce.data))),
-        azione: () => onSalone(voce.salonId),
-        extra: (
-          <Button variant="tonal" size="sm" style={{ flex: 'none', background: 'var(--plus-s, #F0E9FD)', color: 'var(--plus-ink, #5A2BC0)', border: 0 }} onClick={() => onEstendi30(voce.salonId)}>
-            {frasi.amPiu30}
-          </Button>
-        ),
+        icona: Clock,
+        sfondo: 'var(--warn-s)',
+        colore: 'var(--warn)',
+        azione: frasi.amPiu30,
+        fai: () => onEstendi30(voce.salonId),
+        altra: { nome: frasi.consApriScheda, fai: () => onSalone(voce.salonId) },
       }
     }
     if (voce.tipo === 'assistenza') {
-      return { titolo: voce.n === 1 ? frasi.consRichiestaNuova : frasi.consRichiesteNuove.replace('{{n}}', String(voce.n)), azione: () => apri('assistenza') }
+      return {
+        titolo: voce.n === 1 ? frasi.consRichiestaNuova : frasi.consRichiesteNuove.replace('{{n}}', String(voce.n)),
+        icona: LifeBuoy,
+        sfondo: 'var(--bad-s)',
+        colore: 'var(--bad)',
+        azione: frasi.consRispondi,
+        fai: () => apri('assistenza'),
+      }
     }
-    return { titolo: voce.n === 1 ? frasi.consSaloneNuovo : frasi.consSaloniNuovi.replace('{{n}}', String(voce.n)), azione: () => apri('saloni') }
+    return {
+      titolo: voce.n === 1 ? frasi.consSaloneNuovo : frasi.consSaloniNuovi.replace('{{n}}', String(voce.n)),
+      icona: Store,
+      sfondo: 'var(--ok-s)',
+      colore: 'var(--ok)',
+      azione: frasi.consVediSaloni,
+      fai: () => apri('saloni'),
+    }
   }
+
+  const saluto = new Date().getHours() < 18 ? frasi.consBuongiorno : frasi.consBuonasera
+  const riepilogo = daFare.length === 0 ? frasi.consTuttoFatto : daFare.length === 1 ? frasi.consUnaCosa : frasi.consCoseDaFare.replace('{{n}}', String(daFare.length))
 
   return (
     <>
+      <div className="am-scuro" style={{ borderRadius: 18, padding: 16, color: '#fff' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, ...USER_TEXT }}>{saluto}</div>
+        <div style={{ fontSize: 13, color: '#C9D6EE', ...USER_TEXT }}>{riepilogo}</div>
+      </div>
+
+      {daFare.length > 0 ? <SectionTitle tone="warn" count={daFare.length}>{frasi.amDaFare}</SectionTitle> : null}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 10 }}>
+        {daFare.map((voce, index) => <Carta key={index} {...cartaDaFare(voce)} />)}
+      </div>
+
       {errore ? (
         <Card>
           <Row style={{ borderTop: 'none' }}>
@@ -146,27 +199,6 @@ export function PanoramicaAdmin({
           </div>
         </div>
       )}
-
-      <SectionTitle tone="warn" count={daFare.length}>{frasi.amDaFare}</SectionTitle>
-      <Card>
-        {daFare.length === 0 ? (
-          <Row style={{ borderTop: 'none' }}><span style={{ color: 'var(--tx3)', ...USER_TEXT }}>{frasi.amNienteDaFare}</span></Row>
-        ) : daFare.map((voce, index) => {
-          const r = rigaDaFare(voce)
-          return (
-            <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 6, borderTop: index === 0 ? 'none' : '1px solid var(--line)', paddingRight: r.extra ? 8 : 0 }}>
-              <button type="button" onClick={r.azione} style={{ ...RIGA, borderTop: 'none', flex: 1 }}>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={NOME}>{r.titolo}</span>
-                  {r.aiuto ? <span style={AIUTO}>{r.aiuto}</span> : null}
-                </span>
-                {r.extra ? null : <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />}
-              </button>
-              {r.extra}
-            </div>
-          )
-        })}
-      </Card>
 
       {contatori ? <BloccoSaloni contatori={contatori} riepilogoAccount={riepilogoAccount} /> : null}
       {contatori ? <span style={AIUTO}>{frasi.consEmailOggi.replace('{{n}}', String(contatori.emailOggi)).replace('{{tetto}}', String(TETTO_EMAIL_GIORNO))}</span> : null}
