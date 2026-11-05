@@ -2127,4 +2127,10 @@ export const en = {
   riaccAccetto: 'I accept',
   riaccEsci: 'Log out',
   riaccErrore: 'It couldn\'t be saved. Please try again.',
+  tourPromoTitolo: 'Would you like to hear our news?',
+  tourPromoSotto: 'Now and then we\'ll email you with Groomly promotions and news. You can unsubscribe at any time.',
+  tourPromoSi: 'Yes',
+  tourPromoNo: 'No, thanks',
+  accEmailPromo: 'Emails with promotions and news',
+  accEmailPromoDettaglio: 'Service emails arrive anyway',
 } as const satisfies Record<keyof typeof italiano, string>

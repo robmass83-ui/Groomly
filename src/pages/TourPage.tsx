@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { rimandaAvvisoTour } from '../app/TourAvvio'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Mascotte } from '../components/tour/Mascotte'
-import { cascata, linkTour, PassoBackup, PassoFiscale, PassoLogo, PassoPrezzi, PassoSede, Piede, TourFine, useImpostazioniTour } from '../components/tour/TourPassi'
+import { cascata, linkTour, PassoBackup, PassoFiscale, PassoLogo, PassoPrezzi, PassoPromo, PassoSede, Piede, TourFine, useImpostazioniTour } from '../components/tour/TourPassi'
 import { TourFesta, TourPulsante } from '../components/tour/TourScena'
 import type { SettingsMain } from '../data/local/settings'
 import { usePassiSalone } from '../hooks/usePassiSalone'
@@ -12,12 +12,14 @@ import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { PassoSalone } from '../lib/completaSalone'
+import { chiediPromo } from '../lib/tourPromo'
 import { passiDelTour } from '../lib/tourBenvenuto'
 import { AttesaRiga } from '../components/ui/Zampette'
 
 type Schermata =
   | { tipo: 'benvenuto' }
   | { tipo: 'passo'; indice: number; fase?: 'tempi' }
+  | { tipo: 'promo' }
   | { tipo: 'fine' }
 
 type Ricetta = (current: SettingsMain) => SettingsMain
@@ -67,8 +69,10 @@ export function TourPage() {
   const { settings, ready, stantio } = useSettings()
   const { passi, pronto, aggiornaDrive } = usePassiSalone()
   const { attuali, scrivi } = useImpostazioniTour()
-  const { gate } = useSession()
-  const uid = gate.kind === 'in' ? gate.account.uid : null
+  const session = useSession()
+  const { gate } = session
+  const account = gate.kind === 'in' ? gate.account : null
+  const uid = account?.uid ?? null
   const [elenco, setElenco] = useState<PassoSalone[]>([])
   const stato = location.state as Partial<StatoTour> | null
   const prof = stato?.prof ?? 0
@@ -132,7 +136,7 @@ export function TourPage() {
     const lista = passiDaMostrare(passi, [])
     setElenco(lista)
     // al posto del benvenuto mai mostrato: indietro dal primo passo esce dal tour
-    mostra(lista.length > 0 ? { tipo: 'passo', indice: 0 } : { tipo: 'fine' }, true)
+    mostra(lista.length > 0 ? { tipo: 'passo', indice: 0 } : finale(), true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ripresa, pronto])
 
@@ -157,14 +161,27 @@ export function TourPage() {
   }
 
   function dopoIl(indice: number): Schermata {
-    return indice + 1 < elenco.length ? { tipo: 'passo', indice: indice + 1 } : { tipo: 'fine' }
+    return indice + 1 < elenco.length ? { tipo: 'passo', indice: indice + 1 } : finale()
+  }
+
+  function finale(): Schermata {
+    return chiediPromo(account) ? { tipo: 'promo' } : { tipo: 'fine' }
+  }
+
+  function rispostaPromo(attivo: boolean) {
+    vai({ tipo: 'fine' })
+    if (!account) return
+    void import('../data/firebase/client')
+      .then((mod) => mod.callImpostaEmailPromo(attivo, 'tour'))
+      .then(() => session.replaceAccount({ ...account, emailPromo: { attivo, at: new Date().toISOString(), fonte: 'tour' } }))
+      .catch(() => undefined)
   }
 
   function inizia() {
     if (!pronto) return
     const lista = passiDaMostrare(passi, attuali().tourBenvenuto?.saltati ?? [])
     setElenco(lista)
-    vai(lista.length > 0 ? { tipo: 'passo', indice: 0 } : { tipo: 'fine' })
+    vai(lista.length > 0 ? { tipo: 'passo', indice: 0 } : finale())
   }
 
   function dopo() {
@@ -222,6 +239,7 @@ export function TourPage() {
       )
     }
     // la verifica email non è un passo del tour: non entra nel conto finale
+    if (schermata.tipo === 'promo') return <PassoPromo onRisposta={rispostaPromo} onSalta={() => vai({ tipo: 'fine' })} />
     if (schermata.tipo === 'fine') return <TourFine passi={passi.filter((passo) => passo.id !== 'email')} onEntra={esci} />
     const { indice } = schermata
     const id = elenco[indice]

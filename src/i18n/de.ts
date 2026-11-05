@@ -2127,4 +2127,10 @@ export const de = {
   riaccAccetto: 'Ich akzeptiere',
   riaccEsci: 'Abmelden',
   riaccErrore: 'Das Speichern ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
+  tourPromoTitolo: 'Möchten Sie unsere Neuigkeiten erhalten?',
+  tourPromoSotto: 'Ab und zu schreiben wir Ihnen per E-Mail zu Angeboten und Neuigkeiten von Groomly. Sie können sich jederzeit abmelden.',
+  tourPromoSi: 'Ja',
+  tourPromoNo: 'Nein, danke',
+  accEmailPromo: 'E-Mails mit Angeboten und Neuigkeiten',
+  accEmailPromoDettaglio: 'Service-E-Mails kommen trotzdem an',
 } as const satisfies Record<keyof typeof italiano, string>

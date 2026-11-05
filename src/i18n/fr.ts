@@ -2127,4 +2127,10 @@ export const fr = {
   riaccAccetto: 'J\'accepte',
   riaccEsci: 'Se déconnecter',
   riaccErrore: 'L\'enregistrement a échoué. Réessayez.',
+  tourPromoTitolo: 'Voulez-vous recevoir nos nouveautés ?',
+  tourPromoSotto: 'De temps en temps, nous vous écrivons par e-mail avec les promotions et nouveautés de Groomly. Vous pouvez vous désabonner à tout moment.',
+  tourPromoSi: 'Oui',
+  tourPromoNo: 'Non, merci',
+  accEmailPromo: 'E-mails de promotions et nouveautés',
+  accEmailPromoDettaglio: 'Les e-mails de service arrivent quand même',
 } as const satisfies Record<keyof typeof italiano, string>

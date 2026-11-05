@@ -2125,4 +2125,10 @@ export const it = {
   riaccAccetto: 'Accetto',
   riaccEsci: 'Esci',
   riaccErrore: 'Non è stato possibile salvare. Riprova.',
+  tourPromoTitolo: 'Vuoi ricevere le nostre novità?',
+  tourPromoSotto: 'Ogni tanto ti scriviamo per email con promozioni e novità di Groomly. Puoi disiscriverti quando vuoi.',
+  tourPromoSi: 'Sì',
+  tourPromoNo: 'No, grazie',
+  accEmailPromo: 'Email con promozioni e novità',
+  accEmailPromoDettaglio: 'Le email di servizio arrivano comunque',
 } as const

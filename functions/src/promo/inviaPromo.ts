@@ -1,15 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import type { Lingua } from '../../../src/i18n/lingua'
+import { fraseDisiscriviti } from '../../../src/i18n/emailHtml'
 import { postBrevoHtml } from '../brevoMail'
 import type { ArchivioPromo } from './consensoPromo'
-
-const DISISCRIVITI: Record<Lingua, string> = {
-  it: 'Disiscriviti',
-  en: 'Unsubscribe',
-  es: 'Darse de baja',
-  fr: 'Se désabonner',
-  de: 'Abmelden',
-}
 
 type Posta = (to: string, oggetto: string, html: string, headers: Record<string, string>) => Promise<void>
 
@@ -27,7 +19,7 @@ export async function inviaPromo(
   const lingua = account.lingua ?? 'it'
   const query = new URLSearchParams({ mode: 'promo', uid: input.uid, token, lang: lingua })
   const link = `https://groomlyapp.it/azione?${query.toString()}`
-  const piede = `<p style="margin:12px 0 0;font-size:13px;line-height:1.5"><a href="${link.replaceAll('&', '&amp;')}" style="color:#6B7A8C">${DISISCRIVITI[lingua]}</a></p>`
+  const piede = `<p style="margin:12px 0 0;font-size:13px;line-height:1.5"><a href="${link.replaceAll('&', '&amp;')}" style="color:#6B7A8C">${fraseDisiscriviti(lingua)}</a></p>`
   await posta(account.email, input.oggetto, `${input.html}${piede}`, { 'List-Unsubscribe': `<${link}>` })
   return 'inviata'
 }

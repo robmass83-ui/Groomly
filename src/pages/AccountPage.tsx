@@ -1,3 +1,4 @@
+import { EmailPromoRiga } from '../components/legale/EmailPromoRiga'
 import { ChevronRight, Info, Pencil, Scale } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -477,6 +478,7 @@ export function AccountPage() {
                 </span>
                 <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} disabled={collaboratore} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
               </Row>
+              <EmailPromoRiga />
             </Card>
             {collaboratore ? null : (
               <>
