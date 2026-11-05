@@ -28,14 +28,15 @@ describe('AdminLayout', () => {
 
   it('su PC il menu laterale ha nove voci, Metriche compresa', () => {
     const menu = apri(true)
-    expect(nomi(menu)).toEqual(['Panoramica', 'Saloni', 'Assistenza', 'Beta', 'Comunicazioni', 'Piani', 'Metriche', 'Registro', 'Sistema'])
+    expect(nomi(menu)).toEqual(['Oggi', 'Saloni', 'Assistenza', 'Beta', 'Comunicazioni', 'Piani', 'Metriche', 'Registro', 'Sistema'])
     expect(within(menu).getByRole('link', { name: /Registro/ })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('sul telefono la barra ha cinque voci e Altro resta acceso sulle pagine sue', () => {
+  it('sul telefono la barra ha quattro voci, il tasto + e Altro resta acceso sulle pagine sue', () => {
     const menu = apri(false)
-    expect(nomi(menu)).toEqual(['Panoramica', 'Saloni', 'Assistenza', 'Beta', 'Altro'])
-    expect(within(menu).getByRole('link', { name: 'Altro' }).style.color).toBe('var(--pri)')
+    expect(nomi(menu)).toEqual(['Oggi', 'Saloni', 'Assistenza', 'Altro'])
+    expect(within(menu).getByRole('button', { name: 'Nuova azione' })).toBeInTheDocument()
+    expect(within(menu).getByRole('link', { name: /Altro/ }).style.color).toBe('var(--pri)')
   })
 
   it('i numerini dicono quante cose nuove ci sono', () => {
@@ -44,9 +45,10 @@ describe('AdminLayout', () => {
     expect(within(menu).getByLabelText('2 nuovi')).toBeInTheDocument()
   })
 
-  it('c’è la barra Groomly Admin con Esci', () => {
+  it('c’è la barra col logo, la ricerca ed Esci', () => {
     apri(false)
-    expect(screen.getByText('Groomly Admin')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Groomly Admin' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Cerca' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Esci' })).toBeInTheDocument()
   })
 })

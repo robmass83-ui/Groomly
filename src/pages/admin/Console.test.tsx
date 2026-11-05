@@ -105,7 +105,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   it('mostra l’Admin Manager all’admin senza il campione delle email', async () => {
     await accountAdmin()
     render(<App memory isDev={false} initialPath="/admin" />)
-    expect(await screen.findByRole('heading', { name: 'Panoramica' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Spedisci il campione delle email' })).not.toBeInTheDocument()
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
   })
@@ -116,7 +116,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: 'Panoramica' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
     await user.click(screen.getByRole('link', { name: /Saloni/ }))
     expect(await screen.findByText('Elenco non disponibile')).toBeInTheDocument()
     expect(screen.queryByText('Connessione assente')).not.toBeInTheDocument()
