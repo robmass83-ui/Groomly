@@ -11,6 +11,7 @@ const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 const ADESSO = new Date('2026-11-04T10:00:00.000Z')
 const FUTURO = '2026-12-04T10:00:00.000Z'
 const giorniFa = (n: number) => new Date(ADESSO.getTime() - n * 86_400_000).toISOString()
+const nessuno = async () => new Map()
 
 describe('contatoriAdminPer', () => {
   beforeEach(() => {
@@ -40,25 +41,25 @@ describe('contatoriAdminPer', () => {
 
   it('dice quante email sono partite oggi e quali saloni sono nuovi', async () => {
     archivio.set('sistema/postaGiorno', { giorno: '2026-11-04', n: 120 })
-    archivio.set('accounts/a', { salonId: 'a', role: 'titolare', createdAt: giorniFa(2) })
-    archivio.set('accounts/b', { salonId: 'b', role: 'titolare', createdAt: giorniFa(30) })
-    archivio.set('accounts/a2', { salonId: 'b', role: 'collaboratore', createdAt: giorniFa(1) })
-    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, ultimiAccessi: async () => new Map() })
+    archivio.set('accounts/a2', { salonId: 'b', role: 'collaboratore' })
+    const creati = new Map([['a', giorniFa(2)], ['b', giorniFa(30)], ['a2', giorniFa(1)]])
+    const infoPersone = async (uids: string[]) => new Map(uids.map((uid) => [uid, { ultimo: null, creato: creati.get(uid) ?? null }]))
+    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, infoPersone })
     expect(esito.emailOggi).toBe(120)
     expect(esito.nuoviSaloni).toEqual(['a'])
   })
 
   it('conta i feedback rimasti di saloni che non ci sono più', async () => {
     archivio.set('betaFeedback/vecchio', { salonId: 'sparito', pagheresti: 'si' })
-    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, ultimiAccessi: async () => new Map() })
+    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, infoPersone: nessuno })
     expect(esito.feedbackOrfani).toBe(1)
   })
 
   it('conta saloni, piani, fonti, attività, inviti, Avvisami e feedback, senza shared', async () => {
     const accessi = new Map<string, string | null>([['a', giorniFa(20)], ['a2', giorniFa(1)], ['b', giorniFa(10)], ['c', null], ['laura', giorniFa(0)]])
-    const ultimiAccessi = vi.fn(async (uids: string[]) => new Map(uids.map((uid) => [uid, accessi.get(uid) ?? null])))
-    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, ultimiAccessi })
-    expect(ultimiAccessi.mock.calls[0][0]).not.toContain('laura')
+    const infoPersone = vi.fn(async (uids: string[]) => new Map(uids.map((uid) => [uid, { ultimo: accessi.get(uid) ?? null, creato: null }])))
+    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, infoPersone })
+    expect(infoPersone.mock.calls[0][0]).not.toContain('laura')
     expect(esito).toEqual({
       saloni: { totali: 4, attivi7: 1, attivi30: 2 },
       perPiano: { base: 2, pro: 1, salone: 0, vip: 1 },
@@ -76,7 +77,7 @@ describe('contatoriAdminPer', () => {
   })
 
   it('solo operatori', async () => {
-    await expect(contatoriAdminPer({ token: { operatorEmail: 'x@y.it' }, ultimiAccessi: async () => new Map() }))
+    await expect(contatoriAdminPer({ token: { operatorEmail: 'x@y.it' }, infoPersone: nessuno }))
       .rejects.toThrow('Accesso negato')
   })
 })

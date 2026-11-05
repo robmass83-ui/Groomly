@@ -6,7 +6,7 @@ import { FONTI_PIANO, statoPiano, type FontePiano } from '../../../src/lib/piano
 import { emailOggi } from '../postaGiorno'
 import { GIORNO_MS, betaInCorso, proMainDi, richiediOperatore, salonIdValido, type TokenOperatore } from './comune'
 
-export type UltimiAccessi = (uids: string[]) => Promise<Map<string, string | null>>
+export type InfoPersone = (uids: string[]) => Promise<Map<string, { ultimo: string | null; creato: string | null }>>
 
 export type ContatoriAdmin = {
   saloni: { totali: number; attivi7: number; attivi30: number }
@@ -34,21 +34,25 @@ function piuRecente(a: string | null, b: string | null): string | null {
 }
 
 /** I numeri della Panoramica dell'Admin Manager, in una sola chiamata. */
-export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?: Date; ultimiAccessi: UltimiAccessi }): Promise<ContatoriAdmin> {
+export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?: Date; infoPersone: InfoPersone }): Promise<ContatoriAdmin> {
   richiediOperatore(input.token)
   const adesso = input.adesso ?? new Date()
   const db = getFirestore()
 
   const persone = new Map<string, string[]>()
-  const nuoviSaloni: string[] = []
+  const titolari: Array<[salonId: string, uid: string]> = []
   for (const doc of (await db.collection('accounts').get()).docs) {
-    const { salonId, role, createdAt } = doc.data() ?? {}
+    const { salonId, role } = doc.data() ?? {}
     if (!salonIdValido(salonId)) continue
     persone.set(salonId, [...(persone.get(salonId) ?? []), doc.id])
-    if (role === 'titolare' && adesso.getTime() - Date.parse(createdAt) < 7 * GIORNO_MS) nuoviSaloni.push(salonId)
+    if (role === 'titolare') titolari.push([salonId, doc.id])
   }
   const saloni = [...persone.keys()]
-  const accessi = await input.ultimiAccessi([...persone.values()].flat())
+  const info = await input.infoPersone([...persone.values()].flat())
+  // La data di registrazione sta in Auth: su `accounts` non è scritta.
+  const nuoviSaloni = titolari
+    .filter(([, uid]) => adesso.getTime() - Date.parse(info.get(uid)?.creato ?? '') < 7 * GIORNO_MS)
+    .map(([salonId]) => salonId)
 
   const perPiano = zeri<LivelloElenco>(['base', 'pro', 'salone', 'vip'])
   const perFonte = zeri<FontePiano | 'nessuna'>([...FONTI_PIANO, 'nessuna'])
@@ -62,7 +66,7 @@ export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?:
     perPiano[livelloElenco(doc, adesso)] += 1
     const stato = statoPiano(doc, adesso)
     perFonte[stato.livello !== 'base' && stato.fonte ? stato.fonte : 'nessuna'] += 1
-    const ultimo = (persone.get(salonId) ?? []).reduce<string | null>((acc, uid) => piuRecente(acc, accessi.get(uid) ?? null), null)
+    const ultimo = (persone.get(salonId) ?? []).reduce<string | null>((acc, uid) => piuRecente(acc, info.get(uid)?.ultimo ?? null), null)
     ultimoAccesso[salonId] = ultimo
     const fa = ultimo ? adesso.getTime() - Date.parse(ultimo) : Infinity
     if (fa <= 7 * GIORNO_MS) attivi7 += 1

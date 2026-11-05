@@ -1151,32 +1151,22 @@ export const segnaAvvisoBeta = onCall(pianoCall, async (request) => {
   return segnaAvvisoBetaPer(requireUid(request.auth))
 })
 
-// Ultimo uso dell'app per ogni persona: il rinnovo del token, se manca l'ultimo accesso.
-async function ultimiAccessiAuth(uids: string[]): Promise<Map<string, string | null>> {
-  const out = new Map<string, string | null>()
-  for (let i = 0; i < uids.length; i += 100) {
-    const { users } = await getAuth().getUsers(uids.slice(i, i + 100).map((uid) => ({ uid })))
-    for (const user of users) {
-      const quando = user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime ?? null
-      out.set(user.uid, quando ? new Date(quando).toISOString() : null)
-    }
-  }
-  return out
-}
-
 export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
   requireUid(request.auth)
-  return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
+  return contatoriAdminPer({ token: tokenOperatore(request.auth), infoPersone: infoPersoneAuth })
 })
 
+const dataIso = (quando: string | null | undefined) => (quando ? new Date(quando).toISOString() : null)
+
+// Ultimo uso dell'app per ogni persona: il rinnovo del token, se manca l'ultimo accesso.
 async function infoPersoneAuth(uids: string[]): Promise<Map<string, { ultimo: string | null; creato: string | null; admin: boolean }>> {
   const out = new Map<string, { ultimo: string | null; creato: string | null; admin: boolean }>()
   for (let i = 0; i < uids.length; i += 100) {
     const { users } = await getAuth().getUsers(uids.slice(i, i + 100).map((uid) => ({ uid })))
     for (const user of users) {
       out.set(user.uid, {
-        ultimo: user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime ?? null,
-        creato: user.metadata.creationTime ?? null,
+        ultimo: dataIso(user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime),
+        creato: dataIso(user.metadata.creationTime),
         admin: user.customClaims?.admin === true,
       })
     }
