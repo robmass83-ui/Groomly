@@ -275,7 +275,7 @@ describe('raccogliBackup', () => {
     expect(result.json).not.toContain('"dati"')
     expect(result.json).not.toContain('thumb')
     expect(Object.keys(JSON.parse(result.json) as object)).toEqual([
-      'versioneFormato', 'dogs', 'appointments', 'services', 'settings', 'closures',
+      'versioneFormato', 'dogs', 'appointments', 'services', 'settings', 'closures', 'prodotti',
       'files', 'deletedDogs', 'codiciCane', 'fotoMancanti',
     ])
     expect(result.checksum).toBe(await sha256Hex(result.json))

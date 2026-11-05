@@ -5,7 +5,7 @@ import { Package } from 'lucide-react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
-import { vociVisibili, type VoceAltro } from '../lib/vociAltro'
+import { VOCI_ALTRO, vociVisibili, type VoceAltro } from '../lib/vociAltro'
 
 const voce: VoceAltro = { to: '/altro/prova', titolo: 'navAltro', dettaglio: 'altroProponiDettaglio', icona: Package }
 
@@ -30,6 +30,10 @@ describe('pagina Altro', () => {
     render(<App memory isDev={false} initialPath="/altro" />)
     await user.click(await screen.findByRole('link', { name: /Manca qualcosa\? Proponilo/ }))
     expect(await screen.findByRole('link', { name: 'Indietro' })).toHaveAttribute('href', '/altro')
+  })
+
+  it('il Magazzino è la prima voce, anche per il collaboratore', () => {
+    expect(vociVisibili(VOCI_ALTRO, 'collaboratore').map((item) => item.to)).toEqual(['/altro/magazzino'])
   })
 
   it('una voce riservata resta fuori per il ruolo escluso', () => {

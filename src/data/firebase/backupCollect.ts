@@ -22,6 +22,8 @@ import { nomeSicuro } from '../../lib/nomeSicuro'
 import { readTombstone } from '../../lib/tombstone'
 import type { Appointment, Dog } from '../../types/models'
 import { closuresToLocalMap } from '../local/closures'
+import { prodottiToLocalMap } from '../local/prodotti'
+import { prodottoDaDoc } from '../../lib/prodotti'
 import { leggiMioAccount, readSalonCollection, readSalonDoc, transactionSalon } from './client'
 import { senzaToken, type AltriDati } from '../../lib/altriDati'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap } from './localSeed'
@@ -311,11 +313,12 @@ export async function raccogliBackup(
   const salonId = currentSalonId() ?? ''
   const includiByte = opzioni.includiByte !== false
 
-  const [dogDocs, appointmentDocs, serviceDocs, closureDocs, fileDocs, settingsDoc, tombstoneDoc, codiciDoc] = await dalFirestore(() => Promise.all([
+  const [dogDocs, appointmentDocs, serviceDocs, closureDocs, prodottoDocs, fileDocs, settingsDoc, tombstoneDoc, codiciDoc] = await dalFirestore(() => Promise.all([
     readSalonCollection('dogs'),
     readSalonCollection('appointments'),
     readSalonCollection('services'),
     readSalonCollection('closures'),
+    readSalonCollection('prodotti'),
     readSalonCollection('files'),
     readSalonDoc('settings', 'main'),
     readSalonDoc('meta', 'deleted-dogs'),
@@ -405,6 +408,10 @@ export async function raccogliBackup(
     services: servicesToLocalMap(serviceDocs.map((item) => serviceFromDoc(item.id, item.data))),
     settings: settingsSenzaBackup(settingsStored),
     closures: closuresToLocalMap(closures),
+    prodotti: prodottiToLocalMap(prodottoDocs.flatMap((item) => {
+      const parsed = prodottoDaDoc(item.id, item.data)
+      return parsed ? [parsed] : []
+    })),
     files,
     deletedDogs: {
       ids: [...new Set(stone.ids)].sort(cmp),

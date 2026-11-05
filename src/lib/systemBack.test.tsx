@@ -30,6 +30,13 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/altro', false, false)).toBe('exit')
   })
 
+  it('dal Magazzino senza storia risale ad Altro, dalla scheda all’elenco', () => {
+    expect(systemBackChoice('/altro/magazzino', false, false)).toBe('paginaAltro')
+    expect(systemBackChoice('/altro/magazzino/nuovo', false, false)).toBe('magazzino')
+    expect(systemBackChoice('/altro/magazzino/p1', false, false)).toBe('magazzino')
+    expect(systemBackChoice('/altro/magazzino/p1', false, true)).toBe('history')
+  })
+
   it('con un foglio aperto lo chiude prima di lasciare la scheda', () => {
     expect(systemBackChoice('/animali/kratos', true, false)).toBe('dismiss')
     expect(systemBackChoice('/calendario', true, true)).toBe('dismiss')

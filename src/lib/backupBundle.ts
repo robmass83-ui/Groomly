@@ -82,6 +82,8 @@ export type GroomlyDati = {
   services: Record<string, unknown>
   settings: Record<string, unknown>
   closures: Record<string, unknown>
+  // Manca nei backup fatti prima del Magazzino: senza la chiave il loro checksum resta valido.
+  prodotti?: Record<string, unknown>
   files: Record<string, BackupFileMeta>
   deletedDogs: { ids: string[]; appointmentIds: string[]; storicoIds: string[] }
   codiciCane: CodiciCaneDoc
@@ -130,6 +132,7 @@ export function canonicalJson(dati: GroomlyDati): string {
     services: sortKeys(dati.services),
     settings: sortKeys(dati.settings),
     closures: sortKeys(dati.closures),
+    prodotti: sortKeys(dati.prodotti),
     files: sortKeys(dati.files),
     deletedDogs: sortKeys(dati.deletedDogs),
     codiciCane: sortKeys(dati.codiciCane),

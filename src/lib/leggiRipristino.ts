@@ -146,6 +146,7 @@ function bundleDati(value: Record<string, unknown>, codici: CodiciCaneDoc): { bu
       services: value.services,
       settings: value.settings,
       closures: value.closures,
+      ...(isRecord(value.prodotti) ? { prodotti: value.prodotti } : {}),
     },
     codici,
   }

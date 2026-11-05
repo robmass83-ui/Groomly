@@ -43,6 +43,14 @@ export function SystemBack() {
         navigate('/incassi', { replace: true })
         return
       }
+      if (choice === 'paginaAltro') {
+        navigate('/altro', { replace: true })
+        return
+      }
+      if (choice === 'magazzino') {
+        navigate('/altro/magazzino', { replace: true })
+        return
+      }
       if (choice === 'home') {
         navigate('/', { replace: true })
         return

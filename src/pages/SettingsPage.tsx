@@ -416,6 +416,7 @@ export function SettingsPage() {
         appointments: unisciRegistri(attuale.appointments, bundle.appointments),
         services: unisciRegistri(attuale.services, bundle.services),
         closures: unisciRegistri(attuale.closures, bundle.closures),
+        prodotti: unisciRegistri(attuale.prodotti, bundle.prodotti),
       }
     }
     if (firebaseEnabled() && !readsLocal()) {

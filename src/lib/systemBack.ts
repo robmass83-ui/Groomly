@@ -1,5 +1,5 @@
 import { frase } from '../i18n/frase'
-export type SystemBackChoice = 'dismiss' | 'account' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'home' | 'history' | 'exit'
+export type SystemBackChoice = 'dismiss' | 'account' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'paginaAltro' | 'magazzino' | 'home' | 'history' | 'exit'
 
 const LISTINO_SHEET_PATHS = ['/listino/prezzi', '/listino/gestione', '/listino/stampa']
 
@@ -19,6 +19,8 @@ export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBa
   if (pathname === '/impostazioni/legale' || pathname === '/impostazioni/info') return 'account'
   if (pathname.startsWith('/impostazioni/')) return 'impostazioni'
   if (pathname.startsWith('/incassi/')) return 'incassi'
+  if (pathname.startsWith('/altro/magazzino/')) return 'magazzino'
+  if (pathname.startsWith('/altro/')) return 'paginaAltro'
   return 'exit'
 }
 

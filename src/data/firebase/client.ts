@@ -26,6 +26,7 @@ import { getAccount, type LocalAccount } from '../local/auth'
 import { forgetLocalAppointments, listAppointments } from '../local/appointments'
 import { avvisoDaDoc, iscrittoDaDoc, ordinaAttesa, ordinaAvvisi, type AvvisoAttesa, type IscrittoAttesaDoc } from '../local/attesa'
 import { closuresToLocalMap, listClosures } from '../local/closures'
+import { listProdotti, prodottiToLocalMap } from '../local/prodotti'
 import { listDogs, forgetLocalDog } from '../local/dogs'
 import { listServices } from '../local/services'
 import { getSettings, blankSettings, type PriceFile, type SettingsMain } from '../local/settings'
@@ -60,6 +61,7 @@ import { isFileRef } from '../../lib/fileBytes'
 import { verifyPassword } from '../../lib/password'
 import { readPushPrefs, type PushPrefs } from '../../lib/pushDue'
 import { closureRangeOk, closureReasonOk, type Closure } from '../../lib/closures'
+import { ordinaProdotti, prodottoDaDoc, prodottoValido, type Prodotto } from '../../lib/prodotti'
 import { appointmentKind } from '../../lib/personal'
 import { bucoDaSpostamento, bucoLasciato, inizioDaDoc } from '../../lib/listaAttesa'
 import {
@@ -1825,6 +1827,45 @@ export async function listenClosures(uid: string, onData: (closures: Closure[], 
   })
 }
 
+export async function saveProdotto(_uid: string, prodotto: Prodotto): Promise<void> {
+  if (!prodottoValido(prodotto)) return
+  await putDoc(salonDocPath('prodotti', prodotto.id), {
+    nome: prodotto.nome,
+    categoria: prodotto.categoria,
+    quantita: prodotto.quantita,
+    unita: prodotto.unita,
+    ditta: prodotto.ditta,
+    codice: prodotto.codice,
+    createdAt: prodotto.createdAt.getTime(),
+    updatedAt: prodotto.updatedAt.getTime(),
+  })
+}
+
+export async function removeProdotto(_uid: string, id: string): Promise<void> {
+  const { deleteDoc, doc } = await loadFirestore()
+  await deleteDoc(doc(await database(), ...salonPath('prodotti', id)))
+}
+
+function prodottiDaSnap(docs: { id: string; data(): unknown }[]): Prodotto[] {
+  return docs.flatMap((item) => {
+    const parsed = prodottoDaDoc(item.id, item.data() as Record<string, unknown>)
+    return parsed ? [parsed] : []
+  })
+}
+
+export async function listenProdotti(uid: string, onData: (prodotti: Prodotto[], fromCache?: boolean) => void): Promise<() => void> {
+  const db = await database()
+  void ensureShared(uid, docText(accountDoc?.uid === uid ? accountDoc.data : null, 'email') || null).catch(() => notifySaveFailed())
+  const { collection, onSnapshot } = await loadFirestore()
+  return onSnapshot(collection(db, ...salonPath('prodotti')), (snap) => {
+    const cached = fromCacheOf(snap)
+    if (snap.empty && cached) return
+    onData(ordinaProdotti(prodottiDaSnap(snap.docs)), cached)
+  }, () => {
+    notifySaveFailed()
+  })
+}
+
 /** Scrive un iscritto della lista d'attesa. Con merge: i campi che questa versione non conosce restano. */
 export async function saveAttesa(_uid: string, item: IscrittoAttesaDoc): Promise<void> {
   if (!item.id || item.id.includes('/') || item.nomeCane.trim() === '') return
@@ -2926,6 +2967,9 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle, onAvan
   const closures = accepted.closures === undefined
     ? null
     : withLocalKey(storageKeys.closures(uid), accepted.closures, () => listClosures(uid))
+  const prodotti = accepted.prodotti === undefined
+    ? null
+    : withLocalKey(storageKeys.prodotti(uid), accepted.prodotti, () => listProdotti(uid))
   cloudReplaceDepth += 1
   const totale = dogs.length + appointments.length
   let fatti = 0
@@ -2943,10 +2987,12 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle, onAvan
     await saveServices(uid, services)
     await saveSettings(uid, settings, true, true)
     if (closures) await Promise.all(closures.map((item) => saveClosure(uid, item)))
+    if (prodotti) await Promise.all(prodotti.map((item) => saveProdotto(uid, item)))
     await deleteMissing(uid, 'dogs', new Set(dogs.map((dog) => dog.id)))
     await deleteMissing(uid, 'appointments', new Set(appointments.map((item) => item.id)))
     await deleteMissing(uid, 'services', new Set(services.map((service) => service.id)))
     if (closures) await deleteMissing(uid, 'closures', new Set(closures.map((item) => item.id)))
+    if (prodotti) await deleteMissing(uid, 'prodotti', new Set(prodotti.map((item) => item.id)))
   } finally {
     lettureRipristino = null
     eliminazioniRipristino = null
@@ -2957,12 +3003,13 @@ export async function replaceCloudData(uid: string, bundle: BackupBundle, onAvan
 export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
   const { collection, doc, getDoc, getDocs } = await loadFirestore()
   const db = await database()
-  const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap, closuresSnap] = await Promise.all([
+  const [dogsSnap, appointmentsSnap, servicesSnap, settingsSnap, closuresSnap, prodottiSnap] = await Promise.all([
     getDocs(collection(db, ...salonPath('dogs'))),
     getDocs(collection(db, ...salonPath('appointments'))),
     getDocs(collection(db, ...salonPath('services'))),
     getDoc(doc(db, ...salonPath('settings', 'main'))),
     getDocs(collection(db, ...salonPath('closures'))),
+    getDocs(collection(db, ...salonPath('prodotti'))),
   ])
   const settings = settingsSnap.exists()
     ? settingsToDoc(settingsFromDoc(settingsSnap.data() as Record<string, unknown>))
@@ -2976,6 +3023,7 @@ export async function loadCloudBackup(_uid: string): Promise<BackupBundle> {
       const parsed = closureFromDoc(item.id, item.data() as Record<string, unknown>)
       return parsed ? [parsed] : []
     })),
+    prodotti: prodottiToLocalMap(prodottiDaSnap(prodottiSnap.docs)),
   }
 }
 

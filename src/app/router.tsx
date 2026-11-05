@@ -36,7 +36,9 @@ import { HomePage } from '../pages/HomePage'
 import { AvvisiSistemaPage } from '../pages/AvvisiSistemaPage'
 import { InvitePage } from '../pages/InvitePage'
 import { LoginPage } from '../pages/LoginPage'
+import { MagazzinoPage } from '../pages/MagazzinoPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
+import { ProdottoPage } from '../pages/ProdottoPage'
 import { ListinoPage } from '../pages/ListinoPage'
 import { PriceSheetExportPage } from '../pages/PriceSheetExportPage'
 import { PriceSheetManagePage } from '../pages/PriceSheetManagePage'
@@ -200,6 +202,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/listino/gestione', element: <Guard><StaffSettings><PriceSheetManagePage /></StaffSettings></Guard> },
     { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
     { path: '/altro', element: <Guard><AltroPage /></Guard> },
+    { path: '/altro/magazzino', element: <Guard><MagazzinoPage /></Guard> },
+    { path: '/altro/magazzino/nuovo', element: <Guard><ProdottoPage /></Guard> },
+    { path: '/altro/magazzino/:id', element: <Guard><ProdottoPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/account', element: <Guard><AccountPage /></Guard> },
     { path: '/impostazioni/suggerimenti', element: <Guard><SuggerimentiPage /></Guard> },

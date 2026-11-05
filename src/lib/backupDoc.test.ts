@@ -48,6 +48,7 @@ describe('backupDoc', () => {
       services: {},
       settings: {},
       closures: {},
+      prodotti: {},
       attesa: {},
     })
   })
@@ -92,6 +93,7 @@ describe('backupDoc', () => {
       services: {},
       settings: {},
       closures: {},
+      prodotti: {},
       attesa: {},
     })
   })

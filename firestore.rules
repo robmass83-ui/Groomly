@@ -191,6 +191,16 @@ service cloud.firestore {
             && dogIntact());
       allow delete: if ownerRank(salonId);
     }
+    match /salons/{salonId}/prodotti/{prodottoId} {
+      function prodottoOk() {
+        return request.resource.data.nome is string
+          && request.resource.data.nome.size() > 0
+          && request.resource.data.nome.size() <= 120;
+      }
+      allow read: if canUse(salonId);
+      allow create, update: if canUse(salonId) && prodottoOk();
+      allow delete: if ownerRank(salonId);
+    }
     match /salons/{salonId}/appointments/{appointmentId} {
       allow read: if canUse(salonId);
       allow create: if canUse(salonId);
