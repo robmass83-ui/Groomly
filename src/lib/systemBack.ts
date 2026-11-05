@@ -1,5 +1,5 @@
 import { frase } from '../i18n/frase'
-export type SystemBackChoice = 'dismiss' | 'account' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'history' | 'exit'
+export type SystemBackChoice = 'dismiss' | 'account' | 'dog' | 'listino' | 'impostazioni' | 'incassi' | 'paginaAltro' | 'magazzino' | 'home' | 'history' | 'exit'
 
 const LISTINO_SHEET_PATHS = ['/listino/prezzi', '/listino/gestione', '/listino/stampa']
 
@@ -14,9 +14,13 @@ export function systemBackChoice(pathname: string, overlayOpen: boolean, canGoBa
   if (LISTINO_SHEET_PATHS.includes(pathname)) return 'listino'
   if (isDogScreen(pathname)) return 'dog'
   if (canGoBack) return 'history'
+  // Non è una scheda della barra: aperta da un link, si torna alla Home.
+  if (pathname === '/impostazioni') return 'home'
   if (pathname === '/impostazioni/legale' || pathname === '/impostazioni/info') return 'account'
   if (pathname.startsWith('/impostazioni/')) return 'impostazioni'
   if (pathname.startsWith('/incassi/')) return 'incassi'
+  if (pathname.startsWith('/altro/magazzino/')) return 'magazzino'
+  if (pathname.startsWith('/altro/')) return 'paginaAltro'
   return 'exit'
 }
 

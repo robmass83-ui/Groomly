@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, within } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { LinguaProvider } from '../../i18n/LinguaContext'
@@ -11,13 +11,13 @@ describe('barra in basso', () => {
   it('ha sei voci uguali, Agenda sulla rotta del calendario e il + sopra la barra', () => {
     render(<MemoryRouter initialEntries={['/animali/tata']}><BottomNav /></MemoryRouter>)
     const links = screen.getAllByRole('link')
-    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Agenda', 'Mensili', 'Listino', 'Impostazioni'])
+    expect(links.map((link) => link.textContent)).toEqual(['Home', 'Animali', 'Agenda', 'Mensili', 'Listino', 'Altro'])
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/')
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('href', '/animali')
     expect(screen.getByRole('link', { name: 'Agenda' })).toHaveAttribute('href', '/calendario')
     expect(screen.getByRole('link', { name: 'Mensili' })).toHaveAttribute('href', '/mensili')
     expect(screen.getByRole('link', { name: 'Listino' })).toHaveAttribute('href', '/listino')
-    expect(screen.getByRole('link', { name: 'Impostazioni' })).toHaveAttribute('href', '/impostazioni')
+    expect(screen.getByRole('link', { name: 'Altro' })).toHaveAttribute('href', '/altro')
     expect(screen.queryByTestId('bell-count')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Animali' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('link', { name: 'Home' })).not.toHaveAttribute('aria-current')
@@ -37,8 +37,11 @@ describe('barra in basso', () => {
     render(<MemoryRouter initialEntries={['/listino/vedi']}><BottomNav /></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Listino' })).toHaveAttribute('aria-current', 'page')
     cleanup()
+    render(<MemoryRouter initialEntries={['/altro']}><BottomNav /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: 'Altro' })).toHaveAttribute('aria-current', 'page')
+    cleanup()
     render(<MemoryRouter initialEntries={['/impostazioni/servizi']}><BottomNav /></MemoryRouter>)
-    expect(screen.getByRole('link', { name: 'Impostazioni' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getAllByRole('link').filter((link) => link.hasAttribute('aria-current'))).toEqual([])
     cleanup()
     render(<MemoryRouter initialEntries={['/']}><BottomNav menuOpen /></MemoryRouter>)
     expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page')
@@ -51,32 +54,18 @@ describe('barra in basso', () => {
     expect(screen.getByTestId('bell-count')).toHaveTextContent('2')
   })
 
-  it('il bollino fiscale sta solo dentro Altro e solo con tax', () => {
-    render(<MemoryRouter initialEntries={['/']}><BottomNav /></MemoryRouter>)
-    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
-    cleanup()
-    render(<MemoryRouter initialEntries={['/']}><BottomNav tax /></MemoryRouter>)
-    const dot = screen.getByTestId('tax-dot')
-    expect(dot.className).toContain('bottom-nav__dot')
-    expect(within(screen.getByRole('link', { name: 'Impostazioni, dati da completare' })).getByTestId('tax-dot')).toBe(dot)
-    expect(within(screen.getByRole('link', { name: 'Home' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
-    expect(within(screen.getByRole('link', { name: 'Mensili' })).queryByTestId('tax-dot')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('bell-count')).not.toBeInTheDocument()
-  })
-
   it('in inglese non mostra le scritte italiane della barra', () => {
     localStorage.setItem('groomly.lingua', 'en')
     try {
     render(
       <LinguaProvider>
         <MemoryRouter initialEntries={['/']}>
-          <BottomNav alerts={2} tax />
+          <BottomNav alerts={2} />
         </MemoryRouter>
       </LinguaProvider>,
     )
-    expect(screen.getAllByText(/^(Home|Pets|Diary|Monthly|Price list|Settings)$/).map((el) => el.textContent)).toEqual(['Home', 'Pets', 'Diary', 'Monthly', 'Price list', 'Settings'])
+    expect(screen.getAllByText(/^(Home|Pets|Diary|Monthly|Price list|More)$/).map((el) => el.textContent)).toEqual(['Home', 'Pets', 'Diary', 'Monthly', 'Price list', 'More'])
     expect(screen.getByRole('link', { name: 'Monthly, 2 to book' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Settings, details to complete' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument()
     expect(screen.queryByText('Animali')).not.toBeInTheDocument()

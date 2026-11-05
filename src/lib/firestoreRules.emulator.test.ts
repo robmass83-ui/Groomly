@@ -171,6 +171,16 @@ describe('regole Firestore sull’emulatore', () => {
     await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), dogToDoc(modificato)))
   })
 
+  it('il collaboratore aggiunge e modifica un prodotto ma non lo elimina', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const titolare = env.authenticatedContext(ALTRO).firestore()
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'prodotti', 'shampoo'), { nome: 'Shampoo', categoria: 'shampoo' }))
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'prodotti', 'shampoo'), { nome: 'Shampoo bianco', categoria: 'shampoo' }))
+    await assertFails(setDoc(doc(db, 'salons', SALON, 'prodotti', 'senza-nome'), { nome: '' }))
+    await assertFails(deleteDoc(doc(db, 'salons', SALON, 'prodotti', 'shampoo')))
+    await assertSucceeds(deleteDoc(doc(titolare, 'salons', SALON, 'prodotti', 'shampoo')))
+  })
+
   it('il collaboratore crea un cane con i dati minimi', async () => {
     const db = env.authenticatedContext(COLLAB).firestore()
     const nuovo = cane({ id: 'rex', name: 'Rex', searchKey: 'rex', servicePrices: [] })
@@ -402,6 +412,7 @@ describe('regole Firestore sull’emulatore', () => {
     await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'appointments', 'vis'), { status: 'programmato', dogId: 'rex' }))
     await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'services', 'bagno'), { name: 'Bagno' }))
     await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'closures', 'ferie'), { reason: 'Ferie' }))
+    await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'prodotti', 'shampoo'), { nome: 'Shampoo', categoria: 'shampoo' }))
     await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'settings', 'main'), { backup: { lastAt: '2026-10-25T12:00:00.000Z' } }))
     await assertSucceeds(setDoc(doc(titolare, 'salons', salon, 'files', 'foto-rex'), {
       kind: 'foto', owner: 'dog:rex', name: '', mime: 'image/webp', createdBy: salon,

@@ -90,17 +90,6 @@
   transition: background 0.2s, box-shadow 0.2s, color 0.2s, transform 0.12s;
 }
 
-.bottom-nav__dot {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--bad);
-  box-shadow: 0 0 0 2px var(--bar-top);
-}
-
 .bottom-nav__count {
   position: absolute;
   top: -6px;

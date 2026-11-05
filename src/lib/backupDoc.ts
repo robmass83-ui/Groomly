@@ -13,6 +13,7 @@ export interface BackupBundle {
   services: unknown
   settings: unknown
   closures?: unknown
+  prodotti?: unknown
   attesa?: unknown
 }
 
@@ -45,6 +46,7 @@ export function isEmptyBackup(bundle: BackupBundle): boolean {
     && countMap(bundle.services) === 0
     && countMap(bundle.settings) === 0
     && countMap(bundle.closures) === 0
+    && countMap(bundle.prodotti) === 0
     && countMap(bundle.attesa) === 0
 }
 
@@ -71,6 +73,7 @@ export function buildBackup(uid: string): BackupBundle {
     services: readJson(storageKeys.services(uid)) ?? {},
     settings: readJson(storageKeys.settings(uid)) ?? {},
     closures: readJson(storageKeys.closures(uid)) ?? {},
+    prodotti: readJson(storageKeys.prodotti(uid)) ?? {},
     attesa: readJson(storageKeys.attesa(uid)) ?? {},
   }
 }
@@ -84,6 +87,7 @@ export function readRestoreBundle(value: unknown): BackupBundle | null {
   if (!isRecord(dogs) || !isRecord(appointments) || !isRecord(services) || !isRecord(settings)) return null
   const bundle: BackupBundle = { dogs, appointments, services, settings }
   if (isRecord(value.closures)) bundle.closures = value.closures
+  if (isRecord(value.prodotti)) bundle.prodotti = value.prodotti
   if (isRecord(value.attesa)) bundle.attesa = value.attesa
   return bundle
 }
@@ -100,6 +104,7 @@ export function restoreBackup(uid: string, bundle: BackupBundle): void {
   writeJson(storageKeys.services(uid), accepted.services)
   writeJson(storageKeys.settings(uid), accepted.settings)
   if (isRecord(accepted.closures)) writeJson(storageKeys.closures(uid), accepted.closures)
+  if (isRecord(accepted.prodotti)) writeJson(storageKeys.prodotti(uid), accepted.prodotti)
   if (isRecord(accepted.attesa)) writeJson(storageKeys.attesa(uid), accepted.attesa)
 }
 

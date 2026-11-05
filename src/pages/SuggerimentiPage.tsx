@@ -1,5 +1,6 @@
 import { Bug, CalendarDays, ChevronDown, ChevronRight, CirclePlus, Ellipsis, Euro, Eye, Languages, LayoutGrid, PawPrint, Send, Sparkles, Tag, UserRound, type LucideIcon } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
@@ -53,6 +54,7 @@ export function SuggerimentiPage() {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const session = useSession()
+  const location = useLocation()
   const email = session.gate.kind === 'in' ? session.gate.account.email : ''
   const [categoria, setCategoria] = useState<CategoriaSuggerimento | null>(null)
   const [partiAperte, setPartiAperte] = useState(false)
@@ -102,7 +104,7 @@ export function SuggerimentiPage() {
 
   return (
     <ShellFrame>
-      <Header title={frasi.hubSuggerimenti} backTo="/impostazioni" />
+      <Header title={frasi.hubSuggerimenti} backTo={location.state?.da === '/altro' ? '/altro' : '/impostazioni'} />
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <p style={{ margin: '0 2px', color: 'var(--tx2)', fontSize: TYPE.rowSub, lineHeight: 1.45 }}>{frasi.sugLeggiamo}</p>
         <div role="group" aria-label={frasi.sugScrivi} style={listCard}>

@@ -1,0 +1,41 @@
+.profilo-testata {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profilo-testata__tondo {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surf);
+  color: var(--tx2);
+  transition: background 0.2s, color 0.2s, transform 0.12s;
+}
+
+.profilo-testata:active .profilo-testata__tondo {
+  transform: scale(0.92);
+}
+
+.profilo-testata[aria-current='page'] .profilo-testata__tondo {
+  background: var(--pri-solid);
+  color: var(--on-pri);
+}
+
+.profilo-testata__dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bad);
+  box-shadow: 0 0 0 2px var(--bg);
+}

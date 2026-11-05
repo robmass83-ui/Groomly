@@ -24,6 +24,19 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/impostazioni/info', false, false)).toBe('account')
   })
 
+  it('dalle Impostazioni senza storia va alla Home, non esce dall’app', () => {
+    expect(systemBackChoice('/impostazioni', false, false)).toBe('home')
+    expect(systemBackChoice('/impostazioni', false, true)).toBe('history')
+    expect(systemBackChoice('/altro', false, false)).toBe('exit')
+  })
+
+  it('dal Magazzino senza storia risale ad Altro, dalla scheda all’elenco', () => {
+    expect(systemBackChoice('/altro/magazzino', false, false)).toBe('paginaAltro')
+    expect(systemBackChoice('/altro/magazzino/nuovo', false, false)).toBe('magazzino')
+    expect(systemBackChoice('/altro/magazzino/p1', false, false)).toBe('magazzino')
+    expect(systemBackChoice('/altro/magazzino/p1', false, true)).toBe('history')
+  })
+
   it('con un foglio aperto lo chiude prima di lasciare la scheda', () => {
     expect(systemBackChoice('/animali/kratos', true, false)).toBe('dismiss')
     expect(systemBackChoice('/calendario', true, true)).toBe('dismiss')
@@ -39,7 +52,6 @@ describe('tasto indietro di sistema', () => {
     expect(systemBackChoice('/impostazioni/strumenti', false, false)).toBe('impostazioni')
     expect(systemBackChoice('/impostazioni/privacy', false, false)).toBe('impostazioni')
     expect(systemBackChoice('/incassi/report', false, false)).toBe('incassi')
-    expect(systemBackChoice('/impostazioni', false, false)).toBe('exit')
     expect(systemBackChoice('/impostazioni/messaggi', false, true)).toBe('history')
   })
 
