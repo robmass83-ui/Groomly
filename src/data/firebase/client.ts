@@ -35,6 +35,8 @@ import { AppError, erroreApp } from '../errors'
 import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
+import { APP_VERSION } from '../../lib/appVersion'
+import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiTermini } from '../../lib/versioneLegale'
 import type { Lingua } from '../../i18n/lingua'
 import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 import { primoAvvio } from '../../i18n/scritturaLingua'
@@ -522,6 +524,16 @@ export async function segnaAvvisiLetti(uid: string, lettiFino: number): Promise<
 
 /** Acceso mentre il titolare elimina il suo account: il server cancella il salone e niente deve ricrearlo. */
 let eliminazioneInCorso = false
+
+/** La prova dell'accettazione la scrive il server; qui si aggiorna solo la copia in memoria. */
+export async function callRegistraAccettazione(): Promise<void> {
+  const { getFunctions, httpsCallable } = await import('firebase/functions')
+  const functions = getFunctions(await firebaseApp(), 'europe-west1')
+  await attachEmulators('functions', functions)
+  const result = await httpsCallable(functions, 'registraAccettazione')({ versione: VERSIONE_DOCUMENTI, appVersione: APP_VERSION })
+  const termini = (result.data as { termini?: unknown } | null)?.termini
+  if (accountDoc && termini) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, termini } }
+}
 
 export async function callEliminaAccount(): Promise<void> {
   eliminazioneInCorso = true
@@ -2190,6 +2202,7 @@ function toAccount(user: User): LocalAccount {
   emailVerified = user.emailVerified === true
   const data = accountDoc?.uid === user.uid ? accountDoc.data : null
   const role = documentRole(data)
+  const termini = leggiTermini(data?.termini)
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -2202,6 +2215,7 @@ function toAccount(user: User): LocalAccount {
     salonId: docText(data, 'salonId'),
     ...(role ? { role } : {}),
     legacy: data?.legacy === true,
+    ...(termini ? { termini } : {}),
   }
 }
 
@@ -2448,8 +2462,10 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     },
   }
   let accountWritten = false
+  // Riprova non mostra la casella: lì non nasce un'accettazione.
+  const accettazione = keepExisting ? {} : { termini: { accettati: true, at: new Date().toISOString(), versione: VERSIONE_DOCUMENTI, documenti: DOCUMENTI_IN_VIGORE } }
   try {
-    await putDoc(['accounts', user.uid], { ...account, lingua, termini: { accettati: true, at: new Date().toISOString() } })
+    await putDoc(['accounts', user.uid], { ...account, lingua, ...accettazione })
     accountWritten = true
     bindSalon(user.uid)
     const present = keepExisting ? await readDoc(salonDocPath('settings', 'main'), true) : null
@@ -2459,7 +2475,7 @@ async function writeOwnerSalon(user: User, input: OwnerProfile, keepExisting = f
     forgetAccount()
     throw erroreApp('storage_write')
   }
-  accountDoc = { uid: user.uid, data: { ...account, lingua } }
+  accountDoc = { uid: user.uid, data: { ...account, lingua, ...accettazione } }
   accountDaRileggere = false
 }
 
@@ -2476,6 +2492,7 @@ export async function registerOwner(input: OwnerProfile & { email: string; passw
     knownUid = user.uid
     impostaAccountEliminazioni(user.uid)
     await writeOwnerSalon(user, input)
+    await callRegistraAccettazione().catch(() => undefined)
     await callAuthMail('sendVerificationEmail').catch(() => undefined)
     return toAccount(user)
   })()

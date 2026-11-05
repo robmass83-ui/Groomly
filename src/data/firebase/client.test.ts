@@ -338,8 +338,12 @@ describe('client Firebase', () => {
       business: { salonName: 'I Pelosetti', name: 'I Pelosetti', vatNumber: '', address: 'Via Roma', taxCode: '' },
     })
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
-    expect(mailFns.call).toHaveBeenCalledTimes(1)
+    expect(mailFns.call).toHaveBeenCalledTimes(2)
     expect(mailFns.call).toHaveBeenCalledWith('sendVerificationEmail', {})
+    expect(mailFns.call).toHaveBeenCalledWith('registraAccettazione', expect.objectContaining({ versione: 1 }))
+    expect(fs.store.get('accounts')?.get('uid-9')).toMatchObject({
+      termini: { accettati: true, versione: 1, documenti: { termini: '1.1', privacy: '2' } },
+    })
     expect(authFns.sendEmail).not.toHaveBeenCalled()
     expect(client.currentSalonId()).toBe('uid-9')
   })

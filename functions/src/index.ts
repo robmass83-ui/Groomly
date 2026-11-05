@@ -39,6 +39,7 @@ import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 export * from './abbonamenti'
@@ -877,6 +878,16 @@ export const scadiProposte = onSchedule({
 }, async () => {
   const chiuse = await scadiProposteScadute(chiaveBrevo())
   logger.info('Proposte scadute', { chiuse })
+})
+
+export const registraAccettazione = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const versione = field(request.data, 'versione')
+  return registraAccettazionePer({
+    uid,
+    versione: typeof versione === 'number' ? versione : 0,
+    appVersione: text(field(request.data, 'appVersione')).slice(0, 32),
+  }, archivioAccettazione(getFirestore()), new Date())
 })
 
 export const silenzioEmail = onCall(pianoCall, async (request) => {
