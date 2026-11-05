@@ -69,9 +69,9 @@ Ogni comando che scrive mostra cosa farebbe e scrive solo con `--esegui`.
 Blocchi obbligatori, con uscita in errore:
 
 - `collega`: il salone da eliminare deve essere esattamente `salons/{uidRobmass83}`, mai `shared` né vuoto; si ferma se il salone ha altre persone. Se robmass83 non esiste in Auth si ferma e chiede di registrarlo.
-- `stacca`: si ferma se la hotmail non ha il claim o se `accounts/{uidRobmass83}.salonId` non è `shared`. Se robmass83 risulta mai entrato dopo il collegamento, avvisa e si ferma.
+- `stacca`: si ferma se la hotmail non ha il claim o se `accounts/{uidRobmass83}.salonId` non è `shared`. Si ferma anche se robmass83 non ha ancora fatto un accesso dopo il collegamento.
 
-Il controllo delle raccolte globali del salone di prova riusa `pulisciRaccolteSalone`, se importabile dalla build delle functions; `pulisciPersona` non si usa, perché cancellerebbe l'accesso.
+La pulizia delle raccolte globali del salone di prova riusa `pulisciRaccolteSalone`, se importabile dalla build delle functions; `pulisciPersona` non si usa, perché cancellerebbe l'accesso.
 
 `useRuolo()` restituisce `{ admin, caricato }`. Il client legge il claim dal token, con un aggiornamento forzato dopo il login e all'avvio; offline usa il token in memoria, senza errori.
 
