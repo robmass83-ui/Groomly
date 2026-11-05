@@ -654,6 +654,10 @@ const POSTO_LIBERO: Record<Lingua, { titolo: string; frase: string; fretta: stri
   },
 }
 
+export function fraseSilenzio(lingua: Lingua): string {
+  return SILENZIO[lingua]
+}
+
 export function mailPostoLibero(input: {
   lingua: Lingua
   nomeSalone: string

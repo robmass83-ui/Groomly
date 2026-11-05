@@ -38,7 +38,7 @@ import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
-import { archivioDaDb, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioDaDb, impostaEmailClientePer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
@@ -894,6 +894,18 @@ export const silenzioEmail = onCall(pianoCall, async (request) => {
   return silenzioEmailPer({
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
+  }, archivioDaDb(getFirestore()))
+})
+
+export const impostaEmailCliente = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account) deny('accesso_negato')
+  return impostaEmailClientePer({
+    salonId: account.salonId,
+    ruolo: account.role,
+    dogId: text(field(request.data, 'dogId')),
+    bloccata: field(request.data, 'bloccata') === true,
   }, archivioDaDb(getFirestore()))
 })
 

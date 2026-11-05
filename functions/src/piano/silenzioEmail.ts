@@ -1,42 +1,31 @@
-import { bloccaCane, type RigaCoda, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
+import { createHash } from 'node:crypto'
+import type { Firestore } from 'firebase-admin/firestore'
+import { bloccaCane, emailValida, type RigaCoda, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
+import { normalizeEmail } from '../../../src/lib/salonPath'
 import { erroreServer } from '../erroriServer'
 
 const TOKEN = /^[A-Za-z0-9_-]{16,128}$/
 const TIPI = new Set<TipoCoda>(['promemoria', 'pronto', 'auguri', 'recensione', 'attesa'])
 const STATI = new Set<StatoCoda>(['in_coda', 'fermata', 'inviata', 'non_inviata', 'chiusa'])
 
+export type FonteBlocco = 'link' | 'scheda'
+
+export function chiaveEmail(email: string): string {
+  return createHash('sha256').update(normalizeEmail(email)).digest('hex')
+}
+
 export interface ArchivioSilenzio {
-  leggiRiga(salonId: string, token: string): Promise<{ dogId: string } | null>
+  leggiRiga(salonId: string, token: string): Promise<{ dogId: string; email: string } | null>
+  /** Il token di un'offerta di posto libero: l'iscritto può non avere un cane. */
+  leggiOfferta(salonId: string, token: string): Promise<{ email: string } | null>
   caneEsiste(salonId: string, dogId: string): Promise<boolean>
-  segnaBloccata(salonId: string, dogId: string): Promise<void>
+  emailCane(salonId: string, dogId: string): Promise<string | null>
+  caniConEmail(salonId: string, email: string): Promise<string[]>
+  segnaBloccata(salonId: string, dogId: string, bloccata: boolean): Promise<void>
+  scriviBlocco(salonId: string, email: string, fonte: FonteBlocco): Promise<void>
+  togliBlocco(salonId: string, email: string): Promise<void>
   leggiRighe(salonId: string, dogId: string): Promise<RigaCoda[]>
   scriviFermate(salonId: string, righe: readonly RigaCoda[]): Promise<void>
-}
-
-interface Lettura {
-  id: string
-  get(field: string): unknown
-  data(): Record<string, unknown>
-}
-
-interface QueryCoda {
-  limit(n: number): { get(): Promise<{ docs: Lettura[] }> }
-  get(): Promise<{ docs: Lettura[] }>
-}
-
-export interface DbSilenzio {
-  collection(path: string): {
-    where(field: string, op: string, value: string): QueryCoda
-    doc(id: string): unknown
-  }
-  doc(path: string): {
-    get(): Promise<{ exists: boolean }>
-    set(data: { emailBloccata: true }, options: { merge: true }): Promise<unknown>
-  }
-  batch(): {
-    update(ref: unknown, data: { stato: StatoCoda; motivo: string }): void
-    commit(): Promise<unknown>
-  }
 }
 
 export function rigaDaDati(id: string, data: Record<string, unknown>): RigaCoda | null {
@@ -60,20 +49,51 @@ export function rigaDaDati(id: string, data: Record<string, unknown>): RigaCoda 
   }
 }
 
-export function archivioDaDb(db: DbSilenzio): ArchivioSilenzio {
+function emailDi(data: Record<string, unknown> | undefined): string {
+  const contact = data?.contact
+  if (!contact || typeof contact !== 'object') return ''
+  const email = (contact as Record<string, unknown>).email
+  return typeof email === 'string' ? email : ''
+}
+
+export function archivioDaDb(db: Firestore): ArchivioSilenzio {
+  const blocco = (salonId: string, email: string) => db.doc(`salons/${salonId}/emailBloccate/${chiaveEmail(email)}`)
   return {
     async leggiRiga(salonId, token) {
       const snap = await db.collection(`salons/${salonId}/coda`).where('token', '==', token).limit(1).get()
       const trovato = snap.docs[0]
       if (!trovato) return null
       const dogId = trovato.get('dogId')
-      return typeof dogId === 'string' && dogId !== '' ? { dogId } : null
+      const email = trovato.get('email')
+      return typeof dogId === 'string' && dogId !== '' ? { dogId, email: typeof email === 'string' ? email : '' } : null
+    },
+    async leggiOfferta(salonId, token) {
+      const snap = await db.collection(`salons/${salonId}/offerteAttesa`).where('token', '==', token).limit(1).get()
+      const iscrittoId = snap.docs[0]?.get('iscrittoId')
+      if (typeof iscrittoId !== 'string' || iscrittoId === '' || iscrittoId.includes('/')) return null
+      const email = (await db.doc(`salons/${salonId}/attesa/${iscrittoId}`).get()).get('email')
+      return typeof email === 'string' && emailValida(email) ? { email } : null
     },
     async caneEsiste(salonId, dogId) {
       return (await db.doc(`salons/${salonId}/dogs/${dogId}`).get()).exists
     },
-    async segnaBloccata(salonId, dogId) {
-      await db.doc(`salons/${salonId}/dogs/${dogId}`).set({ emailBloccata: true }, { merge: true })
+    async emailCane(salonId, dogId) {
+      const snap = await db.doc(`salons/${salonId}/dogs/${dogId}`).get()
+      return snap.exists ? emailDi(snap.data()) : null
+    },
+    async caniConEmail(salonId, email) {
+      const cercata = normalizeEmail(email)
+      const snap = await db.collection(`salons/${salonId}/dogs`).select('contact').get()
+      return snap.docs.filter((item) => normalizeEmail(emailDi(item.data())) === cercata).map((item) => item.id)
+    },
+    async segnaBloccata(salonId, dogId, bloccata) {
+      await db.doc(`salons/${salonId}/dogs/${dogId}`).set({ emailBloccata: bloccata }, { merge: true })
+    },
+    async scriviBlocco(salonId, email, fonte) {
+      await blocco(salonId, email).set({ email: normalizeEmail(email), at: new Date().toISOString(), fonte })
+    },
+    async togliBlocco(salonId, email) {
+      await blocco(salonId, email).delete()
     },
     async leggiRighe(salonId, dogId) {
       const snap = await db.collection(`salons/${salonId}/coda`).where('dogId', '==', dogId).get()
@@ -94,20 +114,60 @@ export function archivioDaDb(db: DbSilenzio): ArchivioSilenzio {
   }
 }
 
+async function fermaCane(salonId: string, dogId: string, archivio: ArchivioSilenzio): Promise<void> {
+  await archivio.segnaBloccata(salonId, dogId, true)
+  const righe = await archivio.leggiRighe(salonId, dogId)
+  const dopo = bloccaCane(righe, dogId)
+  const fermate = dopo.filter((voce, indice) => righe[indice]?.stato !== voce.stato)
+  if (fermate.length > 0) await archivio.scriviFermate(salonId, fermate)
+}
+
+function salonePermesso(salonId: string): boolean {
+  return salonId !== '' && salonId !== 'shared' && !salonId.includes('/')
+}
+
+// Chi si disiscrive esce da tutto il salone: l'indirizzo va in elenco e si fermano tutti i suoi cani.
 export async function silenzioEmailPer(
   input: { salonId: string; token: string },
   archivio: ArchivioSilenzio,
 ): Promise<{ ok: true }> {
-  if (input.salonId === '' || input.salonId === 'shared' || input.salonId.includes('/') || !TOKEN.test(input.token)) {
+  if (!salonePermesso(input.salonId) || !TOKEN.test(input.token)) {
     throw erroreServer('invalid-argument', 'link_non_valido')
   }
   const riga = await archivio.leggiRiga(input.salonId, input.token)
-  if (!riga || riga.dogId.includes('/')) throw erroreServer('not-found', 'link_non_valido')
-  if (!(await archivio.caneEsiste(input.salonId, riga.dogId))) throw erroreServer('not-found', 'cane_assente')
-  await archivio.segnaBloccata(input.salonId, riga.dogId)
-  const righe = await archivio.leggiRighe(input.salonId, riga.dogId)
-  const dopo = bloccaCane(righe, riga.dogId)
-  const fermate = dopo.filter((voce, indice) => righe[indice]?.stato !== voce.stato)
-  if (fermate.length > 0) await archivio.scriviFermate(input.salonId, fermate)
+  if (riga && riga.dogId.includes('/')) throw erroreServer('not-found', 'link_non_valido')
+  const offerta = riga ? null : await archivio.leggiOfferta(input.salonId, input.token)
+  if (!riga && !offerta) throw erroreServer('not-found', 'link_non_valido')
+  if (riga && !(await archivio.caneEsiste(input.salonId, riga.dogId))) throw erroreServer('not-found', 'cane_assente')
+  const email = riga?.email ?? offerta?.email ?? ''
+  const cani = new Set(riga ? [riga.dogId] : [])
+  if (emailValida(email)) {
+    await archivio.scriviBlocco(input.salonId, email, 'link')
+    for (const dogId of await archivio.caniConEmail(input.salonId, email)) cani.add(dogId)
+  }
+  for (const dogId of cani) await fermaCane(input.salonId, dogId, archivio)
+  return { ok: true }
+}
+
+export async function impostaEmailClientePer(
+  input: { salonId: string; ruolo: string; dogId: string; bloccata: boolean },
+  archivio: ArchivioSilenzio,
+): Promise<{ ok: true }> {
+  if (!salonePermesso(input.salonId) || input.dogId === '' || input.dogId.includes('/')) {
+    throw erroreServer('invalid-argument', 'richiesta_non_valida')
+  }
+  if (input.ruolo !== 'titolare' && input.ruolo !== 'socio') throw erroreServer('permission-denied', 'accesso_negato')
+  const email = await archivio.emailCane(input.salonId, input.dogId)
+  if (email === null) throw erroreServer('not-found', 'cane_assente')
+  const cani = new Set([input.dogId])
+  if (emailValida(email)) {
+    if (input.bloccata) await archivio.scriviBlocco(input.salonId, email, 'scheda')
+    else await archivio.togliBlocco(input.salonId, email)
+    for (const dogId of await archivio.caniConEmail(input.salonId, email)) cani.add(dogId)
+  }
+  for (const dogId of cani) {
+    if (input.bloccata) await fermaCane(input.salonId, dogId, archivio)
+    else await archivio.segnaBloccata(input.salonId, dogId, false)
+  }
   return { ok: true }
 }

@@ -1,3 +1,4 @@
+import { chiaveEmail } from './silenzioEmail'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const archivio = new Map<string, Record<string, unknown>>()
@@ -75,6 +76,15 @@ describe('invia subito secondo il piano', () => {
     const esito = await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'chiave', fetchImpl })
     expect(esito?.motivo).toBe('piano')
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('un indirizzo bloccato non parte nemmeno a mano', async () => {
+    archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'attivo' })
+    archivio.set(`salons/s1/emailBloccate/${chiaveEmail(riga.email)}`, { email: riga.email })
+    const fetchImpl = vi.fn(async () => new Response('{"messageId":"1"}', { status: 201 }))
+    const esito = await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'chiave', fetchImpl })
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(esito?.stato).toBe('fermata')
   })
 
   it('con Plus la email parte', async () => {

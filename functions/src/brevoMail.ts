@@ -35,6 +35,7 @@ export function brevoHtmlBody(
   subject: string,
   html: string,
   replyTo?: { email: string; name: string },
+  headers?: Record<string, string>,
 ): Record<string, unknown> {
   return {
     sender: SENDER,
@@ -42,6 +43,7 @@ export function brevoHtmlBody(
     subject,
     htmlContent: html,
     ...(replyTo ? { replyTo } : {}),
+    ...(headers ? { headers } : {}),
   }
 }
 
@@ -52,6 +54,7 @@ export async function postBrevoHtml(
   html: string,
   fetchImpl: typeof fetch = fetch,
   replyTo?: { email: string; name: string },
+  headers?: Record<string, string>,
 ): Promise<void> {
   let response: Response
   try {
@@ -62,7 +65,7 @@ export async function postBrevoHtml(
         'content-type': 'application/json',
         'api-key': apiKey,
       },
-      body: JSON.stringify(brevoHtmlBody(toEmail, subject, html, replyTo)),
+      body: JSON.stringify(brevoHtmlBody(toEmail, subject, html, replyTo, headers)),
     })
   } catch {
     throw new BrevoRequestError(0, 'rete')

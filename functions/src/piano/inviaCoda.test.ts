@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
-import { inviaCoda, inviaOfferteAttesa, righeDelGiro, listaAttesaAccesa, righeDelMinuto, serviziAccesi, serviziPerPiano } from './inviaCoda'
+import { applicaEsito, inviaCoda, inviaOfferteAttesa, righeDelGiro, listaAttesaAccesa, righeDelMinuto, serviziAccesi, serviziPerPiano } from './inviaCoda'
 import { buchiDaTombe } from './offerteAttesa'
 
 const base = {
@@ -54,6 +54,22 @@ describe('inviaCoda', () => {
     expect(html).toContain('salon=salone-1')
     expect(html).toContain(esito.token[0].token)
     expect(body.replyTo?.email).toBe('sala@salone.it')
+  })
+
+  it('un indirizzo bloccato non parte e la riga si ferma, con maiuscole o spazi', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    const riga = { ...base, email: ' Ada@Cliente.it ' }
+    const esito = await inviaCoda({ apiKey: 'x', righe: [riga], emailOggi: 0, fetchImpl, bloccate: new Set(['ada@cliente.it']) })
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(esito.fermate).toEqual(['1'])
+    expect(applicaEsito([riga], esito)[0]).toMatchObject({ stato: 'fermata', motivo: 'fermata' })
+  })
+
+  it('la posta con il silenzio porta anche List-Unsubscribe', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaCoda({ apiKey: 'x', righe: [base], emailOggi: 0, fetchImpl, salonId: 's1' })
+    const body = JSON.parse(String((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body)) as { headers: Record<string, string> }
+    expect(body.headers['List-Unsubscribe']).toContain('mode=silenzio')
   })
 
   it('ogni riga parla la lingua del suo cane; senza, vale la riserva del salone', async () => {
@@ -568,6 +584,22 @@ describe('inviaOfferteAttesa', () => {
     expect(body.subject).toBe('Si è liberato un posto')
     expect(body.htmlContent).toContain(offerta.url)
     expect(body.htmlContent).toContain('Affrettati, prima di perdere questa possibilità.')
+  })
+
+  it('il posto libero ha il link per uscire e salta chi è bloccato', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, salonId: 's1', fetchImpl, adesso })
+    const body = JSON.parse(String((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body)) as { htmlContent: string }
+    expect(body.htmlContent).toContain('mode=silenzio')
+    expect(body.htmlContent).toContain('Non voglio più ricevere queste email')
+
+    const altra = vi.fn(async () => new Response('{}', { status: 201 }))
+    const esito = await inviaOfferteAttesa({
+      apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, salonId: 's1', fetchImpl: altra, adesso,
+      bloccate: new Set(['giulia@cliente.it']),
+    })
+    expect(altra).not.toHaveBeenCalled()
+    expect(esito.offerte[0]?.inviataIl).toBeNull()
   })
 
   it('in caso di errore, senza chiave o oltre il tetto lascia inviataIl nullo', async () => {
