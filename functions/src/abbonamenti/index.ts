@@ -19,11 +19,7 @@ const conRevenueCat = { ...opzioni, secrets: [revenueCatApiKey] }
 function operatore(request: CallableRequest) {
   if (!request.auth?.uid) throw erroreServer('unauthenticated', 'accesso_richiesto')
   const token = request.auth.token
-  return {
-    operatorEmail: typeof token.email === 'string' ? token.email : '',
-    emailVerified: token.email_verified === true,
-    admin: token.admin === true,
-  }
+  return { admin: token.admin === true }
 }
 
 function campo(data: unknown, nome: string): unknown {

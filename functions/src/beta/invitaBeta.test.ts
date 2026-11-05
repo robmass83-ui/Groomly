@@ -5,7 +5,7 @@ vi.mock('firebase-admin/firestore', async () => (await import('../piano/firestor
 
 import { invitaBetaPer } from './invitaBeta'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 const ADESSO = new Date('2026-11-04T10:00:00.000Z')
 const FUTURO = '2026-12-01T00:00:00.000Z'
 
@@ -25,7 +25,7 @@ describe('invitaBetaPer', () => {
   })
 
   it('chi non è operatore non invita', async () => {
-    await expect(invitaBetaPer({ token: { operatorEmail: 'x@y.it', emailVerified: true }, salonIds: ['s1'], piano: 'pro', giorni: 60 }))
+    await expect(invitaBetaPer({ token: { operatorEmail: 'x@y.it' }, salonIds: ['s1'], piano: 'pro', giorni: 60 }))
       .rejects.toThrow('Accesso negato')
   })
 

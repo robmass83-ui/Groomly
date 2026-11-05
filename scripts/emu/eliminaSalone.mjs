@@ -53,7 +53,7 @@ async function chiama(idToken, data) {
   if (diretto) {
     const persona = chi.get(idToken)
     try {
-      return { result: await eliminaSalonePer({ operatorEmail: persona.email, emailVerified: true, chiamante: persona.uid, salonId: data.salonId }) }
+      return { result: await eliminaSalonePer({ admin: persona.email === 'masala.roberto@hotmail.it', chiamante: persona.uid, salonId: data.salonId }) }
     } catch (error) {
       return { error: { message: error.message } }
     }

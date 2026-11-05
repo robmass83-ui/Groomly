@@ -116,6 +116,7 @@ describe('regole Firestore sull’emulatore', () => {
     const db = env.authenticatedContext(ROBERTO, {
       email: 'masala.roberto@hotmail.it',
       email_verified: true,
+      admin: true,
     }).firestore()
     await assertFails(getDoc(doc(db, backup(LAURA))))
   })
@@ -196,12 +197,58 @@ describe('regole Firestore sull’emulatore', () => {
     await assertFails(updateDoc(ref, { actualDurationMin: 5 }))
   })
 
-  it('un operatore con email non verificata non legge un account altrui', async () => {
-    const db = env.authenticatedContext(ROBERTO, {
-      email: 'masala.roberto@hotmail.it',
-      email_verified: false,
-    }).firestore()
-    await assertFails(getDoc(doc(db, 'accounts', 'uid-altro-account')))
+  describe('permessi admin solo dal claim', () => {
+    const LAURA_UID = 'uid-laura-vera'
+    const ROBMASS = 'uid-robmass83'
+    const ADMIN = 'uid-admin-senza-salone'
+    const laura = () => env.authenticatedContext(LAURA_UID, { email: 'laura.masala@tiscali.it', email_verified: true }).firestore()
+    const robmass = () => env.authenticatedContext(ROBMASS, { email: 'robmass83@gmail.com', email_verified: true }).firestore()
+    const admin = () => env.authenticatedContext(ADMIN, { email: 'masala.roberto@hotmail.it', email_verified: true, admin: true }).firestore()
+
+    beforeEach(async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore()
+        await setDoc(doc(db, 'accounts', LAURA_UID), { email: 'laura.masala@tiscali.it', salonId: LAURA_UID, role: 'titolare', legacy: false })
+        await setDoc(doc(db, 'accounts', ROBMASS), { email: 'robmass83@gmail.com', salonId: LAURA_UID, role: 'socio', legacy: false })
+        await setDoc(doc(db, 'salons', LAURA_UID, 'members', ROBMASS), { uid: ROBMASS, role: 'socio', status: 'attivo', accessWithoutPro: true })
+        await setDoc(doc(db, 'salons', LAURA_UID, 'pro', 'main'), { enabled: false, seats: 3 })
+        await setDoc(doc(db, 'salons', LAURA_UID, 'dogs', 'rex'), { name: 'Rex', species: 'cane', contact: {} })
+        await setDoc(doc(db, 'salons', SALON, 'settings', 'main'), { business: {} })
+      })
+    })
+
+    it('l’admin legge saloni e account', async () => {
+      await assertSucceeds(getDoc(doc(admin(), 'salons', SALON, 'settings', 'main')))
+      await assertSucceeds(getDoc(doc(admin(), 'accounts', LAURA_UID)))
+    })
+
+    it('la hotmail senza claim non è nessuno, anche con l’email verificata', async () => {
+      const db = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true }).firestore()
+      await assertFails(getDoc(doc(db, 'accounts', LAURA_UID)))
+      await assertFails(getDoc(doc(db, 'salons', LAURA_UID, 'dogs', 'rex')))
+    })
+
+    it('Laura non legge altri saloni né altri account, e lavora nel suo', async () => {
+      await assertFails(getDoc(doc(laura(), 'salons', SALON, 'settings', 'main')))
+      await assertFails(getDoc(doc(laura(), 'accounts', ROBMASS)))
+      await assertSucceeds(getDoc(doc(laura(), 'salons', LAURA_UID, 'dogs', 'rex')))
+      await assertSucceeds(setDoc(doc(laura(), 'salons', LAURA_UID, 'services', 'bagno'), { name: 'Bagno' }))
+    })
+
+    it('robmass83 socio lavora nel salone di Laura anche col piano spento', async () => {
+      await assertSucceeds(getDoc(doc(robmass(), 'salons', LAURA_UID, 'dogs', 'rex')))
+      await assertSucceeds(setDoc(doc(robmass(), 'salons', LAURA_UID, 'services', 'taglio'), { name: 'Taglio' }))
+    })
+
+    it('robmass83 non si mette da solo nel salone di Laura', async () => {
+      const db = env.authenticatedContext('uid-nuovo', { email: 'robmass83@gmail.com', email_verified: true }).firestore()
+      await assertFails(setDoc(doc(db, 'accounts', 'uid-nuovo'), { email: 'robmass83@gmail.com', salonId: LAURA_UID, role: 'socio', legacy: false }))
+      await assertFails(setDoc(doc(db, 'salons', LAURA_UID, 'members', 'uid-nuovo'), { uid: 'uid-nuovo', role: 'socio', status: 'attivo', accessWithoutPro: true }))
+    })
+
+    it('l’admin senza account non scrive nel salone di Laura', async () => {
+      await assertFails(setDoc(doc(admin(), 'salons', LAURA_UID, 'services', 'finto'), { name: 'Finto' }))
+    })
   })
 
   it('con il piano spento il collaboratore legge il proprio membro e non l’elenco', async () => {
@@ -429,7 +476,7 @@ describe('regole Firestore sull’emulatore', () => {
     await assertSucceeds(deleteDoc(doc(titolare, 'salons', SALON, 'coda', 'riga-1')))
   })
   it('avvisi di sistema: tutti leggono, solo gli operatori scrivono, il segno di lettura sta sull’account', async () => {
-    const roberto = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true }).firestore()
+    const roberto = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true, admin: true }).firestore()
     const salone = env.authenticatedContext(ALTRO).firestore()
     const { serverTimestamp } = await import('firebase/firestore')
     await assertSucceeds(setDoc(doc(roberto, 'avvisiSistema', 'a1'), { tipo: 'importante', titolo: 'Prezzi', testo: 'Dal 1° dicembre.', creato: serverTimestamp() }))
@@ -461,7 +508,7 @@ describe('regole Firestore sull’emulatore', () => {
     const titolare = env.authenticatedContext(ALTRO).firestore()
     const socio = env.authenticatedContext(SOCIO).firestore()
     const collab = env.authenticatedContext(COLLAB).firestore()
-    const operatore = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true }).firestore()
+    const operatore = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true, admin: true }).firestore()
 
     await assertSucceeds(getDoc(doc(titolare, 'betaInviti', SALON)))
     await assertFails(getDoc(doc(titolare, 'betaInviti', 'altro')))

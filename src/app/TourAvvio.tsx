@@ -8,7 +8,7 @@ import { usePiano } from '../hooks/usePiano'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi } from '../i18n/LinguaContext'
-import { SHARED_SALON_ID } from '../lib/salonPath'
+import { isLauraEmail } from '../lib/salonPath'
 import { deveVedereTour, leggiTourSalone } from '../lib/tourBenvenuto'
 
 const PAGINA_TOUR = '/benvenuto'
@@ -64,7 +64,7 @@ export function TourAvvio() {
           creazioneAccount: creazione.valore,
           // account vecchi senza ruolo: sono titolari
           titolare: account.role === undefined || account.role === 'titolare',
-          salonCondiviso: account.salonId === SHARED_SALON_ID,
+          esente: isLauraEmail(account.email),
           tour: leggiTourSalone(settings.tourBenvenuto),
         })
   const suTour = pathname === PAGINA_TOUR

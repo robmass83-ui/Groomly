@@ -14,12 +14,10 @@ export function configTourDopo(
 }
 
 export async function impostaTourPer(input: {
-  operatorEmail: string
-  emailVerified?: boolean
   admin?: boolean
   acceso: boolean
 }): Promise<{ ok: true }> {
-  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+  if (!operatoreAutorizzato({ admin: input.admin })) {
     throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const db = getFirestore()

@@ -36,7 +36,7 @@ const { mandaAvvisiFineBeta } = lib('beta/avvisiFineBeta')
 const { impostaMostraPianiPer } = lib('config/impostaMostraPiani')
 const { chiudiProveScadute } = lib('piano/chiudiProve')
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 const T0 = new Date()
 const DAY = 86_400_000
 const dopo = (giorni) => new Date(T0.getTime() + giorni * DAY)

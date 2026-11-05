@@ -7,7 +7,7 @@ import { PACCHETTI } from '../../../src/lib/idAbbonamenti'
 import { accendiAbbonamentiPer, confermaPartitaIvaPer, controlloAccensionePer, controlloPer, spegniAbbonamentiPer } from './accensione'
 import { leggiOfferingRc, verificaOffering } from './offeringRc'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 const ADESSO = new Date('2027-01-20T10:00:00.000Z')
 const fa = (giorni: number) => new Date(ADESSO.getTime() - giorni * 86_400_000).toISOString()
 const OFFERING_OK = { id: 'offering', ok: true, trovati: 6, attesi: 6, mancanti: [] } as const
@@ -105,8 +105,8 @@ describe('callable di accensione', () => {
   })
 
   it('solo operatori', async () => {
-    await expect(controlloAccensionePer({ operatorEmail: 'x@y.it', emailVerified: true, offering }, ADESSO)).rejects.toThrow('Accesso negato')
-    await expect(spegniAbbonamentiPer({ operatorEmail: 'x@y.it', emailVerified: true })).rejects.toThrow('Accesso negato')
+    await expect(controlloAccensionePer({ operatorEmail: 'x@y.it', offering }, ADESSO)).rejects.toThrow('Accesso negato')
+    await expect(spegniAbbonamentiPer({ operatorEmail: 'x@y.it' })).rejects.toThrow('Accesso negato')
   })
 
   it('conferma Partita IVA: segna e toglie la data', async () => {

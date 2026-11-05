@@ -1,6 +1,5 @@
 import { emailMessaggio, type TipoEmail } from '../../src/i18n/emailHtml'
 import { LINGUE, type Lingua } from '../../src/i18n/lingua'
-import { normalizeEmail, ROBERTO_EMAIL } from '../../src/lib/salonPath'
 
 export const DESTINATARIO_CAMPIONE = 'info@groomlyapp.it'
 
@@ -28,11 +27,11 @@ export function pianoCampione(): { tipo: TipoEmail; lingua: Lingua }[] {
 }
 
 export async function inviaCampione(input: {
-  email: string | null | undefined
+  admin: boolean
   apiKey?: string
   invia: (to: string, oggetto: string, html: string) => Promise<void>
 }): Promise<{ spedite: number; motivo?: 'chiave assente' | 'negato' }> {
-  if (normalizeEmail(input.email ?? '') !== ROBERTO_EMAIL) return { spedite: 0, motivo: 'negato' }
+  if (!input.admin) return { spedite: 0, motivo: 'negato' }
   if (!input.apiKey) return { spedite: 0, motivo: 'chiave assente' }
   const piano = pianoCampione()
   for (const voce of piano) {

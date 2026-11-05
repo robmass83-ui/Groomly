@@ -35,12 +35,12 @@ export function deveVedereTour(input: {
   creazioneAccount: string | null
   /** Solo il titolare vede il tour: soci e collaboratori no. */
   titolare: boolean
-  /** Il salone condiviso non vede il tour: è in uso da prima che esistesse. */
-  salonCondiviso: boolean
+  /** Laura usa Groomly da prima che il tour esistesse. */
+  esente: boolean
   tour: TourSalone | undefined
 }): 'tour' | 'avviso' | 'niente' {
-  const { config, creazioneAccount, titolare, salonCondiviso, tour } = input
-  if (!config.acceso || !titolare || salonCondiviso) return 'niente'
+  const { config, creazioneAccount, titolare, esente, tour } = input
+  if (!config.acceso || !titolare || esente) return 'niente'
   // Date non leggibili (o account creato prima dell'accensione): niente tour.
   const dal = config.dal === null ? NaN : Date.parse(config.dal)
   const creato = creazioneAccount === null ? NaN : Date.parse(creazioneAccount)

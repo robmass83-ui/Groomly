@@ -20,19 +20,19 @@ vi.mock('firebase-admin/storage', () => ({
 
 import { decisioneEliminaSalone, eliminaSalonePer } from './eliminaSalone'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true, chiamante: 'rob', salonChiamante: 'shared' }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true, chiamante: 'rob', salonChiamante: 'shared' }
 
 describe('eliminazione di una toelettatura dai test', () => {
   it('Roberto o Laura cancellano un salone di prova con i suoi collaboratori', () => {
     const persone = [{ uid: 'prova', emails: ['prova@test.it'] }, { uid: 'collab', emails: ['collab@test.it'] }]
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'prova', persone })).toEqual({ ok: true })
-    expect(decisioneEliminaSalone({ ...ROBERTO, operatorEmail: 'laura.masala@tiscali.it', salonId: 'prova', persone })).toEqual({ ok: true })
+    expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'prova', persone })).toEqual({ ok: true })
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'vuoto', persone: [] })).toEqual({ ok: true })
   })
 
   it('chi non è operatore, o non ha l’email verificata, non cancella nulla', () => {
-    expect(decisioneEliminaSalone({ ...ROBERTO, operatorEmail: 'altro@test.it', salonId: 'prova', persone: [] }).ok).toBe(false)
-    expect(decisioneEliminaSalone({ ...ROBERTO, emailVerified: false, salonId: 'prova', persone: [] }).ok).toBe(false)
+    expect(decisioneEliminaSalone({ ...ROBERTO, admin: false, salonId: 'prova', persone: [] }).ok).toBe(false)
+    expect(decisioneEliminaSalone({ ...ROBERTO, admin: undefined, operatorEmail: 'laura.masala@tiscali.it', salonId: 'prova', persone: [] }).ok).toBe(false)
     expect(decisioneEliminaSalone({ ...ROBERTO, operatorEmail: 'altro@test.it', admin: true, salonId: 'prova', persone: [] })).toEqual({ ok: true })
   })
 
@@ -65,7 +65,7 @@ describe('eliminare un salone con persone che hanno un salone proprio', () => {
     archivio.set('salons/vuoto/settings/main', { business: { salonName: 'Vuoto' } })
   })
 
-  const chiama = () => eliminaSalonePer({ operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true, chiamante: 'rob', salonId: 'prova' })
+  const chiama = () => eliminaSalonePer({ operatorEmail: 'masala.roberto@hotmail.it', admin: true, chiamante: 'rob', salonId: 'prova' })
 
   it('chi ha dei dati resta titolare del proprio salone, in pausa; gli altri si cancellano', async () => {
     await expect(chiama()).resolves.toEqual({ ok: true, persone: 2, riportate: 1 })

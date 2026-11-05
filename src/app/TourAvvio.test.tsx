@@ -293,9 +293,8 @@ describe('avvio del tour', () => {
     expect(avviso()).not.toBeInTheDocument()
   })
 
-  it('salone condiviso: né reindirizzamento né avviso, anche per Laura che non è più admin', async () => {
-    const account = await nuovoSalone({ stato: 'in-corso', saltati: [] }, 'laura.masala@tiscali.it')
-    writeJson(storageKeys.auth, { ...account, salonId: 'shared' })
+  it('Laura: né reindirizzamento né avviso, anche se non è più admin', async () => {
+    await nuovoSalone({ stato: 'in-corso', saltati: [] }, 'laura.masala@tiscali.it')
     apri()
     await home()
     expect(benvenuto()).not.toBeInTheDocument()

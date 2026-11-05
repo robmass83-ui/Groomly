@@ -7,7 +7,7 @@ import { contatoriAdminPer } from './contatoriAdmin'
 import { segnaAvvisoBetaPer } from './segnaAvvisoBeta'
 import { impostaMostraPianiPer } from '../config/impostaMostraPiani'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 const ADESSO = new Date('2026-11-04T10:00:00.000Z')
 const FUTURO = '2026-12-04T10:00:00.000Z'
 const giorniFa = (n: number) => new Date(ADESSO.getTime() - n * 86_400_000).toISOString()
@@ -57,7 +57,7 @@ describe('contatoriAdminPer', () => {
   })
 
   it('solo operatori', async () => {
-    await expect(contatoriAdminPer({ token: { operatorEmail: 'x@y.it', emailVerified: true }, ultimiAccessi: async () => new Map() }))
+    await expect(contatoriAdminPer({ token: { operatorEmail: 'x@y.it' }, ultimiAccessi: async () => new Map() }))
       .rejects.toThrow('Accesso negato')
   })
 })
@@ -75,7 +75,7 @@ describe('impostaMostraPianiPer', () => {
 
   it('rifiuta valori non booleani e chi non è operatore', async () => {
     await expect(impostaMostraPianiPer({ token: ROBERTO, valore: 'si' })).rejects.toThrow('Impostazione non valida')
-    await expect(impostaMostraPianiPer({ token: { operatorEmail: 'x@y.it', emailVerified: true }, valore: true })).rejects.toThrow('Accesso negato')
+    await expect(impostaMostraPianiPer({ token: { operatorEmail: 'x@y.it' }, valore: true })).rejects.toThrow('Accesso negato')
     expect(archivio.get('config/globale')).toMatchObject({ mostraPiani: false })
   })
 })

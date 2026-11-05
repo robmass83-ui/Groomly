@@ -9,18 +9,16 @@ export type PersonaSalone = { uid: string; emails: string[] }
 
 /**
  * Solo per i test: l'operatore cancella un salone intero.
- * Mai Laura o Roberto, mai il salone condiviso, mai il salone di chi chiama.
+ * Mai le persone del salone condiviso, mai il salone condiviso, mai il salone di chi chiama.
  */
 export function decisioneEliminaSalone(input: {
   salonId: string
-  operatorEmail: string
-  emailVerified?: boolean
   admin?: boolean
   chiamante: string
   salonChiamante?: string
   persone: PersonaSalone[]
 }): { ok: true } | { ok: false; message: string } {
-  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+  if (!operatoreAutorizzato({ admin: input.admin })) {
     return { ok: false, message: messaggioServer('accesso_negato') }
   }
   const id = input.salonId.trim()
@@ -35,8 +33,6 @@ export function decisioneEliminaSalone(input: {
 }
 
 export async function eliminaSalonePer(input: {
-  operatorEmail: string
-  emailVerified?: boolean
   admin?: boolean
   chiamante: string
   salonId: string
@@ -49,8 +45,6 @@ export async function eliminaSalonePer(input: {
   const persone = await personeDelSalone(db, salonId)
   const decisione = decisioneEliminaSalone({
     salonId,
-    operatorEmail: input.operatorEmail,
-    emailVerified: input.emailVerified,
     admin: input.admin,
     chiamante: input.chiamante,
     salonChiamante: typeof chiamante.salonId === 'string' ? chiamante.salonId : undefined,

@@ -7,8 +7,8 @@ import { estendiBetaPer } from './estendiBeta'
 import { revocaBetaPer } from './revocaBeta'
 import { segnaEarlyAdopterPer } from './segnaEarlyAdopter'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
-const ESTRANEO = { operatorEmail: 'x@y.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
+const ESTRANEO = { operatorEmail: 'x@y.it' }
 const ADESSO = new Date('2026-11-04T10:00:00.000Z')
 const FINE = '2026-12-04T10:00:00.000Z'
 const TRACCIA = { exBeta: true, betaPiano: 'pro', betaDal: '2026-10-05T10:00:00.000Z', betaFinoAl: FINE, earlyAdopter: true }

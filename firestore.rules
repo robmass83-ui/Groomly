@@ -5,16 +5,7 @@ service cloud.firestore {
       return request.auth != null;
     }
     function isOperator() {
-      return signedIn() && (
-        request.auth.token.admin == true
-        || (
-          request.auth.token.email_verified == true
-          && (
-            request.auth.token.email.lower() == 'laura.masala@tiscali.it'
-            || request.auth.token.email.lower() == 'masala.roberto@hotmail.it'
-          )
-        )
-      );
+      return signedIn() && request.auth.token.admin == true;
     }
     function salonKindWritable(kind) {
       return kind == 'services'

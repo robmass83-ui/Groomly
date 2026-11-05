@@ -188,6 +188,7 @@ async function main() {
   // "Laura finta" + Roberto socio (accessWithoutPro), solo emulatore: replica la struttura reale per provarne il percorso
   const lauraUid = await user('laura.masala@tiscali.it', 'Test1234!', true, 'Laura Finta')
   const robUid = await user('masala.roberto@hotmail.it', 'Test1234!', true, 'Roberto Finto')
+  await auth.setCustomUserClaims(robUid, { admin: true })
   await db.doc(`accounts/${lauraUid}`).set({ firstName: 'Laura', lastName: 'Finta', email: 'laura.masala@tiscali.it', salonId: lauraUid, role: 'titolare', legacy: false })
   await db.doc(`accounts/${robUid}`).set({ firstName: 'Roberto', lastName: 'Finto', email: 'masala.roberto@hotmail.it', salonId: lauraUid, role: 'socio', legacy: false })
   const lr = db.collection('salons').doc(lauraUid)

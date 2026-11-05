@@ -10,9 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-accessi-admin-design.md`
 
+> **Correzione del 5 novembre:** vale la spec corretta. Task 3 (tour), Task 4 (test regole), Task 5 e Task 8 agiscono su `salons/{uid di Laura}`, non su `salon/shared`; robmass83 non entra in `isSharedEmail`. Dettagli nelle `Ruling:` del registro.
+
 ## Global Constraints
 
-- Mai scrivere, migrare o cancellare dati di `salon/shared` (unica eccezione: l'eventuale `salon/shared/members/{uidHotmail}` in `stacca`).
+- Mai scrivere, migrare o cancellare i dati di I Pelosetti, in `salons/{uid di Laura}` come in `salon/shared`. Nel salone di Laura si scrive solo `members`: riga di robmass83 in `collega`, riga della hotmail in `stacca`.
 - Le regole non si allentano: nessuna creazione di account in `shared` dal telefono.
 - Niente deploy, script in produzione o APK senza il via esplicito di Roberto. Questo piano si ferma ai test verdi sul ramo.
 - Modifiche a `src/data/firebase/client.ts` piccole: è in comune con la sessione di conformità.
@@ -108,17 +110,17 @@
 - [ ] **Step 5: Verifica** `npm test`, `npm run test:rules`, compilazione delle functions; `grep -n "hotmail" firestore.rules functions/src -r --include=*.ts --exclude=*.test.ts` non trova nulla.
 - [ ] **Step 6: Commit** `feat(admin): regole e functions solo dal claim`.
 
-### Task 5: robmass83 al posto della hotmail in `shared`
+### Task 5: la hotmail esce da `isSharedEmail`
 
 **Files:**
 - Modify: `src/lib/salonPath.ts`, `src/lib/greeting.ts` e test, `src/lib/authGate.test.ts`, `src/data/firebase/client.test.ts`, `src/lib/salonAccess.test.ts`, `src/hooks/useCloudOnlyData.test.tsx`, gli altri test con la hotmail come membro condiviso
 
 **Interfaces:**
-- Produces: `ROBERTO_SALONE_EMAIL = 'robmass83@gmail.com'`; `ROBERTO_EMAIL` non esiste più.
+- Produces: `ROBERTO_EMAIL` non esiste più; `isSharedEmail` vale solo per Laura.
 
-- [ ] **Step 1: Test**: `isSharedEmail('robmass83@gmail.com')` vero, `isSharedEmail('masala.roberto@hotmail.it')` falso; `usesOnlyCloudData('robmass83@gmail.com', 'shared')` vero; robmass83 senza documento → `home`; `client.test`: robmass83 con documento su `shared` apre `shared` e scarta i dati del telefono; con documento mancante aggancia `shared` in memoria senza altre scritture oltre al tentativo su `accounts/{uid}`.
+- [ ] **Step 1: Test**: `isSharedEmail` falso per hotmail e robmass83, vero per Laura; robmass83 senza documento → `repair-salon`; `client.test`: robmass83 con account `salonId` = salone di Laura apre quel salone senza scritture.
 - [ ] **Step 2: Verifica il fallimento.**
-- [ ] **Step 3: Implementa** il rinomina e aggiorna i test con la vecchia email.
+- [ ] **Step 3: Implementa** e aggiorna i test con la vecchia email.
 - [ ] **Step 4: Verifica** `npm test`; `grep -rn "hotmail" src --include=*.ts --include=*.tsx --exclude=*.test.*` non trova nulla.
 - [ ] **Step 5: Commit** `feat(salone): robmass83 entra in shared al posto della hotmail`.
 
@@ -163,7 +165,7 @@
 - Create: `scripts/passaggioAdmin.ts` (decisioni pure), `scripts/passaggioAdmin.test.ts`, `scripts/emu/passaggioAdmin.mjs`
 
 **Interfaces:**
-- Produces: `decidiCollega(stato: StatoRobmass): { ok: true; passi: string[] } | { ok: false; motivo: string }`; `decidiStacca(stato: StatoStacco): stesso tipo`. `StatoRobmass = { uid: string | null; salonId: string | null; altrePersone: number }`. `StatoStacco = { claimAdmin: boolean; robmassSalonId: string | null; robmassEntratoDopoCollegamento: boolean }`.
+- Produces: `decidiCollega(stato: StatoRobmass): { ok: true; passi: string[] } | { ok: false; motivo: string }`; `decidiStacca(stato: StatoStacco): stesso tipo`. `StatoRobmass = { uid: string | null; salonId: string | null; altrePersone: number; lauraUid: string | null; lauraSalonId: string | null }`. `StatoStacco = { claimAdmin: boolean; robmassSalonId: string | null; lauraUid: string | null; robmassEntratoDopoCollegamento: boolean }`.
 - Comandi: `controlla`, `claim on|off <email>`, `collega`, `stacca`, con `--esegui`.
 
 - [ ] **Step 1: Test decisioni**: `collega` con `uid: null` → ferma; con `salonId: 'shared'` → già collegato, nessun passo; con `altrePersone: 1` → ferma; con `salonId: 'shared/x'` o un id diverso dall'uid → ferma; salone proprio → passi con eliminazione e scrittura account; `stacca` senza claim, con robmass non su `shared` o mai entrato → ferma.

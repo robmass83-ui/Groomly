@@ -6,7 +6,7 @@ vi.mock('firebase-admin/firestore', async () => (await import('../piano/firestor
 import { CONFIG_PIANI_DEFAULT } from '../../../src/lib/configPiani'
 import { configPianiDopo, impostaConfigPianiPer } from './impostaConfigPiani'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 
 describe('configPianiDopo', () => {
   it('cambia solo i campi passati', () => {
@@ -39,9 +39,9 @@ describe('impostaConfigPianiPer', () => {
   })
 
   it('rifiuta chi non è operatore senza scrivere', async () => {
-    await expect(impostaConfigPianiPer({ operatorEmail: 'altro@example.com', emailVerified: true, modifiche: { provaSelfService: true } }))
+    await expect(impostaConfigPianiPer({ admin: false, modifiche: { provaSelfService: true } }))
       .rejects.toThrow('Accesso negato')
-    await expect(impostaConfigPianiPer({ operatorEmail: 'masala.roberto@hotmail.it', emailVerified: false, modifiche: { provaSelfService: true } }))
+    await expect(impostaConfigPianiPer({ admin: false, modifiche: { provaSelfService: true } }))
       .rejects.toThrow('Accesso negato')
     expect(archivio.get('config/globale')).not.toHaveProperty('piani')
   })

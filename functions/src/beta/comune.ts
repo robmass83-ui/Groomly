@@ -19,7 +19,7 @@ export interface AvvisoBeta {
   letto: boolean
 }
 
-export type TokenOperatore = { operatorEmail: string; emailVerified?: boolean; admin?: boolean }
+export type TokenOperatore = { operatorEmail: string; admin?: boolean }
 
 export const GIORNO_MS = 24 * 60 * 60 * 1000
 
@@ -32,7 +32,7 @@ export function salonIdValido(id: unknown): id is string {
 }
 
 export function richiediOperatore(token: TokenOperatore): void {
-  if (!operatoreAutorizzato({ email: token.operatorEmail, emailVerified: token.emailVerified, admin: token.admin })) nega('accesso_negato')
+  if (!operatoreAutorizzato({ admin: token.admin })) nega('accesso_negato')
 }
 
 export function proMainDi(dati: DocumentData | undefined): ProMain | undefined {

@@ -20,8 +20,6 @@ function comeBypass(azione: string): AzioneBypass | null {
 }
 
 export async function impostaPianoManualePer(input: {
-  operatorEmail: string
-  emailVerified?: boolean
   admin?: boolean
   salonId: string
   azione: string
@@ -29,7 +27,7 @@ export async function impostaPianoManualePer(input: {
   testo?: string
   apiKey?: string
 }): Promise<{ ok: true; emailStato: 'inviata' | 'non_inviata' | null }> {
-  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+  if (!operatoreAutorizzato({ admin: input.admin })) {
     throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const bypass = comeBypass(input.azione)

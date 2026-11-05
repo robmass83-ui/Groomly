@@ -12,8 +12,8 @@ export function dataPartenzaValida(data: unknown, adesso: Date): data is string 
   return dataIsoValida(data) && giorniRoma(adesso, new Date(data)) >= GIORNI_ANNUNCIO
 }
 
-export function controllaOperatore(input: { operatorEmail: string; emailVerified?: boolean; admin?: boolean }): void {
-  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+export function controllaOperatore(input: { admin?: boolean }): void {
+  if (!operatoreAutorizzato({ admin: input.admin })) {
     throw erroreServer('failed-precondition', 'accesso_negato')
   }
 }
@@ -42,8 +42,6 @@ async function destinatari(): Promise<{ email: string; lingua: Lingua }[]> {
 }
 
 export async function annunciaPagamentiPer(input: {
-  operatorEmail: string
-  emailVerified?: boolean
   admin?: boolean
   data: unknown
   inviaEmail: InvioAnnuncio

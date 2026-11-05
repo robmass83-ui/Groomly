@@ -55,11 +55,11 @@ describe('firestore.rules', () => {
     expect(blocco).toContain("request.resource.data.keys().hasOnly(['tipo', 'titolo', 'testo', 'creato'])")
   })
 
-  it('le due email operano su shared e leggono gli account', () => {
-    expect(rules).toContain("request.auth.token.email.lower() == 'laura.masala@tiscali.it'")
-    expect(rules).toContain("request.auth.token.email.lower() == 'masala.roberto@hotmail.it'")
+  it('i permessi admin vengono solo dal claim, nessuna email', () => {
+    expect(rules).not.toContain('tiscali')
+    expect(rules).not.toContain('hotmail')
+    expect(rules).not.toContain('request.auth.token.email_verified')
     expect(rules).toContain('function isOperator()')
-    expect(rules).toContain('request.auth.token.email_verified == true')
     expect(rules).toContain('request.auth.token.admin == true')
     expect(rules).not.toContain('function isLaura()')
     expect(rules).toContain('request.auth.uid == uid || isOperator()')

@@ -68,12 +68,10 @@ export function configPianiDopo(attuale: ConfigPiani, modifiche: unknown): Confi
 }
 
 export async function impostaConfigPianiPer(input: {
-  operatorEmail: string
-  emailVerified?: boolean
   admin?: boolean
   modifiche: unknown
 }): Promise<{ ok: true; piani: ConfigPiani }> {
-  if (!operatoreAutorizzato({ email: input.operatorEmail, emailVerified: input.emailVerified, admin: input.admin })) {
+  if (!operatoreAutorizzato({ admin: input.admin })) {
     throw erroreServer('failed-precondition', 'accesso_negato')
   }
   const db = getFirestore()

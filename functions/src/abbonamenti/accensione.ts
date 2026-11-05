@@ -5,7 +5,7 @@ import { controllaOperatore } from './annuncio'
 import type { VoceOffering } from './offeringRc'
 import { erroreServer } from '../erroriServer'
 
-type Operatore = { operatorEmail: string; emailVerified?: boolean; admin?: boolean }
+type Operatore = { admin?: boolean }
 // L'offering si legge da RevenueCat: lo passa chi chiama (index.ts con i segreti, i test con un finto).
 type LeggiOffering = (offeringId: string) => Promise<VoceOffering>
 

@@ -6,7 +6,7 @@ vi.mock('firebase-admin/firestore', async () => (await import('../piano/firestor
 import { annunciaPagamentiPer, dataPartenzaValida } from './annuncio'
 import { emailAnnuncio } from './emailAnnuncio'
 
-const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', emailVerified: true }
+const ROBERTO = { operatorEmail: 'masala.roberto@hotmail.it', admin: true }
 const ADESSO = new Date('2026-12-01T10:00:00.000Z')
 const tra = (giorni: number) => new Date(ADESSO.getTime() + giorni * 86_400_000).toISOString()
 
@@ -45,7 +45,7 @@ describe('annunciaPagamentiPer', () => {
   })
 
   it('solo operatori', async () => {
-    await expect(annunciaPagamentiPer({ operatorEmail: 'a@b.it', emailVerified: true, data: tra(20), inviaEmail, adesso: ADESSO })).rejects.toThrow('Accesso negato')
+    await expect(annunciaPagamentiPer({ operatorEmail: 'a@b.it', data: tra(20), inviaEmail, adesso: ADESSO })).rejects.toThrow('Accesso negato')
   })
 
   it('data troppo vicina o abbonamenti già accesi: rifiuta senza scrivere', async () => {

@@ -4,10 +4,9 @@ import { configTourDopo, impostaTourPer } from './impostaTour'
 describe('interruttore del tour', () => {
   const adesso = new Date('2026-10-30T10:00:00Z')
 
-  it('rifiuta Laura se l’email non è verificata', async () => {
+  it('rifiuta chi non ha il claim', async () => {
     await expect(impostaTourPer({
-      operatorEmail: 'laura.masala@tiscali.it',
-      emailVerified: false,
+      admin: false,
       acceso: true,
     })).rejects.toThrow('Accesso negato')
   })

@@ -578,15 +578,13 @@ function loginEmail(auth: { token?: { email?: string } } | undefined): string {
   return typeof email === 'string' ? email : ''
 }
 
-function tokenOperatore(auth: { token?: { email?: string; email_verified?: boolean; admin?: boolean } } | undefined): {
+function tokenOperatore(auth: { token?: { email?: string; admin?: boolean } } | undefined): {
   operatorEmail: string
-  emailVerified: boolean
   admin: boolean
 } {
   const token = auth?.token
   return {
     operatorEmail: typeof token?.email === 'string' ? token.email : '',
-    emailVerified: token?.email_verified === true,
     admin: token?.admin === true,
   }
 }
@@ -771,7 +769,7 @@ export const inviaCampioneEmail = onCall({ ...pianoCall, secrets: [brevoApiKey] 
     apiKey = ''
   }
   return inviaCampione({
-    email: typeof request.auth?.token.email === 'string' ? request.auth.token.email : null,
+    admin: request.auth?.token.admin === true,
     apiKey,
     invia: async (to, oggetto, html) => {
       await postBrevoHtml(apiKey, to, oggetto, html)
