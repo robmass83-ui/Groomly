@@ -31,7 +31,7 @@ const directory = vi.hoisted(() => ({
   load: vi.fn(),
   setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
   imposta: vi.fn(async (_salonId?: string, _azione?: string, _testo?: string) => ({ ok: true as const, emailStato: null as 'inviata' | 'non_inviata' | null })),
-  elenco: vi.fn(async () => [] as SuggerimentoArrivato[]),
+  elenco: vi.fn(async () => [] as unknown[]),
   elimina: vi.fn(async (_salonId: string) => undefined),
 }))
 vi.mock('../../data/firebase/client', async () => {
