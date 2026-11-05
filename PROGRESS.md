@@ -2,6 +2,11 @@
 
 Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo passo”».
 
+## Rilascio 1.1.193 (6 novembre)
+
+- Pubblicati insieme: metriche e testi legali, agenda con visite accavallate e razza, profilo in alto, pagina Altro e Magazzino, lingua della pagina del salone, avviso orario scaduto.
+- Riaccettazione dal 2026-12-01: resta da mandare l'avviso da Comunicazioni entro il 16 novembre (`docs/legal/AVVISO-DOCUMENTI.md`).
+
 ## Obiettivo generale
 
 1. Audit QA completo dell'app (fatto) → report `docs/AUDIT-QA-2026-11-01.md` (2 critiche, 10 alte, 34 medie, ~65 basse).
