@@ -51,7 +51,7 @@ describe('eliminazione account', () => {
     expect(lettera.html).toContain('Bauci &lt;salon&gt;')
     expect(lettera.html).toContain('Grazie per aver lavorato con noi')
     expect(lettera.html).toContain('info@groomlyapp.it')
-    expect(lettera.html).toContain('groomly-logo-orizzontale.svg')
+    expect(lettera.html).toContain('groomly-logo-email.png')
     expect(lettera.html).not.toContain('<a ')
   })
 

@@ -199,7 +199,7 @@ function cornice(lingua: Lingua, titolo: string, corpo: string, citazione: strin
   return `<!doctype html><html lang="${lingua}"><body style="margin:0;background:#eef3f7;font-family:'Segoe UI',system-ui,sans-serif;color:#2C4560">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef3f7;padding:28px 12px"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
-<tr><td align="center" style="padding:0 0 18px"><img src="https://groomlyapp.it/groomly-logo-orizzontale.svg" alt="Groomly" width="200" style="display:block;border:0;width:200px;max-width:70%;height:auto"></td></tr>
+<tr><td align="center" style="padding:0 0 18px"><img src="https://groomlyapp.it/groomly-logo-email.png" alt="Groomly" width="200" style="display:block;border:0;width:200px;max-width:70%;height:auto"></td></tr>
 <tr><td style="background:#ffffff;border:1px solid #dfe8ef;border-radius:16px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="height:6px;background:#4A9FCB;background-image:linear-gradient(90deg,#8ADBD9,#4A9FCB);font-size:0;line-height:0">&nbsp;</td></tr>

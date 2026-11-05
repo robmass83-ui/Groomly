@@ -32,7 +32,7 @@ export function emailEliminazione(nome: string, lingua: Lingua = 'it'): { oggett
   const oggetto = OGGETTO[lingua]
   const corpo = CORPO[lingua](contoEliminato(lingua, nome))
   const html = `<!doctype html><html lang="${lingua}"><body style="background:#f4f7fb;font-family:sans-serif;color:#123">
-<img src="https://groomlyapp.it/groomly-logo-orizzontale.svg" alt="Groomly" width="180">
+<img src="https://groomlyapp.it/groomly-logo-email.png" alt="Groomly" width="180">
 <h1 style="font-size:28px;color:#123">${oggetto}</h1>
 <p>${corpo}</p>
 </body></html>`

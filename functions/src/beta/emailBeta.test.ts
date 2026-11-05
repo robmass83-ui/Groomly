@@ -15,7 +15,7 @@ describe('emailBeta', () => {
 
   it('usa la cornice Groomly, il nome del piano e la data di Roma nella lingua', () => {
     const it_ = emailBeta('it', 'invito', { piano: 'salone', giorni: 60, scadeIl: FINE })
-    expect(it_.html).toContain('groomly-logo-orizzontale.svg')
+    expect(it_.html).toContain('groomly-logo-email.png')
     expect(it_.html).toContain('Salon')
     expect(it_.html).toContain('60')
     expect(it_.html).toContain('5 dicembre 2026')
