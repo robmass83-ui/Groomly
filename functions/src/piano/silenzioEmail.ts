@@ -22,6 +22,7 @@ export interface ArchivioSilenzio {
   emailCane(salonId: string, dogId: string): Promise<string | null>
   caniConEmail(salonId: string, email: string): Promise<string[]>
   segnaBloccata(salonId: string, dogId: string, bloccata: boolean): Promise<void>
+  leggiBlocco(salonId: string, email: string): Promise<FonteBlocco | null>
   scriviBlocco(salonId: string, email: string, fonte: FonteBlocco): Promise<void>
   togliBlocco(salonId: string, email: string): Promise<void>
   leggiRighe(salonId: string, dogId: string): Promise<RigaCoda[]>
@@ -88,6 +89,11 @@ export function archivioDaDb(db: Firestore): ArchivioSilenzio {
     },
     async segnaBloccata(salonId, dogId, bloccata) {
       await db.doc(`salons/${salonId}/dogs/${dogId}`).set({ emailBloccata: bloccata }, { merge: true })
+    },
+    async leggiBlocco(salonId, email) {
+      const snap = await blocco(salonId, email).get()
+      if (!snap.exists) return null
+      return snap.get('fonte') === 'link' ? 'link' : 'scheda'
     },
     async scriviBlocco(salonId, email, fonte) {
       await blocco(salonId, email).set({ email: normalizeEmail(email), at: new Date().toISOString(), fonte })
@@ -161,8 +167,11 @@ export async function impostaEmailClientePer(
   if (email === null) throw erroreServer('not-found', 'cane_assente')
   const cani = new Set([input.dogId])
   if (emailValida(email)) {
-    if (input.bloccata) await archivio.scriviBlocco(input.salonId, email, 'scheda')
-    else await archivio.togliBlocco(input.salonId, email)
+    // Il no del cliente prevale: dopo il link il salone non riaccende e non lo trasforma in una scelta sua.
+    const blocco = await archivio.leggiBlocco(input.salonId, email)
+    if (blocco === 'link' && !input.bloccata) throw erroreServer('failed-precondition', 'email_disiscritta')
+    if (input.bloccata && blocco !== 'link') await archivio.scriviBlocco(input.salonId, email, 'scheda')
+    if (!input.bloccata) await archivio.togliBlocco(input.salonId, email)
     for (const dogId of await archivio.caniConEmail(input.salonId, email)) cani.add(dogId)
   }
   for (const dogId of cani) {

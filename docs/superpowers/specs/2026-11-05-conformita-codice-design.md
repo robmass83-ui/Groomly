@@ -80,7 +80,7 @@ Lo stesso codice serve anche la riparazione del salone, dove la casella non si v
 - Se la riga non ha un indirizzo, si comporta come oggi, per cane.
 - Rifiuta `shared`, come oggi.
 
-**Function `impostaEmailCliente({ dogId, bloccata })`:** solo titolare e socio, mai `shared`. Scrive o toglie il blocco e allinea tutti i cani con lo stesso indirizzo.
+**Function `impostaEmailCliente({ dogId, bloccata })`:** solo titolare e socio, mai `shared`. Scrive o toglie il blocco e allinea tutti i cani con lo stesso indirizzo. Decisione dell'utente: dopo una disiscrizione dal link (`fonte: 'link'`) il salone non può riaccendere.
 
 **Invio.** `giraCoda` legge `emailBloccate` per il salone. `inviaCoda` e `inviaOfferteAttesa` saltano gli indirizzi bloccati, così anche un cane aggiunto dopo resta silenzioso. La lettura su `shared` è ammessa, la scrittura no.
 

@@ -60,6 +60,10 @@ function memoria(input: {
     async segnaBloccata(salonId, dogId, bloccata) {
       (bloccata ? bloccati : sbloccati).push(`${salonId}/${dogId}`)
     },
+    async leggiBlocco(_salonId, email) {
+      const fonte = elenco.get(chiaveEmail(email))
+      return fonte === 'link' || fonte === 'scheda' ? fonte : null
+    },
     async scriviBlocco(_salonId, email, fonte) {
       elenco.set(chiaveEmail(email), fonte)
     },
@@ -156,6 +160,22 @@ describe('impostaEmailClientePer', () => {
     await impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store)
     expect(store.elenco.size).toBe(0)
     expect(store.sbloccati.sort()).toEqual(['s/d', 's/e'])
+  })
+
+  it('dopo una disiscrizione dal link il salone non riaccende', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store))
+      .rejects.toMatchObject({ code: 'failed-precondition' })
+    expect(store.elenco.get(chiaveEmail('a@b.it'))).toBe('link')
+    expect(store.sbloccati).toEqual([])
+  })
+
+  it('spegnere dalla scheda non trasforma un no del cliente in una scelta del salone', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: true }, store)
+    expect(store.elenco.get(chiaveEmail('a@b.it'))).toBe('link')
   })
 
   it('un cane che non esiste dà errore', async () => {

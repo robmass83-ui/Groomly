@@ -76,6 +76,16 @@ describe('EmailCliente', () => {
     expect(m.elenco).toHaveBeenCalledWith('emailBloccate')
   })
 
+  it('se il cliente si è disiscritto dal link il salone non può riaccendere', async () => {
+    m.elenco.mockResolvedValue([{ id: 'x', data: { email: 'ada@cliente.it', fonte: 'link' } }])
+    const user = userEvent.setup()
+    render(<EmailCliente dog={cane({ emailBloccata: true })} salvaLocale={() => true} />)
+    expect(await screen.findByText('Il cliente ha chiesto di non ricevere email')).toBeInTheDocument()
+    await user.click(screen.getByRole('switch'))
+    expect(m.chiama).not.toHaveBeenCalled()
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+  })
+
   it('se l’elenco non si legge vale lo stato del cane', async () => {
     m.elenco.mockRejectedValue(new Error('no'))
     render(<EmailCliente dog={cane()} salvaLocale={() => true} />)

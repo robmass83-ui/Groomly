@@ -2139,4 +2139,5 @@ export const en = {
   vetRiepilogoProva: '30 days free until {{data}}, no card needed. At the end you return to Go, with no charges.',
   abbGestisci: 'Manage or cancel on Google Play',
   abbDopoDisdetta: 'After cancelling, the plan stays active until it expires, then you return to Go: your data stays.',
+  mailDisiscritto: 'The client asked not to receive emails',
 } as const satisfies Record<keyof typeof italiano, string>

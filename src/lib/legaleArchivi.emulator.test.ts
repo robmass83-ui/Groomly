@@ -43,7 +43,15 @@ describe('archivi su Firestore', () => {
     expect((await db.doc(`salons/${SALONE}/coda/r2`).get()).get('stato')).toBe('fermata')
   })
 
-  it('la scheda riaccende l’indirizzo e tutti i suoi cani', async () => {
+  it('il salone non riaccende dopo il link del cliente', async () => {
+    await expect(impostaEmailClientePer({ salonId: SALONE, ruolo: 'titolare', dogId: 'd2', bloccata: false }, archivioDaDb(db)))
+      .rejects.toMatchObject({ code: 'failed-precondition' })
+    expect((await db.doc(`salons/${SALONE}/dogs/d1`).get()).get('emailBloccata')).toBe(true)
+  })
+
+  it('un blocco messo dalla scheda si riaccende per tutti i cani', async () => {
+    await db.doc(`salons/${SALONE}/emailBloccate/${chiaveEmail('ada@cliente.it')}`).delete()
+    await impostaEmailClientePer({ salonId: SALONE, ruolo: 'titolare', dogId: 'd2', bloccata: true }, archivioDaDb(db))
     await impostaEmailClientePer({ salonId: SALONE, ruolo: 'titolare', dogId: 'd2', bloccata: false }, archivioDaDb(db))
     expect((await db.doc(`salons/${SALONE}/emailBloccate/${chiaveEmail('ada@cliente.it')}`).get()).exists).toBe(false)
     expect((await db.doc(`salons/${SALONE}/dogs/d1`).get()).get('emailBloccata')).toBe(false)

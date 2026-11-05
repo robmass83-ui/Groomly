@@ -2139,4 +2139,5 @@ export const de = {
   vetRiepilogoProva: '30 Tage kostenlos bis zum {{data}}, ohne Karte. Am Ende kehren Sie ohne Kosten zu Go zurück.',
   abbGestisci: 'Bei Google Play verwalten oder kündigen',
   abbDopoDisdetta: 'Nach der Kündigung bleibt der Tarif bis zum Ablauf aktiv, dann kehren Sie zu Go zurück: Ihre Daten bleiben erhalten.',
+  mailDisiscritto: 'Der Kunde möchte keine E-Mails erhalten',
 } as const satisfies Record<keyof typeof italiano, string>

@@ -2137,4 +2137,5 @@ export const it = {
   vetRiepilogoProva: '30 giorni gratis fino al {{data}}, senza carta. Alla fine torni a Go, senza addebiti.',
   abbGestisci: 'Gestisci o disdici su Google Play',
   abbDopoDisdetta: 'Dopo la disdetta il piano resta attivo fino alla scadenza, poi torni a Go: i tuoi dati restano.',
+  mailDisiscritto: 'Il cliente ha chiesto di non ricevere email',
 } as const

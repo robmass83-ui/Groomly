@@ -2139,4 +2139,5 @@ export const es = {
   vetRiepilogoProva: '30 días gratis hasta el {{data}}, sin tarjeta. Al final vuelves a Go, sin cargos.',
   abbGestisci: 'Gestiona o cancela en Google Play',
   abbDopoDisdetta: 'Tras cancelar, el plan sigue activo hasta que venza; después vuelves a Go: tus datos se conservan.',
+  mailDisiscritto: 'El cliente ha pedido no recibir correos',
 } as const satisfies Record<keyof typeof italiano, string>

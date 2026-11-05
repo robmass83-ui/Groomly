@@ -14,6 +14,7 @@ export function EmailCliente({ dog, salvaLocale }: { dog: Dog; salvaLocale: (blo
   const { gate } = useSession()
   const [scelta, setScelta] = useState<boolean | null>(null)
   const [inElenco, setInElenco] = useState(false)
+  const [dalCliente, setDalCliente] = useState(false)
   const account = gate.kind === 'in' ? gate.account : null
   const email = dog.contact.email?.trim() ?? ''
   const nascosto = email === '' || account?.role === 'collaboratore' || account?.salonId === SHARED_SALON_ID
@@ -25,7 +26,10 @@ export function EmailCliente({ dog, salvaLocale }: { dog: Dog; salvaLocale: (blo
     void import('../../data/firebase/client')
       .then((mod) => mod.readSalonCollection('emailBloccate'))
       .then((voci) => {
-        if (vivo) setInElenco(voci.some((voce) => typeof voce.data.email === 'string' && normalizeEmail(voce.data.email) === normalizeEmail(email)))
+        const voce = voci.find((item) => typeof item.data.email === 'string' && normalizeEmail(item.data.email) === normalizeEmail(email))
+        if (!vivo) return
+        setInElenco(voce !== undefined)
+        setDalCliente(voce?.data.fonte === 'link')
       })
       .catch(() => undefined)
     return () => { vivo = false }
@@ -51,8 +55,11 @@ export function EmailCliente({ dog, salvaLocale }: { dog: Dog; salvaLocale: (blo
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 48 }}>
-      <span style={{ fontWeight: 700, color: 'var(--tx2)' }}>{frasi.mailCliente}</span>
-      <Toggle checked={accese} label={frasi.mailCliente} onChange={(acceso) => { void cambia(acceso) }} />
+      <span style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontWeight: 700, color: 'var(--tx2)' }}>{frasi.mailCliente}</span>
+        {dalCliente ? <small style={{ color: 'var(--tx3)' }}>{frasi.mailDisiscritto}</small> : null}
+      </span>
+      <Toggle checked={accese} label={frasi.mailCliente} disabled={dalCliente} onChange={(acceso) => { void cambia(acceso) }} />
     </div>
   )
 }
