@@ -1025,6 +1025,8 @@ export const en = {
   hubSuggerimentiDettaglio: 'Report a problem or an idea',
   hubIncassi: 'Earnings and reports',
   hubPiano: 'Plan',
+  rifTitolo: 'Confirm your password',
+  rifTesto: 'This action can’t be undone, so we need your password again.',
   hubAvvisi: 'Alerts',
   hubAvvisiNuovi: 'There are new alerts',
   avsScrivi: 'Write a notice',

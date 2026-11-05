@@ -1025,6 +1025,8 @@ export const es = {
   hubSuggerimentiDettaglio: 'Señala un problema o una idea',
   hubIncassi: 'Ingresos e informes',
   hubPiano: 'Plan',
+  rifTitolo: 'Confirma tu contraseña',
+  rifTesto: 'Esta acción no se puede deshacer: necesitamos tu contraseña de nuevo.',
   hubAvvisi: 'Avisos',
   hubAvvisiNuovi: 'Hay avisos nuevos',
   avsScrivi: 'Escribir un aviso',

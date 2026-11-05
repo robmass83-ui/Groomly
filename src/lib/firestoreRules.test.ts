@@ -46,13 +46,10 @@ function salonKindBlock(source: string, specific: string, kind: string): string 
 describe('firestore.rules', () => {
   const rules = readFileSync('firestore.rules', 'utf8')
 
-  it('gli avvisi di sistema li legge ogni account e li scrivono solo gli operatori', () => {
+  it('gli avvisi di sistema li legge ogni account e li scrivono solo le functions', () => {
     const blocco = sliceMatchBlock(rules, '/avvisiSistema/{id}')
     expect(blocco).toContain('allow read: if signedIn();')
-    expect(blocco).toContain('allow create: if isOperator()')
-    expect(blocco).toContain('allow delete: if isOperator();')
-    expect(blocco).toContain('allow update: if false;')
-    expect(blocco).toContain("request.resource.data.keys().hasOnly(['tipo', 'titolo', 'testo', 'creato'])")
+    expect(blocco).toContain('allow write: if false;')
   })
 
   it('i permessi admin vengono solo dal claim, nessuna email', () => {

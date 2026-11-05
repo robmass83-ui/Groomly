@@ -13,6 +13,7 @@ import { dataCorta } from '../i18n/format'
 import { dividiAvvisi, lettiDopoApertura, TESTO_MAX, TIPI_AVVISO, TITOLO_MAX, type AvvisoSistema, type TipoAvviso } from '../lib/avvisiSistema'
 import { useRuolo } from '../hooks/useRuolo'
 import { AdminFrame } from '../components/admin/AdminFrame'
+import { useRiconferma } from '../components/admin/RiconfermaPassword'
 import { PERCORSO_ADMIN } from '../lib/percorsoAdmin'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -173,6 +174,7 @@ function ScriviAvviso({ open, onClose }: { open: boolean; onClose: () => void })
   const [corpo, setCorpo] = useState('')
   const [errore, setErrore] = useState('')
   const [attesa, setAttesa] = useState(false)
+  const { conRiconferma, dialogo } = useRiconferma()
 
   async function pubblica() {
     const titoloPulito = titolo.trim()
@@ -184,7 +186,7 @@ function ScriviAvviso({ open, onClose }: { open: boolean; onClose: () => void })
     setErrore('')
     try {
       const { pubblicaAvvisoSistema } = await import('../data/firebase/client')
-      await pubblicaAvvisoSistema({ tipo, titolo: titoloPulito, testo: corpo.trim() })
+      await conRiconferma(() => pubblicaAvvisoSistema({ tipo, titolo: titoloPulito, testo: corpo.trim() }))
       setTitolo('')
       setCorpo('')
       onClose()
@@ -212,6 +214,7 @@ function ScriviAvviso({ open, onClose }: { open: boolean; onClose: () => void })
       <textarea aria-label={frasi.avsTesto} placeholder={frasi.avsTesto} value={corpo} maxLength={TESTO_MAX} onChange={(event) => setCorpo(event.target.value)} style={{ ...campo, minHeight: 120, maxHeight: 220, resize: 'none' }} />
       {errore ? <span style={{ color: 'var(--bad)', fontSize: TYPE.rowSub }}>{errore}</span> : null}
       <Button onClick={() => { void pubblica() }} disabled={attesa}>{frasi.avsPubblica}</Button>
+      {dialogo}
     </Dialog>
   )
 }

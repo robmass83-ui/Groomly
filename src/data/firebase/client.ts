@@ -494,15 +494,11 @@ export async function listenAvvisiSistema(onData: (avvisi: AvvisoSistema[]) => v
 }
 
 export async function pubblicaAvvisoSistema(input: { tipo: TipoAvviso; titolo: string; testo: string }): Promise<void> {
-  const db = await database()
-  const { addDoc, collection, serverTimestamp } = await loadFirestore()
-  await addDoc(collection(db, 'avvisiSistema'), { tipo: input.tipo, titolo: input.titolo, testo: input.testo, creato: serverTimestamp() })
+  await callCallable('pubblicaAvvisoSistema', input)
 }
 
 export async function eliminaAvvisoSistema(id: string): Promise<void> {
-  const db = await database()
-  const { deleteDoc, doc } = await loadFirestore()
-  await deleteDoc(doc(db, 'avvisiSistema', id))
+  await callCallable('eliminaAvvisoSistema', { id })
 }
 
 /** Fin dove l'account ha letto gli avvisi di sistema (millisecondi dell'avviso più nuovo visto). */
@@ -2558,6 +2554,12 @@ export async function sendVerification(): Promise<{ alreadyVerified: boolean }> 
   } catch (error) {
     throw mapMailError(error)
   }
+}
+
+/** Dopo la riautenticazione il token nuovo porta il momento dell'accesso che le functions controllano. */
+export async function riconfermaPassword(password: string): Promise<void> {
+  await verificaPassword(password)
+  await (await auth()).currentUser?.getIdToken(true)
 }
 
 export async function verificaPassword(attuale: string): Promise<void> {

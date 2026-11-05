@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { EMAIL_RATE_WINDOW_MS, PUSH_RATE_MAX, PUSH_RATE_WINDOW_MS, pushRateDecision, rateDecision } from './rateLimit'
+import { AVVISI_RATE_MAX, AVVISI_RATE_WINDOW_MS, EMAIL_RATE_WINDOW_MS, PUSH_RATE_MAX, PUSH_RATE_WINDOW_MS, avvisiRateDecision, pushRateDecision, rateDecision } from './rateLimit'
+
+describe('limite avvisi', () => {
+  it('accetta dieci avvisi in un’ora e blocca l’undicesimo', () => {
+    expect(AVVISI_RATE_MAX).toBe(10)
+    expect(AVVISI_RATE_WINDOW_MS).toBe(60 * 60 * 1000)
+    const adesso = 1_000_000_000
+    const hits = Array.from({ length: 10 }, (_, i) => adesso - i)
+    expect(avvisiRateDecision(hits.slice(1), adesso).ok).toBe(true)
+    expect(avvisiRateDecision(hits, adesso).ok).toBe(false)
+    expect(avvisiRateDecision(hits, adesso + AVVISI_RATE_WINDOW_MS + 10).ok).toBe(true)
+  })
+})
 
 describe('limite email', () => {
   const now = 1_000_000

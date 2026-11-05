@@ -1025,6 +1025,8 @@ export const de = {
   hubSuggerimentiDettaglio: 'Problem oder Idee melden',
   hubIncassi: 'Einnahmen und Berichte',
   hubPiano: 'Tarif',
+  rifTitolo: 'Passwort bestätigen',
+  rifTesto: 'Diese Aktion lässt sich nicht rückgängig machen: Ihr Passwort wird erneut benötigt.',
   hubAvvisi: 'Hinweise',
   hubAvvisiNuovi: 'Es gibt neue Hinweise',
   avsScrivi: 'Hinweis schreiben',

@@ -34,6 +34,8 @@ import { membroTitolareMancante } from './piano/titolareMembro'
 import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
 import { conRegistro } from './adminLog'
+import { controllaAdminRecente } from './accessoRecente'
+import { cancellaAvviso, eliminaAvvisoSistemaPer, pubblicaAvvisoSistemaPer, riservaAvviso, scriviAvviso } from './config/avvisiSistema'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
@@ -703,6 +705,7 @@ export const eliminaAccount = onCall({ ...pianoCall, timeoutSeconds: 300, secret
 // Solo per i test: l'operatore cancella una toelettatura intera, persone comprese.
 export const eliminaSalone = onCall({ ...pianoCall, timeoutSeconds: 300 }, async (request) => {
   const uid = requireUid(request.auth)
+  controllaAdminRecente(request.auth?.token)
   return conRegistro('eliminaSalone', (esito) => ({ salonId: text(field(request.data, 'salonId')), dettagli: { persone: esito.persone, riportate: esito.riportate } }), () => eliminaSalonePer({
     ...tokenOperatore(request.auth),
     chiamante: uid,
@@ -934,6 +937,27 @@ export const impostaConfigPiani = onCall(pianoCall, async (request) => {
 export const impostaMostraPiani = onCall(pianoCall, async (request) => {
   requireUid(request.auth)
   return conRegistro('impostaMostraPiani', () => ({ dettagli: { valore: field(request.data, 'valore') } }), () => impostaMostraPianiPer({ token: tokenOperatore(request.auth), valore: field(request.data, 'valore') }))
+})
+
+export const pubblicaAvvisoSistema = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('pubblicaAvvisoSistema', () => ({ dettagli: { tipo: field(request.data, 'tipo'), titolo: field(request.data, 'titolo') } }), () => pubblicaAvvisoSistemaPer({
+    admin: request.auth?.token.admin === true,
+    authTime: request.auth?.token.auth_time,
+    dati: request.data,
+    consentito: () => riservaAvviso(uid),
+    scrivi: (avviso) => scriviAvviso(avviso),
+  }))
+})
+
+export const eliminaAvvisoSistema = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  const id = text(field(request.data, 'id'))
+  return conRegistro('eliminaAvvisoSistema', () => ({ dettagli: { id } }), () => eliminaAvvisoSistemaPer({
+    admin: request.auth?.token.admin === true,
+    id,
+    cancella: (daCancellare) => cancellaAvviso(daCancellare),
+  }))
 })
 
 // Beta su invito (B1): firme nei Contratti di docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md.

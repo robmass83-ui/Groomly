@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Check, Lock, Power, X } from 'lucide-react'
 import { accendiAbbonamenti, confermaPartitaIva, controlloAccensione, spegniAbbonamenti } from '../../data/firebase/abbonamentiClient'
+import { useRiconferma } from './RiconfermaPassword'
 import { useFrasi } from '../../i18n/LinguaContext'
 import type { Controllo, VoceControllo } from '../../lib/accensione'
 import { Dialog } from '../layout/Dialog'
@@ -68,6 +69,8 @@ export function PannelloAccensione() {
     void ricarica()
   }, [ricarica])
 
+  const { conRiconferma, dialogo: dialogoRiconferma } = useRiconferma()
+
   async function azione(fare: () => Promise<void>) {
     setOccupato(true)
     try {
@@ -134,6 +137,7 @@ export function PannelloAccensione() {
           </span>
         </Button>
       )}
+      {dialogoRiconferma}
       <Dialog open={dialogo === 'accendi'} title={frasi.b4AccendiTitolo} onClose={() => setDialogo(null)}>
         <p style={{ margin: 0, lineHeight: 1.45 }}>{frasi.b4AccendiTesto}</p>
         <Button onClick={() => setDialogo('parola')}>{frasi.b4Continua}</Button>
@@ -150,11 +154,11 @@ export function PannelloAccensione() {
             style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', fontWeight: 400, padding: 8, border: '1px solid var(--line)', borderRadius: 8, background: 'transparent', color: 'inherit' }}
           />
         </label>
-        <Button disabled={!parolaGiusta || occupato} onClick={() => { void azione(() => accendiAbbonamenti(frasi.b4ParolaAccendi)) }}>{frasi.b4Accendi}</Button>
+        <Button disabled={!parolaGiusta || occupato} onClick={() => { void azione(() => conRiconferma(() => accendiAbbonamenti(frasi.b4ParolaAccendi))) }}>{frasi.b4Accendi}</Button>
       </Dialog>
       <Dialog open={dialogo === 'spegni'} title={frasi.b4Spegni} onClose={() => setDialogo(null)}>
         <p style={{ margin: 0, lineHeight: 1.45 }}>{frasi.b4SpegniTesto}</p>
-        <Button variant="bad" disabled={occupato} onClick={() => { void azione(spegniAbbonamenti) }}>{frasi.b4Spegni}</Button>
+        <Button variant="bad" disabled={occupato} onClick={() => { void azione(() => conRiconferma(spegniAbbonamenti)) }}>{frasi.b4Spegni}</Button>
         <Button variant="secondary" onClick={() => setDialogo(null)}>{frasi.b4Annulla}</Button>
       </Dialog>
     </section>

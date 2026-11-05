@@ -8,6 +8,7 @@ import { emailAnnuncio } from './emailAnnuncio'
 import { leggiOfferingRc } from './offeringRc'
 import { erroreServer } from '../erroriServer'
 import { conRegistro } from '../adminLog'
+import { controllaAdminRecente } from '../accessoRecente'
 
 // Callable degli abbonamenti (fase 4), tutte solo per operatori. Esportate da index.ts con una riga.
 const brevoApiKey = defineSecret('BREVO_API_KEY')
@@ -33,9 +34,15 @@ export const controlloAccensione = onCall(conRevenueCat, async (request) => cont
 
 export const confermaPartitaIva = onCall(opzioni, async (request) => conRegistro('confermaPartitaIva', () => ({ dettagli: { valore: campo(request.data, 'valore') } }), () => confermaPartitaIvaPer({ ...operatore(request), valore: campo(request.data, 'valore') })))
 
-export const accendiAbbonamenti = onCall(conRevenueCat, async (request) => conRegistro('accendiAbbonamenti', () => ({}), () => accendiAbbonamentiPer({ ...operatore(request), parola: campo(request.data, 'parola'), offering })))
+export const accendiAbbonamenti = onCall(conRevenueCat, async (request) => {
+  controllaAdminRecente(request.auth?.token)
+  return conRegistro('accendiAbbonamenti', () => ({}), () => accendiAbbonamentiPer({ ...operatore(request), parola: campo(request.data, 'parola'), offering }))
+})
 
-export const spegniAbbonamenti = onCall(opzioni, async (request) => conRegistro('spegniAbbonamenti', () => ({}), () => spegniAbbonamentiPer(operatore(request))))
+export const spegniAbbonamenti = onCall(opzioni, async (request) => {
+  controllaAdminRecente(request.auth?.token)
+  return conRegistro('spegniAbbonamenti', () => ({}), () => spegniAbbonamentiPer(operatore(request)))
+})
 
 export const annunciaPagamenti = onCall({ ...opzioni, secrets: [brevoApiKey], timeoutSeconds: 300 }, async (request) => conRegistro('annunciaPagamenti', (esito) => ({ dettagli: { data: campo(request.data, 'data'), email: esito.email } }), () => annunciaPagamentiPer({
   ...operatore(request),

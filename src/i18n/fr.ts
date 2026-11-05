@@ -1025,6 +1025,8 @@ export const fr = {
   hubSuggerimentiDettaglio: 'Signalez un problème ou une idée',
   hubIncassi: 'Recettes et rapports',
   hubPiano: 'Formule',
+  rifTitolo: 'Confirmez votre mot de passe',
+  rifTesto: 'Cette action est irréversible : votre mot de passe est de nouveau nécessaire.',
   hubAvvisi: 'Alertes',
   hubAvvisiNuovi: 'Il y a de nouvelles alertes',
   avsScrivi: 'Écrire une alerte',

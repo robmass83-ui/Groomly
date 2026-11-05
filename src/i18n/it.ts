@@ -1023,6 +1023,8 @@ export const it = {
   hubSuggerimentiDettaglio: 'Segnala un problema o un’idea',
   hubIncassi: 'Incassi e report',
   hubPiano: 'Piano',
+  rifTitolo: 'Conferma la password',
+  rifTesto: 'Questa azione non si può annullare: serve di nuovo la tua password.',
   hubAvvisi: 'Avvisi',
   hubAvvisiNuovi: 'Ci sono avvisi nuovi',
   avsScrivi: 'Scrivi un avviso',

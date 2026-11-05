@@ -3,6 +3,7 @@ import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
 import { callEliminaSalone, callImpostaPiano } from '../../data/firebase/client'
+import { useRiconferma } from './RiconfermaPassword'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { nomeSalone, type SalonRow } from '../../lib/adminManager'
 import type { LivelloElenco } from '../../lib/funzioniPiano'
@@ -41,6 +42,7 @@ export function useAzioniPiano(rows: readonly SalonRow[], onEliminato: (row: Sal
   const [scelti, setScelti] = useState<Record<string, PianoLocale>>({})
   const [denied, setDenied] = useState<Record<string, string>>({})
   const [dialogo, setDialogo] = useState<DialogoPiano | null>(null)
+  const { conRiconferma, dialogo: dialogoRiconferma } = useRiconferma()
   const [testo, setTesto] = useState('')
   const [daEliminare, setDaEliminare] = useState<SalonRow | null>(null)
   const [parolaElimina, setParolaElimina] = useState('')
@@ -170,7 +172,7 @@ export function useAzioniPiano(rows: readonly SalonRow[], onEliminato: (row: Sal
     const row = daEliminare
     setEliminando(true)
     try {
-      await callEliminaSalone(row.salonId)
+      await conRiconferma(() => callEliminaSalone(row.salonId))
       setDaEliminare(null)
       setParolaElimina('')
       toast.show(frasi.uteEliminaFatto.replace('{{salone}}', nomeSalone(row)), 'plain')
@@ -226,6 +228,7 @@ export function useAzioniPiano(rows: readonly SalonRow[], onEliminato: (row: Sal
 
   const dialoghi = (
     <>
+      {dialogoRiconferma}
       <Dialog open={chiesto !== undefined && dialogo !== null} title={titoloDialogo()} onClose={chiudiDialogo}>
         {chiesto && dialogo?.tipo === 'azione' ? (
           <>

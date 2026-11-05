@@ -26,6 +26,7 @@ const ERRORI_SERVER = {
   accesso_richiesto: { it: 'Accesso richiesto', en: 'Please sign in', es: 'Inicia sesión', fr: 'Connexion requise', de: 'Anmeldung erforderlich' },
   accesso_negato: { it: 'Accesso negato', en: 'Access denied', es: 'Acceso denegado', fr: 'Accès refusé', de: 'Zugriff verweigert' },
   richiesta_non_valida: { it: 'Richiesta non valida', en: 'Invalid request', es: 'Solicitud no válida', fr: 'Demande non valide', de: 'Ungültige Anfrage' },
+  riconferma_richiesta: { it: 'Conferma la password per continuare', en: 'Confirm your password to continue', es: 'Confirma tu contraseña para continuar', fr: 'Confirmez votre mot de passe pour continuer', de: 'Bestätigen Sie Ihr Passwort, um fortzufahren' },
   troppe_richieste: { it: 'Troppe richieste', en: 'Too many requests', es: 'Demasiadas solicitudes', fr: 'Trop de demandes', de: 'Zu viele Anfragen' },
   attendi_riprova: { it: 'Aspetta un momento e riprova', en: 'Wait a moment and try again', es: 'Espera un momento y vuelve a intentarlo', fr: 'Patientez un instant et réessayez', de: 'Bitte warten Sie kurz und versuchen Sie es erneut' },
   dispositivo_non_valido: { it: 'Dispositivo non valido', en: 'Invalid device', es: 'Dispositivo no válido', fr: 'Appareil non valide', de: 'Ungültiges Gerät' },
