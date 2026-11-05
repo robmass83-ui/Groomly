@@ -3,6 +3,7 @@ import { PAGHERESTI, type Pagheresti } from '../../../src/lib/betaFeedback'
 import { STATI_INVITO_BETA, invitoBetaDi, type StatoInvitoBeta } from '../../../src/lib/betaInvito'
 import { livelloElenco, type LivelloElenco } from '../../../src/lib/funzioniPiano'
 import { FONTI_PIANO, statoPiano, type FontePiano } from '../../../src/lib/piano'
+import { emailOggi } from '../postaGiorno'
 import { GIORNO_MS, betaInCorso, proMainDi, richiediOperatore, salonIdValido, type TokenOperatore } from './comune'
 
 export type UltimiAccessi = (uids: string[]) => Promise<Map<string, string | null>>
@@ -17,6 +18,9 @@ export type ContatoriAdmin = {
   feedback: { totali: number; pagheresti: Record<Pagheresti, number> }
   inBeta: number
   ultimoAccesso: Record<string, string | null>
+  emailOggi: number
+  nuoviSaloni: string[]
+  feedbackOrfani: number
 }
 
 function zeri<K extends string>(chiavi: readonly K[]): Record<K, number> {
@@ -36,10 +40,12 @@ export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?:
   const db = getFirestore()
 
   const persone = new Map<string, string[]>()
+  const nuoviSaloni: string[] = []
   for (const doc of (await db.collection('accounts').get()).docs) {
-    const salonId = doc.data()?.salonId
+    const { salonId, role, createdAt } = doc.data() ?? {}
     if (!salonIdValido(salonId)) continue
     persone.set(salonId, [...(persone.get(salonId) ?? []), doc.id])
+    if (role === 'titolare' && adesso.getTime() - Date.parse(createdAt) < 7 * GIORNO_MS) nuoviSaloni.push(salonId)
   }
   const saloni = [...persone.keys()]
   const accessi = await input.ultimiAccessi([...persone.values()].flat())
@@ -84,9 +90,11 @@ export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?:
 
   const pagheresti = zeri<Pagheresti>(PAGHERESTI)
   const feedback = (await db.collection('betaFeedback').get()).docs
+  let feedbackOrfani = 0
   for (const doc of feedback) {
     const voto = doc.data()?.pagheresti
     if (PAGHERESTI.includes(voto)) pagheresti[voto as Pagheresti] += 1
+    if (!persone.has(doc.data()?.salonId)) feedbackOrfani += 1
   }
 
   const ordinato = Object.fromEntries(saloni.sort().map((id) => [id, ultimoAccesso[id] ?? null]))
@@ -100,5 +108,8 @@ export async function contatoriAdminPer(input: { token: TokenOperatore; adesso?:
     feedback: { totali: feedback.length, pagheresti },
     inBeta,
     ultimoAccesso: ordinato,
+    emailOggi: await emailOggi(db, adesso),
+    nuoviSaloni,
+    feedbackOrfani,
   }
 }

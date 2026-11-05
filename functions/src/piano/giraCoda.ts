@@ -7,6 +7,7 @@ import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/cod
 import { settimanaValida, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import type { ProMain } from '../../../src/lib/piano'
 import { postiEmailSalone, TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
+import { POSTA_GIORNO, contaInvii, postaOggi, type PostaGiorno } from '../postaGiorno'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
 import { salonCollection } from '../../../src/lib/salonPath'
@@ -252,45 +253,10 @@ async function scriviRighe(db: Firestore, radice: string, prima: readonly RigaIn
   }
 }
 
-type PostaGiorno = { totale: number; perSalone: Record<string, number>; accesi: string[] }
-
-const POSTA_GIORNO = 'sistema/postaGiorno'
-
-function postaDi(data: Record<string, unknown> | undefined, giorno: string): PostaGiorno {
-  const accesi = Array.isArray(data?.accesi) ? data.accesi.filter((id): id is string => typeof id === 'string' && id !== '') : []
-  if (!data || data.giorno !== giorno) return { totale: 0, perSalone: {}, accesi }
-  const perSalone: Record<string, number> = {}
-  if (data.perSalone && typeof data.perSalone === 'object') {
-    for (const [id, n] of Object.entries(data.perSalone as Record<string, unknown>)) {
-      if (typeof n === 'number' && n > 0) perSalone[id] = n
-    }
-  }
-  const totale = typeof data.n === 'number' && data.n > 0 ? data.n : 0
-  return { totale, perSalone, accesi }
-}
-
-async function postaOggi(db: Firestore, adesso: Date): Promise<PostaGiorno> {
-  return postaDi((await db.doc(POSTA_GIORNO).get()).data(), romeDay(adesso))
-}
-
 /** Quanti posti ha il salone adesso, scritti come «email già usate» per `inviaCoda`, che conta dal tetto. */
 function usateViste(posta: PostaGiorno, salonId: string): number {
   const posti = postiEmailSalone({ salonId, totale: posta.totale, perSalone: posta.perSalone, accesi: posta.accesi })
   return TETTO_EMAIL_GIORNO - posti
-}
-
-/** Somma gli invii nella transazione: due giri o un «invia subito» insieme non si cancellano il conto. */
-async function contaInvii(db: Firestore, adesso: Date, salonId: string, inviate: number, posta: PostaGiorno): Promise<void> {
-  posta.totale += inviate
-  posta.perSalone[salonId] = (posta.perSalone[salonId] ?? 0) + inviate
-  if (inviate <= 0) return
-  const giorno = romeDay(adesso)
-  const ref = db.doc(POSTA_GIORNO)
-  await db.runTransaction(async (tx) => {
-    const letta = postaDi((await tx.get(ref)).data(), giorno)
-    letta.perSalone[salonId] = (letta.perSalone[salonId] ?? 0) + inviate
-    tx.set(ref, { giorno, n: letta.totale + inviate, perSalone: letta.perSalone, accesi: letta.accesi })
-  })
 }
 
 function rigaImpostazione(riga: RigaInvio): Record<string, unknown> {

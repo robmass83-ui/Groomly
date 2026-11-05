@@ -3,7 +3,7 @@
  * Uso:
  *   const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string, unknown>>() }))
  *   vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
- * Supporta doc/collection/collectionGroup/where (== e in)/limit/listDocuments, set (anche con merge profondo), update con percorsi a punti,
+ * Supporta doc/collection/collectionGroup/where (==, in, array-contains, >=)/limit/count/add/listDocuments, set (anche con merge profondo), update con percorsi a punti,
  * delete, runTransaction e FieldValue.delete(). `scritture` conta le scritture fatte.
  */
 
@@ -55,8 +55,15 @@ function aggiornaPercorso(base: Dati, percorso: string, valore: unknown): Dati {
   return out
 }
 
+function confronta(campo: unknown, op: string, valore: unknown): boolean {
+  if (op === 'in') return (valore as unknown[]).includes(campo)
+  if (op === 'array-contains') return Array.isArray(campo) && campo.includes(valore)
+  if (op === '>=') return (campo as string) >= (valore as string)
+  return campo === valore
+}
+
 export function firestoreFinto(archivio: Map<string, Dati>) {
-  const stato = { scritture: 0 }
+  const stato = { scritture: 0, nuovi: 0 }
   const idDi = (chiave: string) => chiave.slice(chiave.lastIndexOf('/') + 1)
   const figli = (percorso: string) => [...archivio.keys()].filter((chiave) =>
     chiave.startsWith(`${percorso}/`) && !chiave.slice(percorso.length + 1).includes('/'))
@@ -75,11 +82,18 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
   type Query = { tipo: 'query'; get: () => Promise<{ empty: boolean; docs: ReturnType<typeof snapDoc>[] }> }
   const query = (percorso: string, filtro: (chiave: string) => boolean, max = Infinity, fonte = () => figli(percorso)): Query & Dati => ({
     tipo: 'query',
-    doc: (id: string) => documento(`${percorso}/${id}`),
+    doc: (id?: string) => documento(`${percorso}/${id ?? `auto${++stato.nuovi}`}`),
+    add: async (dati: Dati) => {
+      const ref = documento(`${percorso}/auto${++stato.nuovi}`)
+      scrivi.set(ref.path, dati)
+      return ref
+    },
+    count: () => ({ get: async () => {
+      const n = fonte().filter(filtro).slice(0, max).length
+      return { data: () => ({ count: n }) }
+    } }),
     where: (campo: string, op: string, valore: unknown) =>
-      query(percorso, (chiave) => filtro(chiave) && (op === 'in'
-        ? (valore as unknown[]).includes(archivio.get(chiave)?.[campo])
-        : archivio.get(chiave)?.[campo] === valore), max, fonte),
+      query(percorso, (chiave) => filtro(chiave) && confronta(archivio.get(chiave)?.[campo], op, valore), max, fonte),
     orderBy: () => query(percorso, filtro, max, fonte),
     limit: (n: number) => query(percorso, filtro, n, fonte),
     startAt: (inizio: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) >= inizio, max, fonte),
@@ -180,7 +194,7 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
   return {
     stato,
     FieldPath: { documentId: () => '__name__' },
-    FieldValue: { delete: () => ({ [CANCELLA]: true }) },
+    FieldValue: { delete: () => ({ [CANCELLA]: true }), serverTimestamp: () => 'ADESSO' },
     getFirestore: () => db,
   }
 }

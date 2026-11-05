@@ -335,6 +335,9 @@ export type ContatoriAdmin = {
   inBeta: number | null
   /** Attività (e città, se arriva) per salone: da `ultimoAccesso` di B1 o da `perSalone`. Null se il server non manda nessuno dei due. */
   perSalone: Record<string, InfoSalone> | null
+  emailOggi: number
+  nuoviSaloni: string[]
+  feedbackOrfani: number
 }
 
 function numero(value: unknown): number {
@@ -391,6 +394,9 @@ export function contatoriDi(data: unknown): ContatoriAdmin {
     feedback: { totali: numero(feedback.totali), pagheresti: conteggi(PAGHERESTI, feedback.pagheresti) },
     inBeta: typeof d.inBeta === 'number' && Number.isFinite(d.inBeta) && d.inBeta >= 0 ? d.inBeta : null,
     perSalone,
+    emailOggi: numero(d.emailOggi),
+    nuoviSaloni: Array.isArray(d.nuoviSaloni) ? d.nuoviSaloni.filter((id): id is string => typeof id === 'string') : [],
+    feedbackOrfani: numero(d.feedbackOrfani),
   }
 }
 
