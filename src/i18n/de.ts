@@ -2123,4 +2123,9 @@ export const de = {
   // Lingue T7
   teamPosti: '{{n}} von {{max}} Plätzen',
   chiusoBreve: 'Zu',
+  riaccTitolo: 'Wir haben unsere Dokumente aktualisiert',
+  riaccTesto: 'Um Groomly weiter zu nutzen, lesen und akzeptieren Sie bitte die neue Version.',
+  riaccAccetto: 'Ich akzeptiere',
+  riaccEsci: 'Abmelden',
+  riaccErrore: 'Das Speichern ist fehlgeschlagen. Bitte versuchen Sie es erneut.',
 } as const satisfies Record<keyof typeof italiano, string>

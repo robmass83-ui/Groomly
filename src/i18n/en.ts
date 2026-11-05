@@ -2123,4 +2123,9 @@ export const en = {
   // Lingue T7
   teamPosti: '{{n}} of {{max}} seats',
   chiusoBreve: 'Closed',
+  riaccTitolo: 'We\'ve updated our documents',
+  riaccTesto: 'To keep using Groomly, please read and accept the new version.',
+  riaccAccetto: 'I accept',
+  riaccEsci: 'Log out',
+  riaccErrore: 'It couldn\'t be saved. Please try again.',
 } as const satisfies Record<keyof typeof italiano, string>

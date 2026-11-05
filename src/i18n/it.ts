@@ -2121,4 +2121,9 @@ export const it = {
   // Lingue T7
   teamPosti: '{{n}} di {{max}} posti',
   chiusoBreve: 'Chiuso',
+  riaccTitolo: 'Abbiamo aggiornato i documenti',
+  riaccTesto: 'Per continuare a usare Groomly leggi e accetta la nuova versione.',
+  riaccAccetto: 'Accetto',
+  riaccEsci: 'Esci',
+  riaccErrore: 'Non è stato possibile salvare. Riprova.',
 } as const

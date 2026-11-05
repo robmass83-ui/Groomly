@@ -18,6 +18,7 @@ import { TourAvvio } from './TourAvvio'
 import { SystemBack } from './SystemBack'
 import { SoloIncassi } from './SoloIncassi'
 import { StaffLock } from '../components/AccessoSospeso'
+import { RiaccettaDocumenti } from '../components/legale/RiaccettaDocumenti'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { ClosurePage } from '../pages/ClosurePage'
 import { PersonalAppointmentPage } from '../pages/PersonalAppointmentPage'
@@ -76,7 +77,7 @@ function Guard({ children }: { children: ReactElement }) {
     return <Navigate to="/login" replace />
   }
   segnaEntrato()
-  return <StaffLock>{children}</StaffLock>
+  return <StaffLock><RiaccettaDocumenti>{children}</RiaccettaDocumenti></StaffLock>
 }
 
 function ProOTeam() {
