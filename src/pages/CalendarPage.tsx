@@ -52,6 +52,7 @@ import { oraRoma } from '../lib/disponibilita'
 import { formatCompactDuration, splitCritical } from '../lib/display'
 import { dataBreve, giornoCorto, meseAnno } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { formatHomeDate, opzioniDate } from '../lib/format'
@@ -347,6 +348,7 @@ function CountBadge({ value, tone, halo }: { value: string; tone: 'salon' | 'per
 }
 
 function CalendarServiceChip({ iconKey, name, wide = false, snug = false }: { iconKey?: ServiceIconKey; name: string; wide?: boolean; snug?: boolean }) {
+  const { lingua } = useLingua()
   const tone = serviceTone(iconKey)
   const snugStyle: CSSProperties = {
     display: 'inline-flex',
@@ -390,7 +392,7 @@ function CalendarServiceChip({ iconKey, name, wide = false, snug = false }: { ic
       <span style={{ display: 'inline-flex', flex: 'none', marginTop: snug ? 0 : 1 }}>
         <ServiceIcon iconKey={iconKey} size={SIZES.chip.serviceIconInChip} />
       </span>
-      {name}
+      {nomeServizioVisibile(lingua, name)}
     </span>
   )
 }
@@ -1078,7 +1080,7 @@ export function CalendarPage() {
                   >
                     <span style={{ display: 'block' }}>{date.getDate()}</span>
                     {face.closedLabel ? (
-                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>{frasi.chiuso}</span>
+                      <span style={{ display: 'block', color: selected ? 'var(--on-pri)' : 'var(--bad)', fontSize: TYPE.meta, fontWeight: 700, lineHeight: 1.1 }}>{frasi.chiusoBreve}</span>
                     ) : null}
                     {face.salonBadge || face.personalBadge ? (
                       <span style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>

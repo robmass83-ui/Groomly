@@ -417,3 +417,11 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - **Aspetta T5:** sulla pagina `/s/` restano in inglese testata, piede, giorni e pagina assente finché T5 non applica `D:/Groomly/.claude/lingue-note/richieste-t6.md`. Senza quella modifica il server ripiega ancora sull'italiano e la riga mostra tre lingue.
 - Da decidere più avanti: i termini italiani parlano ancora di piani Base, Pro e Salone, mentre l'app dice Go, Plus e Salon. Il testo in vigore non è stato cambiato: va aggiornato in tutte le lingue insieme, con nuova versione. Le traduzioni seguono l'italiano.
 
+## Cinque lingue — T7 Audit (5 novembre, ramo `claude/eager-tesla-21ceef`, non unito)
+- Report `docs/audit-cinque-lingue.md`, spec `docs/superpowers/specs/2026-11-04-lingue-audit-design.md`, piano `docs/superpowers/plans/2026-11-04-lingue-audit.md`.
+- Giro su emulatori Firebase e Chromium: sei profili, cinque lingue, 320, 360 e 390 px, con i dialoghi. Prenotazione vera da `/s/` con browser tedesco: 21 flussi su 21. App: 33 su 33. Email, push, PDF, Excel e Registro generati e riletti.
+- Corretti: nomi predefiniti di servizi e listino rimasti in italiano, ricevuta e pagina `/s/`, «toelettatura» nel login, «posti» in Team, pulsanti e parole a 320 px, date tedesche nei file, spazi francesi. Nuove chiavi `teamPosti`, `chiusoBreve`. Il test `lingue.test` è verde.
+- Script in `QA-tests/.qa-catalog`: `verify-cinque-lingue`, `verify-lingue-*`, `lingue-*`, `brevo-finto`, `report-lingue`, con `firebase.lingue.json` a parte.
+- Catalogo QA aggiornato a mano: `/qa-my-app:sync` non si lancia da una sessione. Impronte nuove, 190 task non riscritti.
+- Da decidere: logo con «TOELETTATURA» su pagine pubbliche ed email, in `docs/DA-FARE-ROBERTO.md`.
+- Non provato: telefono o emulatore Android, push vere, email vere, `giraCoda` e `scadiProposte` sugli emulatori. Elenco completo nel report.

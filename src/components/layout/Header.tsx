@@ -24,7 +24,7 @@ export function Header({ title, subtitle, backTo, backState, onBack, action }: {
           </Link>
         ) : null}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15 }}>
+          <h1 style={{ margin: 0, fontSize: TYPE.pageTitle, fontWeight: 700, letterSpacing: TYPE.pageTitleTracking, lineHeight: 1.15, hyphens: 'auto', overflowWrap: 'break-word' }}>
             {title}
           </h1>
         </div>

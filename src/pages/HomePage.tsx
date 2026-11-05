@@ -215,8 +215,8 @@ const closeActions: CSSProperties = {
 }
 
 const closeAction: CSSProperties = {
-  flex: '1 1 0',
-  minWidth: 0,
+  flex: '1 1 auto',
+  minWidth: 'min-content',
   width: 'auto',
   minHeight: 'auto',
   height: 'auto',

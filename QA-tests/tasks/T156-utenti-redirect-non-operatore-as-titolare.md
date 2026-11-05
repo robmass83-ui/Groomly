@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Route | `/impostazioni/utenti` |
-| Source | `src/pages/UsersPage.tsx` |
+| Source | `src/app/router.tsx` |
 | Flow | Non operatore reindirizzato a /impostazioni |
 | Requires auth | yes |
 | Required role | titolare |

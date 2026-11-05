@@ -146,7 +146,7 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
         <SectionTitle>{frasi.lisPerRazza}</SectionTitle>
         {soloLettura ? null : <Link to="/listino/gestione" className="tocco" style={{ flexShrink: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--pri)' }}>{frasi.lisGestisci}</Link>}
       </div>
-      <div style={{ display: 'flex', gap: 2, margin: '0 -12px', padding: '0 10px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--line)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, margin: '0 -12px', padding: '0 10px', background: 'var(--bg)', position: 'sticky', top: 0, zIndex: 2, borderBottom: '1px solid var(--line)' }}>
         {jumpTabs.map((item) => (
           <button
             key={item.id}
@@ -158,7 +158,7 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
               height: 'auto',
               border: 0,
               background: 'transparent',
-              padding: '0 9px',
+              padding: '0 6px',
               fontSize: 12,
               fontWeight: tab === item.id ? 700 : 500,
               color: tab === item.id ? 'var(--pri)' : 'var(--tx3)',
@@ -211,7 +211,7 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
             </div>
             {razze.map((breed) => (
               <div key={breed.id} style={{ padding: '8px 0', borderTop: '1px solid var(--line)' }}>
-                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px', ...USER_TEXT }}>{t(lingua, 'lisTipo', { nome: breed.nome })}</div>
+                <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, padding: '0 9px 4px', ...USER_TEXT }}>{t(lingua, 'lisTipo', { nome: nomeVoceListino(lingua, breed.nome) })}</div>
                 {breed.voci.map((voce) => (
                   <PriceLine key={voce.id} item={voce} />
                 ))}
@@ -305,7 +305,7 @@ function BreedSheet({ sheet, soloLettura }: { sheet: PriceSheet; soloLettura: bo
         {visibleSection(sheet, 'saluto') ? (
           // Il saluto è scritto col colore scelto dal salone per il foglio stampabile: sta su un fondo da carta anche nel tema scuro.
           <Card style={{ textAlign: 'center', fontStyle: 'italic', fontSize: 22, color: colore, padding: '4px 0', background: '#FFFFFF' }}>
-            {sheet.saluto}
+            {nomeVoceListino(lingua, sheet.saluto)}
           </Card>
         ) : null}
       </div>
@@ -561,9 +561,9 @@ export function ListinoPage() {
               <thead>
                 <tr>
                   <th style={{ ...cell, ...stickyHead, textAlign: 'left', width: '40%' }}>{frasi.lisServizio}</th>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>{frasi.lisPiccola}</th>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>{frasi.lisMedia}</th>
-                  <th style={{ ...cell, ...stickyHead, textAlign: 'right' }}>{frasi.lisGrande}</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right', fontSize: TYPE.meta }}>{frasi.lisPiccola}</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right', fontSize: TYPE.meta }}>{frasi.lisMedia}</th>
+                  <th style={{ ...cell, ...stickyHead, textAlign: 'right', fontSize: TYPE.meta }}>{frasi.lisGrande}</th>
                 </tr>
               </thead>
               <tbody>
@@ -575,7 +575,7 @@ export function ListinoPage() {
                           <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
                         </IconTile>
                         <div style={{ flex: 1, ...USER_TEXT }}>
-                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breakAfterPlus(row.name)}</div>
+                          <div style={{ fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breakAfterPlus(nomeVoceListino(lingua, row.name))}</div>
                           <div style={{ color: 'var(--tx3)', ...USER_TEXT }}>{row.duration}</div>
                         </div>
                       </div>
@@ -608,7 +608,7 @@ export function ListinoPage() {
                       <ServiceIcon iconKey={iconById[row.id]} size={SIZES.chip.serviceIconInChip} />
                     </IconTile>
                     <span style={USER_TEXT}>
-                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breakAfterPlus(row.name)}</span>
+                      <span style={{ display: 'block', fontWeight: 700, fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breakAfterPlus(nomeVoceListino(lingua, row.name))}</span>
                       <span style={{ display: 'block', color: 'var(--tx3)', fontSize: TYPE.meta, ...USER_TEXT }}>{row.duration}</span>
                     </span>
                   </span>

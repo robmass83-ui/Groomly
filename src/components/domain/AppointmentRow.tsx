@@ -1,6 +1,7 @@
 import { TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useFrasi } from '../../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../../i18n/servizioVisibile'
 import { useOpenSheet } from '../../hooks/useOpenSheet'
 import { minutiInGriglia } from '../../lib/appointments'
 import { oraRoma } from '../../lib/disponibilita'
@@ -46,6 +47,7 @@ export function AppointmentRow({
   dalServer?: boolean
 }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const openSheet = useOpenSheet()
   const ospite = appointment.ospiteNome?.trim() ?? ''
   const provvisorio = appointment.provvisorio === true
@@ -102,7 +104,7 @@ export function AppointmentRow({
           <ChipRow>
             {provvisorio ? null : appointment.services.map((line, index) => (
               <ServiceChip key={`${line.serviceId}-${index}`} iconKey={services.find((service) => service.id === line.serviceId)?.iconKey}>
-                {line.name}
+                {nomeServizioVisibile(lingua, line.name)}
               </ServiceChip>
             ))}
             {aside}

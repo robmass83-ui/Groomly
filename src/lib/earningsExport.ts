@@ -148,9 +148,13 @@ function exportTitle(kind: ExportKind, range: { from: Date; to: Date }, lingua: 
   return `${nome} \u00B7 ${range.from.getDate()} ${shortMonth(range.from, lingua)}${startYear} \u2013 ${end.getDate()} ${shortMonth(end, lingua)} ${end.getFullYear()}`
 }
 
-function periodLabel(range: { from: Date; to: Date }): string {
+function dataNumerica(data: Date, lingua: Lingua): string {
+  return format(data, lingua === 'de' ? 'dd.MM.yyyy' : 'dd/MM/yyyy')
+}
+
+function periodLabel(range: { from: Date; to: Date }, lingua: Lingua = 'it'): string {
   const end = addDays(range.to, -1)
-  return `${format(range.from, 'dd/MM/yyyy')} - ${format(end, 'dd/MM/yyyy')}`
+  return `${dataNumerica(range.from, lingua)} - ${dataNumerica(end, lingua)}`
 }
 
 function stamp(date: Date): string {
@@ -170,7 +174,7 @@ function serviceNames(item: Appointment, lingua: Lingua = 'it'): string {
 function completedRow(item: Appointment, dogs: Dog[], lingua: Lingua = 'it'): ExportRow {
   const dog = dogOf(dogs, item.dogId)
   return {
-    date: format(item.start, 'dd/MM/yyyy'),
+    date: dataNumerica(item.start, lingua),
     time: format(item.start, 'HH:mm'),
     dog: dog?.name ?? '',
     owner: ownerName(dog),
@@ -186,7 +190,7 @@ function completedRow(item: Appointment, dogs: Dog[], lingua: Lingua = 'it'): Ex
 function missedRow(item: Appointment, dogs: Dog[], lingua: Lingua = 'it'): ExportRow {
   const dog = dogOf(dogs, item.dogId)
   return {
-    date: format(item.start, 'dd/MM/yyyy'),
+    date: dataNumerica(item.start, lingua),
     time: format(item.start, 'HH:mm'),
     dog: dog?.name ?? '',
     owner: ownerName(dog),
@@ -304,7 +308,7 @@ export function buildExportData(
   const incassato = round2(done.reduce((sum, item) => sum + appointmentAmount(item), 0))
   return {
     title: exportTitle(kind, range, lingua),
-    periodLabel: periodLabel(range),
+    periodLabel: periodLabel(range, lingua),
     business: include.attivita
       ? { name: settings.name, vatNumber: settings.vatNumber, phone: settings.phone, address: settings.address }
       : null,

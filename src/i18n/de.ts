@@ -86,7 +86,7 @@ export const de = {
   pushVersione: 'Version {{versione}} ist bereit.',
   pushTra30: 'In 30 Minuten.',
   pushDaCompletare: 'Noch abzuschließen',
-  pushCompleta: '{{nome}} ist noch abzuschließen: Das Ende des Termins ist vorbei.',
+  pushCompleta: 'Noch offen: {{nome}}. Der Termin ist bereits vorbei.',
   pushSenzaNome: 'Ein Termin',
   navHome: 'Start',
   navAnimali: 'Tiere',
@@ -1066,7 +1066,7 @@ export const de = {
   hubFunzioni: 'Funktionen',
   hubPromemoria: 'Erinnerungen und Nachrichten',
   hubControlli: 'Erweiterte Optionen',
-  hubBackup: 'Backup und Wiederherstellung',
+  hubBackup: 'Backup und Wieder­herstellung',
   hubApp: 'App',
   hubAccount: 'Konto',
   hubGestisci: 'Groomly-Konto verwalten',
@@ -2120,4 +2120,7 @@ export const de = {
   bakLeggimiFileListino: 'Preislisten-Dateien: {{n}}',
   bakLeggimiFotoNonLette: 'Nicht gelesene Fotos: {{n}}',
   bakLeggimiFotoElenco: 'Die Liste steht in dati/foto-mancanti.txt.',
+  // Lingue T7
+  teamPosti: '{{n}} von {{max}} Plätzen',
+  chiusoBreve: 'Zu',
 } as const satisfies Record<keyof typeof italiano, string>

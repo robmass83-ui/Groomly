@@ -119,7 +119,7 @@ const VOCI: Record<string, Record<Exclude<Lingua, 'it'>, string>> = {
   'I prezzi indicati sono da considerarsi a partire da e possono aumentare in base a:': {
     en: 'The prices shown start from and can rise based on:',
     es: 'Los precios indicados parten de y pueden subir según:',
-    fr: 'Les prix indiqués sont des prix de départ et peuvent augmenter selon :',
+    fr: 'Les prix indiqués sont des prix de départ et peuvent augmenter selon :',
     de: 'Die Preise sind Ab-Preise und können sich erhöhen je nach:',
   },
   'presenza di nodi o feltri': { en: 'mats or tangles', es: 'nudos o enredos', fr: 'présence de nœuds ou de bourres', de: 'Knoten oder Verfilzungen' },
@@ -136,7 +136,7 @@ const VOCI: Record<string, Record<Exclude<Lingua, 'it'>, string>> = {
   'Per il benessere di tutti gli animali presenti in toelettatura:': {
     en: 'For the wellbeing of every animal in the salon:',
     es: 'Por el bienestar de todos los animales de la peluquería:',
-    fr: 'Pour le bien-être de tous les animaux présents au salon :',
+    fr: 'Pour le bien-être de tous les animaux présents au salon :',
     de: 'Zum Wohl aller Tiere im Salon:',
   },
   'non vengono accettati cani con infestazioni in corso di pulci o zecche': {

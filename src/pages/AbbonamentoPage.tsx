@@ -80,7 +80,7 @@ export function AbbonamentoPage() {
                 <img alt="" src={icona} style={{ width: 48, height: 48, borderRadius: 24, flex: 'none', transform: piano === 'go' ? undefined : 'scale(1.2)' }} />
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <span style={{ fontWeight: 800, fontSize: 16 }}>{frasi[nome]}</span>
-                  <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta }}>{frasi[frase]}</small>
+                  <small style={{ color: 'var(--tx2)', fontSize: TYPE.meta, hyphens: 'auto' }}>{frasi[frase]}</small>
                 </span>
                 <span style={{ textAlign: 'right', whiteSpace: inBeta ? 'normal' : 'nowrap', maxWidth: inBeta ? 96 : undefined, fontSize: TYPE.meta, fontWeight: 800, color: attivo ? 'var(--ok)' : COLORE_PIANO[piano] }}>
                   {inBeta ? frasi.betaInBetaOra : attivo ? frasi.abbAttivo : piano === 'go' ? frasi.abbGratis : !prezziVisibili ? frasi.vetInArrivo : (

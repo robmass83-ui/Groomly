@@ -1,5 +1,6 @@
 import { isSameDay } from 'date-fns'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import type { Lingua } from '../i18n/lingua'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { formatBookedWhen, formatDuration, nextAppointment, sumDuration } from '../lib/appointments'
@@ -50,7 +51,7 @@ export function NextAppointment({
           }}
         >
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--pri-ink)' }}>{nextLabel(upcoming.start, now, frasi.homeProssimoOggi, frasi.homeProssimoQuando, lingua)}</span>
-          <span>{upcoming.services.map((line) => line.name).join(', ')}</span>
+          <span>{upcoming.services.map((line) => nomeServizioVisibile(lingua, line.name)).join(', ')}</span>
           <span style={{ color: 'var(--tx3)' }}>{formatDuration(sumDuration(upcoming.services))}</span>
         </button>
       ) : (

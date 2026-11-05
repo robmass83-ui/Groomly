@@ -1,4 +1,5 @@
 import { linguaPagina } from '../../../src/i18n/paginaPubblica'
+import { nomeServizioVisibile } from '../../../src/i18n/servizioVisibile'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import type { Request, Response } from 'express'
 import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
@@ -61,7 +62,8 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     salonId,
     logo: marchio.logo,
     specie: specieAccettate(settings.speciePrenotabili),
-    catalogo,
+    // Solo per chi legge: la richiesta rilegge il catalogo salvato.
+    catalogo: catalogo.map((voce) => ({ ...voce, nome: nomeServizioVisibile(lang, voce.nome) })),
   }))
 }
 

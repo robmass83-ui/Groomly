@@ -936,7 +936,7 @@ export function SettingsPage() {
                   <small style={{ color: 'var(--tx3)' }}>{autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
                   {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
                 </span>
-                <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
+                <span style={{ flex: '0 1 auto', minWidth: 0, maxWidth: '42%', display: 'inline-flex' }}><StatusPill tone={backupTone} aCapo>{backupLabel}</StatusPill></span>
                 <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
               </button>
             </SRow>
@@ -1066,7 +1066,7 @@ export function SettingsPage() {
         </SRow>
         {autoPlus.accesso ? (
         <>
-        <SRow style={{ borderTop: 'none' }}>
+        <SRow style={{ borderTop: 'none', flexWrap: 'wrap', flexShrink: 0, height: 'auto', rowGap: 6, paddingBlock: 6 }}>
           <span style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
             <span>{frasi.bakFrequenza}</span>
             <InfoButton
@@ -1076,11 +1076,13 @@ export function SettingsPage() {
               testo={[frasi.bakFrequenzaGiorno, frasi.bakFrequenzaSettimana, frasi.bakFrequenzaMese, frasi.bakFrequenzaAperta].join('\n')}
             />
           </span>
-          <Segmented label={frasi.bakFrequenzaAria} value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
-            { value: 'giorno', label: frasi.agendaGiorno },
-            { value: 'settimana', label: frasi.agendaSettimana },
-            { value: 'mese', label: frasi.agendaMese },
-          ]} />
+          <span style={{ flex: 'none' }}>
+            <Segmented label={frasi.bakFrequenzaAria} value={settings.backup.frequenza ?? 'giorno'} onChange={onFrequenza} options={[
+              { value: 'giorno', label: frasi.agendaGiorno },
+              { value: 'settimana', label: frasi.agendaSettimana },
+              { value: 'mese', label: frasi.agendaMese },
+            ]} />
+          </span>
         </SRow>
         <SRow>
           <span style={{ flex: 1 }}>{frasi.bakOrario}</span>

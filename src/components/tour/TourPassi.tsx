@@ -10,6 +10,7 @@ import { useServices } from '../../hooks/useServices'
 import { useSession } from '../../hooks/useSession'
 import { useSettings } from '../../hooks/useSettings'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../../i18n/servizioVisibile'
 import { conBackupImpostato } from '../../lib/backupImpostato'
 import { TAGLIE } from '../../lib/dogList'
 import type { PassoSalone } from '../../lib/completaSalone'
@@ -267,6 +268,7 @@ const COLONNA = 46
 
 export function PassoPrezzi({ n, m, fase, onTempi, onFatto, onSalta }: PassoProps & { fase: 'prezzi' | 'tempi'; onTempi: () => void }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const toast = useToast()
   const { uid } = useImpostazioniTour()
   const { services, saveExisting } = useServices(uid ?? '')
@@ -321,7 +323,7 @@ export function PassoPrezzi({ n, m, fase, onTempi, onFatto, onSalta }: PassoProp
                 <span aria-hidden style={{ width: 24, height: 24, borderRadius: 7, display: 'grid', placeItems: 'center', flex: 'none', background: tono.tb, color: tono.tc }}>
                   <Icona size={14} strokeWidth={2.2} />
                 </span>
-                <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13, ...USER_TEXT }}>{servizio.name}</span>
+                <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: 13, ...USER_TEXT }}>{nomeServizioVisibile(lingua, servizio.name)}</span>
                 {TAGLIE.map((taglia) => {
                   const testo = valore(servizio, taglia)
                   const ok = cifraValida(testo, fase)
@@ -331,7 +333,7 @@ export function PassoPrezzi({ n, m, fase, onTempi, onFatto, onSalta }: PassoProp
                       type="text"
                       inputMode={fase === 'prezzi' ? 'decimal' : 'numeric'}
                       className="tour-campo"
-                      aria-label={`${servizio.name} ${nomiTaglia[taglia].toLocaleLowerCase()}`}
+                      aria-label={`${nomeServizioVisibile(lingua, servizio.name)} ${nomiTaglia[taglia].toLocaleLowerCase()}`}
                       aria-invalid={ok ? undefined : true}
                       value={testo}
                       onInput={lampeggia}

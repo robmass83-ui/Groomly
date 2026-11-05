@@ -1,6 +1,6 @@
 # Catalogo QA — Groomly
 
-Generato: 2026-11-01T15:10:10.418Z · 43 rotte · 190 task
+Generato: 2026-11-05T01:33:53.000Z · 43 rotte · 190 task
 
 | Path | Auth | Ruoli | Task |
 | --- | --- | --- | --- |

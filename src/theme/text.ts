@@ -6,4 +6,5 @@ export const USER_TEXT: CSSProperties = {
   maxWidth: '100%',
   whiteSpace: 'normal',
   overflowWrap: 'anywhere',
+  hyphens: 'auto',
 }

@@ -12,6 +12,7 @@ import { Toggle } from '../components/ui/Toggle'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { pubblicabile } from '../lib/catalogoPrenotazione'
 import { t } from '../i18n/t'
 import { servizioDoppio } from '../lib/validazioni'
@@ -60,7 +61,9 @@ export function ServicesPage() {
     })
   }
 
-  function submit(input: ServiceInput): string | void {
+  function submit(scritto: ServiceInput): string | void {
+    // Il nome predefinito si legge tradotto: se non cambia, resta quello salvato.
+    const input = editing && editing !== 'new' && scritto.name === nomeServizioVisibile(lingua, editing.name) ? { ...scritto, name: editing.name } : scritto
     const nomeInvariato = editing !== 'new' && editing !== null && normalizeSearch(input.name) === normalizeSearch(editing.name)
     const doppio = nomeInvariato ? undefined : servizioDoppio(input.name, api.services, editing === 'new' || !editing ? undefined : editing.id)
     if (doppio) return t(lingua, 'servNomeDoppio', { nome: doppio.name })
@@ -157,7 +160,7 @@ export function ServicesPage() {
               <button
                 type="button"
                 className="tocco"
-                aria-label={t(lingua, 'srvRiordina', { nome: service.name })}
+                aria-label={t(lingua, 'srvRiordina', { nome: nomeServizioVisibile(lingua, service.name) })}
                 onKeyDown={(event) => onHandleKey(service, index, event)}
                 onPointerDown={(event) => onHandlePointerDown(event, service, index)}
                 onPointerUp={(event) => onHandlePointerUp(event, service)}
@@ -171,13 +174,13 @@ export function ServicesPage() {
               <button
                 type="button"
                 className="tocco"
-                aria-label={t(lingua, 'apriNome', { nome: service.name })}
+                aria-label={t(lingua, 'apriNome', { nome: nomeServizioVisibile(lingua, service.name) })}
                 onClick={() => setEditing(service)}
                 style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left', border: 0, background: 'transparent', color: 'inherit', font: 'inherit', padding: 0 }}
               >
                 <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <span data-testid="srv-nome" style={{ overflowWrap: 'break-word', wordBreak: 'normal', lineHeight: 1.25, fontWeight: 600, color: service.active ? 'var(--tx)' : 'var(--tx3)' }}>
-                    {service.name}
+                    {nomeServizioVisibile(lingua, service.name)}
                   </span>
                   <span data-testid="srv-meta" style={{ color: 'var(--tx3)', fontSize: 13 }}>
                     {service.active ? `${summarizeDuration(service)} · ${summarizePrice(service)}` : frasi.servizioSpento}
@@ -187,7 +190,7 @@ export function ServicesPage() {
               </button>
               <Toggle
                 checked={service.active}
-                label={service.name}
+                label={nomeServizioVisibile(lingua, service.name)}
                 onChange={(active) => {
                   if (!api.saveExisting(service.id, { active })) return
                   confermaListino(api.services.map((item) => item.id === service.id ? { ...item, active } : item))
@@ -219,7 +222,7 @@ export function ServicesPage() {
         {editing ? (
           <ServiceSheet
             mode={editing === 'new' ? 'create' : 'edit'}
-            initial={editing === 'new' ? undefined : editing}
+            initial={editing === 'new' || !editing ? undefined : { ...editing, name: nomeServizioVisibile(lingua, editing.name) }}
             onSubmit={submit}
             onRemove={editing !== 'new' && api.services.length > 1 ? () => {
               setRemoving(editing)
@@ -228,7 +231,7 @@ export function ServicesPage() {
           />
         ) : null}
       </Dialog>
-      <Dialog open={removing !== null} title={t(lingua, 'srvEliminaDomanda', { nome: removing?.name ?? '' })} onClose={() => setRemoving(null)}>
+      <Dialog open={removing !== null} title={t(lingua, 'srvEliminaDomanda', { nome: nomeServizioVisibile(lingua, removing?.name ?? '') })} onClose={() => setRemoving(null)}>
         <p style={{ margin: 0, color: 'var(--tx2)', fontSize: TYPE.base, lineHeight: 1.4 }}>{frasi.srvEliminaNota}</p>
         <Button variant="ghost" onClick={() => setRemoving(null)}>{frasi.homeAnnulla}</Button>
         <Button variant="bad" onClick={confirmRemove}>{frasi.srvElimina}</Button>

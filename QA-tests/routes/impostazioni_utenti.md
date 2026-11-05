@@ -1,11 +1,11 @@
 # /impostazioni/utenti
 
-Sorgente: `src/pages/UsersPage.tsx`
+Sorgente: `src/app/router.tsx`
 
 ```json
 {
   "route": "/impostazioni/utenti",
-  "sourceFile": "src/pages/UsersPage.tsx",
+  "sourceFile": "src/app/router.tsx",
   "title": "Utenti (solo operatore)",
   "requiresAuth": true,
   "authFailed": false,
