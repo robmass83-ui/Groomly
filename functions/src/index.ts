@@ -45,6 +45,7 @@ import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
+import { archivioConsenso, impostaConsensoMetrichePer } from './legale/consensoMetriche'
 import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
@@ -903,6 +904,15 @@ export const impostaEmailPromo = onCall(pianoCall, async (request) => {
     attivo: field(request.data, 'attivo') === true,
     fonte: field(request.data, 'fonte') === 'tour' ? 'tour' : 'account',
   }, archivioPromo(getFirestore()), new Date())
+})
+
+export const impostaConsensoMetriche = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  return impostaConsensoMetrichePer({
+    uid,
+    attivo: field(request.data, 'attivo') === true,
+    fonte: text(field(request.data, 'fonte')),
+  }, archivioConsenso(getFirestore()), new Date())
 })
 
 export const disiscriviPromo = onCall(pianoCall, async (request) => {

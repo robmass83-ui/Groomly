@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, deveRiaccettare, mancaSuServer } from './versioneLegale'
+import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, deveRiaccettare, leggiConsensoMetriche, mancaSuServer } from './versioneLegale'
 
 describe('versione dei documenti', () => {
   it('resta alla versione 1: la alza solo il blocco dei testi', () => {
@@ -24,5 +24,18 @@ describe('versione dei documenti', () => {
     expect(mancaSuServer({ accettati: true, at: 'x' })).toBe(false)
     expect(mancaSuServer({ accettati: true, at: 'x', versione: 1 })).toBe(true)
     expect(mancaSuServer({ accettati: true, at: 'x', versione: 1, suServer: true })).toBe(false)
+  })
+})
+
+describe('consenso alle statistiche', () => {
+  it('legge un consenso completo', () => {
+    const consenso = { attivo: false, at: '2026-11-05T10:00:00.000Z', fonte: 'tour', versione: 1 }
+    expect(leggiConsensoMetriche(consenso)).toEqual(consenso)
+  })
+
+  it('scarta i dati incompleti', () => {
+    expect(leggiConsensoMetriche({ attivo: 'si' })).toBeUndefined()
+    expect(leggiConsensoMetriche({ attivo: true, at: 'x', fonte: 'altro', versione: 1 })).toBeUndefined()
+    expect(leggiConsensoMetriche(undefined)).toBeUndefined()
   })
 })

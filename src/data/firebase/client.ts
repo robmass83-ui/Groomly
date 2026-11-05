@@ -37,7 +37,7 @@ import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import { APP_VERSION } from '../../lib/appVersion'
 import { solaAdmin } from '../../lib/solaAdmin'
-import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiEmailPromo, leggiTermini } from '../../lib/versioneLegale'
+import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiConsensoMetriche, leggiEmailPromo, leggiTermini, type ConsensoMetriche } from '../../lib/versioneLegale'
 import type { Lingua } from '../../i18n/lingua'
 import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 import { primoAvvio } from '../../i18n/scritturaLingua'
@@ -537,6 +537,14 @@ export async function callImpostaEmailPromo(attivo: boolean, fonte: 'tour' | 'ac
   await callCallable('impostaEmailPromo', { attivo, fonte })
   const at = new Date().toISOString()
   if (accountDoc) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, emailPromo: { attivo, at, fonte } } }
+}
+
+export async function callImpostaConsensoMetriche(attivo: boolean, fonte: ConsensoMetriche['fonte']): Promise<ConsensoMetriche> {
+  const risposta = await callCallableData('impostaConsensoMetriche', { attivo, fonte }) as { consenso?: unknown } | null
+  const consenso = leggiConsensoMetriche(risposta?.consenso)
+  if (!consenso) throw new Error('consenso_non_valido')
+  if (accountDoc) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, consensoMetriche: consenso } }
+  return consenso
 }
 
 export async function callImpostaEmailCliente(dogId: string, bloccata: boolean): Promise<void> {
@@ -2228,6 +2236,7 @@ function toAccount(user: User): LocalAccount {
   const role = documentRole(data)
   const termini = leggiTermini(data?.termini)
   const emailPromo = leggiEmailPromo(data?.emailPromo)
+  const consensoMetriche = leggiConsensoMetriche(data?.consensoMetriche)
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -2243,6 +2252,7 @@ function toAccount(user: User): LocalAccount {
     ...(adminSessione ? { admin: true } : {}),
     ...(termini ? { termini } : {}),
     ...(emailPromo ? { emailPromo } : {}),
+    ...(consensoMetriche ? { consensoMetriche } : {}),
   }
 }
 

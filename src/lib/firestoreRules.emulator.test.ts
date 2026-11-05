@@ -604,4 +604,9 @@ describe('regole Firestore sull’emulatore', () => {
     await assertFails(setDoc(doc(socio, 'salons', SALON, 'avvisi', 'beta'), { letto: true }))
     await assertSucceeds(getDoc(doc(socio, 'salons', SALON, 'avvisi', 'piano')))
   })
+  it('il consenso alle statistiche lo scrive solo il server', async () => {
+    const titolare = env.authenticatedContext(ALTRO).firestore()
+    await assertFails(setDoc(doc(titolare, 'accounts', ALTRO), { consensoMetriche: { attivo: true } }, { merge: true }))
+    await assertSucceeds(setDoc(doc(titolare, 'accounts', ALTRO), { lingua: 'it' }, { merge: true }))
+  })
 })

@@ -20,6 +20,23 @@ export type EmailPromo = {
   token?: string
 }
 
+export const FONTI_CONSENSO_METRICHE = ['tour', 'riaccettazione', 'account'] as const
+
+export type ConsensoMetriche = {
+  attivo: boolean
+  at: string
+  fonte: (typeof FONTI_CONSENSO_METRICHE)[number]
+  versione: number
+}
+
+export function leggiConsensoMetriche(value: unknown): ConsensoMetriche | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const dati = value as Record<string, unknown>
+  if (typeof dati.attivo !== 'boolean' || typeof dati.at !== 'string' || typeof dati.versione !== 'number') return undefined
+  const fonte = FONTI_CONSENSO_METRICHE.find((voce) => voce === dati.fonte)
+  return fonte ? { attivo: dati.attivo, at: dati.at, fonte, versione: dati.versione } : undefined
+}
+
 export function leggiEmailPromo(value: unknown): EmailPromo | undefined {
   if (!value || typeof value !== 'object') return undefined
   const dati = value as Record<string, unknown>

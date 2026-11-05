@@ -4,6 +4,9 @@ import { join } from 'node:path'
 // Dopo `npm run build:admin`: nel sito admin non devono finire plugin nativi né pagine del salone.
 const CARTELLA = 'dist-admin'
 const VIETATI = [
+  'capacitor-firebase',
+  'FirebaseCrashlytics',
+  'FirebaseAnalytics',
   'local-notifications',
   'push-notifications',
   'purchases-capacitor',
