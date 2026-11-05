@@ -11,7 +11,7 @@ import { useAppointments } from './useAppointments'
 import { useDogs } from './useDogs'
 
 const mocks = vi.hoisted(() => ({
-  account: { uid: 'rob-uid', email: 'masala.roberto@hotmail.it', salonId: 'shared' } as { uid: string; email: string; salonId: string },
+  account: { uid: 'rob-uid', email: 'robmass83@gmail.com', salonId: 'shared' } as { uid: string; email: string; salonId: string },
   dogListener: null as ((dogs: Dog[], fromCache?: boolean) => void) | null,
   appointmentListener: null as ((items: Appointment[], fromCache?: boolean, deletedAppointmentIds?: readonly string[]) => void) | null,
   saveDog: vi.fn(async (..._args: unknown[]) => undefined),
@@ -56,7 +56,7 @@ vi.mock('../lib/pendingPhoto', async (importOriginal) => {
 
 const PHOTO = 'data:image/png;base64,QQ=='
 const LAURA = { uid: 'rob-uid', email: 'laura.masala@tiscali.it', salonId: 'shared' }
-const ROBERTO = { uid: 'rob-uid', email: 'masala.roberto@hotmail.it', salonId: 'shared' }
+const ROBERTO = { uid: 'rob-uid', email: 'robmass83@gmail.com', salonId: 'shared' }
 
 function dogWrite(name: string): DogWrite {
   return {

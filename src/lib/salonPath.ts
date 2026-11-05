@@ -1,5 +1,5 @@
 export const LAURA_EMAIL = 'laura.masala@tiscali.it'
-export const ROBERTO_EMAIL = 'masala.roberto@hotmail.it'
+export const ROBERTO_SALONE_EMAIL = 'robmass83@gmail.com'
 export const SHARED_SALON_ID = 'shared'
 
 export type AccountRole = 'titolare' | 'socio' | 'collaboratore'
@@ -23,7 +23,7 @@ export function isLauraEmail(email: string | null | undefined): boolean {
 
 export function isSharedEmail(email: string | null | undefined): boolean {
   const value = normalizeEmail(email ?? '')
-  return value === LAURA_EMAIL || value === ROBERTO_EMAIL
+  return value === LAURA_EMAIL || value === ROBERTO_SALONE_EMAIL
 }
 
 /** Un'email condivisa che non è Laura entra in shared senza portarvi i dati locali del telefono. */

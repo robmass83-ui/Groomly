@@ -45,7 +45,7 @@ describe('eliminazione di una toelettatura dai test', () => {
   it('non tocca mai il salone di Laura, di Roberto o di chi chiama', () => {
     const vieto = { ok: false, message: 'Questa toelettatura non si può eliminare' }
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'l', persone: [{ uid: 'l', emails: ['Laura.Masala@tiscali.it'] }] })).toEqual(vieto)
-    expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'x', persone: [{ uid: 'y', emails: ['altro@test.it', 'masala.roberto@hotmail.it'] }] })).toEqual(vieto)
+    expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'x', persone: [{ uid: 'y', emails: ['altro@test.it', 'robmass83@gmail.com'] }] })).toEqual(vieto)
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'rob', persone: [] })).toEqual(vieto)
     expect(decisioneEliminaSalone({ ...ROBERTO, salonChiamante: 'mio', salonId: 'mio', persone: [] })).toEqual(vieto)
     expect(decisioneEliminaSalone({ ...ROBERTO, salonId: 'x', persone: [{ uid: 'rob', emails: [] }] })).toEqual(vieto)

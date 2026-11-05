@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-05-accessi-admin-design.md`
 
-> **Correzione del 5 novembre:** vale la spec corretta. Task 3 (tour), Task 4 (test regole), Task 5 e Task 8 agiscono su `salons/{uid di Laura}`, non su `salon/shared`; robmass83 non entra in `isSharedEmail`. Dettagli nelle `Ruling:` del registro.
+> **Correzione del 5 novembre:** vale la spec corretta. Task 3 (tour), Task 4 (test regole), Task 5 e Task 8 agiscono su `salons/{uid di Laura}`, non su `salon/shared`. Dettagli nelle `Ruling:` del registro.
 
 ## Global Constraints
 
@@ -110,15 +110,15 @@
 - [ ] **Step 5: Verifica** `npm test`, `npm run test:rules`, compilazione delle functions; `grep -n "hotmail" firestore.rules functions/src -r --include=*.ts --exclude=*.test.ts` non trova nulla.
 - [ ] **Step 6: Commit** `feat(admin): regole e functions solo dal claim`.
 
-### Task 5: la hotmail esce da `isSharedEmail`
+### Task 5: robmass83 prende il posto della hotmail in `isSharedEmail`
 
 **Files:**
 - Modify: `src/lib/salonPath.ts`, `src/lib/greeting.ts` e test, `src/lib/authGate.test.ts`, `src/data/firebase/client.test.ts`, `src/lib/salonAccess.test.ts`, `src/hooks/useCloudOnlyData.test.tsx`, gli altri test con la hotmail come membro condiviso
 
 **Interfaces:**
-- Produces: `ROBERTO_EMAIL` non esiste più; `isSharedEmail` vale solo per Laura.
+- Produces: `ROBERTO_SALONE_EMAIL = 'robmass83@gmail.com'`; `ROBERTO_EMAIL` non esiste più.
 
-- [ ] **Step 1: Test**: `isSharedEmail` falso per hotmail e robmass83, vero per Laura; robmass83 senza documento → `repair-salon`; `client.test`: robmass83 con account `salonId` = salone di Laura apre quel salone senza scritture.
+- [ ] **Step 1: Test**: `isSharedEmail` vero per Laura e robmass83, falso per la hotmail; `client.test`: robmass83 con account `salonId` = salone di Laura apre quel salone senza scritture.
 - [ ] **Step 2: Verifica il fallimento.**
 - [ ] **Step 3: Implementa** e aggiorna i test con la vecchia email.
 - [ ] **Step 4: Verifica** `npm test`; `grep -rn "hotmail" src --include=*.ts --include=*.tsx --exclude=*.test.*` non trova nulla.

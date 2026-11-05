@@ -23,9 +23,9 @@ describe('entryGate', () => {
     expect(entryGate({ firebase: true, email: 'laura.masala@tiscali.it', emailVerified: false, legacy: true, hasAccountDoc: false })).toEqual({ kind: 'home' })
   })
 
-  it('Roberto senza documento entra, un titolare nuovo va in riparazione', () => {
-    expect(entryGate({ firebase: true, email: 'masala.roberto@hotmail.it', emailVerified: false, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'home' })
-    expect(entryGate({ firebase: true, email: 'robmass83@gmail.com', emailVerified: true, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'repair-salon' })
+  it('robmass83 senza documento entra, la hotmail senza claim va in riparazione', () => {
+    expect(entryGate({ firebase: true, email: 'robmass83@gmail.com', emailVerified: false, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'home' })
+    expect(entryGate({ firebase: true, email: 'masala.roberto@hotmail.it', emailVerified: true, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'repair-salon' })
   })
 
   it('un nuovo non verificato conferma; Laura non verificata entra', () => {

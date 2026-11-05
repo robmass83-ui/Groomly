@@ -4,7 +4,7 @@ import { greetingName, greetingText } from './greeting'
 describe('saluto', () => {
   it('riconosce Laura e le due email di Roberto', () => {
     expect(greetingName('laura.masala@tiscali.it')).toBe('Laura')
-    expect(greetingName('masala.roberto@hotmail.it')).toBe('Roberto')
+    expect(greetingName('masala.roberto@hotmail.it')).toBeNull()
     expect(greetingName('robmass83@gmail.com')).toBe('Roberto')
   })
 

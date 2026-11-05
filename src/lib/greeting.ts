@@ -1,7 +1,6 @@
 import { frase } from '../i18n/frase'
 const NAMES: Record<string, string> = {
   'laura.masala@tiscali.it': 'Laura',
-  'masala.roberto@hotmail.it': 'Roberto',
   'robmass83@gmail.com': 'Roberto',
 }
 

@@ -80,7 +80,7 @@ describe('salonAccess', () => {
     expect(createInviteDecision({ caller, proEnabled: true, email: 'nuova@salone.it', role: 'socio', members: [], invites: full, now }).message).toBe('Posti esauriti')
     expect(createInviteDecision({ caller, proEnabled: true, email: 'gia@salone.it', role: 'socio', members, invites: [], now }).message).toBe('Questa email è già nel salone')
     expect(createInviteDecision({ caller, proEnabled: true, email: 'laura.masala@tiscali.it', role: 'socio', members: [], invites: [], now }).message).toBe('Questa email non si può invitare')
-    expect(createInviteDecision({ caller, proEnabled: true, email: 'masala.roberto@hotmail.it', role: 'collaboratore', members: [], invites: [], now }).message).toBe('Questa email non si può invitare')
+    expect(createInviteDecision({ caller, proEnabled: true, email: 'robmass83@gmail.com', role: 'collaboratore', members: [], invites: [], now }).message).toBe('Questa email non si può invitare')
     expect(createInviteDecision({
       caller: { salonId: 'shared', role: 'titolare' },
       proEnabled: true,

@@ -79,7 +79,7 @@ La pulizia delle raccolte globali del salone di prova riusa `pulisciRaccolteSalo
 
 ### Fase B — salone condiviso
 
-`ROBERTO_EMAIL` si toglie e `isSharedEmail()` vale solo per Laura. **robmass83 non entra in quella lista**, a differenza del piano: quella lista lega a `shared` chi non ha un account leggibile, cioè a un salone fermo. robmass83 è un socio normale e il client apre il `salonId` del suo account. La logica rimasta su `shared` si toglie col «secondo passaggio» del 24 ottobre, non qui. `greeting.ts` perde la voce hotmail.
+`ROBERTO_EMAIL` diventa `ROBERTO_SALONE_EMAIL = 'robmass83@gmail.com'`, e `isSharedEmail()` vale per Laura e robmass83: prende il posto esatto della hotmail e la logica intorno non cambia. Con l'account scritto da `collega` il client apre il `salonId` dell'account, come già fa per la hotmail. La logica rimasta su `shared` si toglie col «secondo passaggio» del 24 ottobre, non qui. `greeting.ts` perde la voce hotmail.
 
 ### Fase C — permessi
 
@@ -128,7 +128,7 @@ Fra i passi 2 e 3 la scrittura degli avvisi non è disponibile, e un'APK vecchia
 
 - `operatoreAutorizzato`: vero solo col claim; falso per Laura, robmass83 e hotmail senza claim.
 - Regole su emulatore (`npm run test:rules`): admin legge `salons/*` e `adminLog`; Laura non legge altri saloni ma usa il suo; robmass83 socio con `accessWithoutPro` legge e scrive il salone di Laura anche col piano spento; l'admin non scrive nel salone di Laura; il client non scrive `adminLog` né `avvisiSistema`.
-- `entryGate`: claim → `admin`; hotmail mai `repair-salon`; robmass83 senza documento → `repair-salon` (per questo `collega` viene prima del suo accesso).
+- `entryGate`: claim → `admin`; hotmail mai `repair-salon`; robmass83 senza documento → `home`, come la hotmail oggi.
 - Router: rotte salone con admin → `/admin`; `/admin` senza claim → Home; vecchi link conservano i parametri.
 - `accountNonEliminabile`: Laura e `shared` sempre protetti.
 - Tour: mai per Laura.
@@ -142,4 +142,4 @@ Nomi dei file interni, forma dell'helper di `adminLog`, come passare la cornice 
 
 ## Scelte mie, da controllare
 
-Riassunte qui perché Roberto non le ha decise una a una: tour escluso per Laura; robmass83 fuori da `isSharedEmail`; interruttore del piano Salone solo admin; limite di 10 avvisi all'ora; errore del registro che non annulla l'azione; riconferma anche sull'avviso a tutti ma non sulla sua eliminazione; ordine di rilascio con la APK prima di robmass83, diverso dal §5 del piano perché la sua build di prova non è necessaria.
+Riassunte qui perché Roberto non le ha decise una a una: tour escluso per Laura; interruttore del piano Salone solo admin; limite di 10 avvisi all'ora; errore del registro che non annulla l'azione; riconferma anche sull'avviso a tutti ma non sulla sua eliminazione; ordine di rilascio con la APK prima di robmass83, diverso dal §5 del piano perché la sua build di prova non è necessaria.
