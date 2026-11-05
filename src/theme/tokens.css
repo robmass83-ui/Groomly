@@ -1,5 +1,6 @@
 :root {
   --bg: #ECEFF4;
+  --admin-bar: #232A36;
   --card: #FFFFFF;
   --surf: #F5F7FA;
   --surf2: #F5F7FA;
@@ -74,6 +75,7 @@
 
 [data-theme="dark"] {
   --bg: #0C111A;
+  --admin-bar: #151C28;
   --card: #151C28;
   --surf: #1B2331;
   --surf2: #1B2331;

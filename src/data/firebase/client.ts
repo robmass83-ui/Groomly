@@ -45,7 +45,7 @@ import { livelloElenco } from '../../lib/funzioniPiano'
 import { fonteDi, tracciaBetaDi } from '../../lib/piano'
 import { leggiConfigPiani, type ConfigPiani, type ModificheConfigPiani } from '../../lib/configPiani'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
-import { tipoAvviso, traduzioniDi, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
+import { tipoAvviso, traduzioniDi, type AvvisoSistema } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
 import { readSignInHint } from '../local/signInHint'
@@ -506,14 +506,6 @@ export async function listenAvvisiAccount(uid: string, onData: (avvisi: AvvisoSi
   return onSnapshot(q, (snap) => {
     onData(snap.docs.flatMap((doc) => avvisoDaDocSistema(doc.id, doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>)))
   }, () => onData([]))
-}
-
-export async function pubblicaAvvisoSistema(input: { tipo: TipoAvviso; titolo: string; testo: string }): Promise<void> {
-  await callCallable('pubblicaAvvisoSistema', input)
-}
-
-export async function eliminaAvvisoSistema(id: string): Promise<void> {
-  await callCallable('eliminaAvvisoSistema', { id })
 }
 
 /** Fin dove l'account ha letto gli avvisi di sistema (millisecondi dell'avviso più nuovo visto). */

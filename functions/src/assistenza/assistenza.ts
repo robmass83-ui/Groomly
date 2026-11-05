@@ -1,4 +1,5 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
+import { PER_CONTINUARE, TITOLO_RISPOSTA } from '../../../src/i18n/emailHtml'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import {
   FONTI_ASSISTENZA,
@@ -15,22 +16,6 @@ import { emailConsole } from '../comunicazioni/emailConsole'
 import { erroreServer } from '../erroriServer'
 import { prenotaEmail } from '../postaGiorno'
 import { risposteRateDecision } from '../rateLimit'
-
-const TITOLO_RISPOSTA: Record<Lingua, string> = {
-  it: 'Risposta da Groomly',
-  en: 'Reply from Groomly',
-  es: 'Respuesta de Groomly',
-  fr: 'Réponse de Groomly',
-  de: 'Antwort von Groomly',
-}
-
-const PER_CONTINUARE: Record<Lingua, string> = {
-  it: 'Per continuare, scrivi a info@groomlyapp.it',
-  en: 'To continue, write to info@groomlyapp.it',
-  es: 'Para continuar, escribe a info@groomlyapp.it',
-  fr: 'Pour continuer, écrivez à info@groomlyapp.it',
-  de: 'Für Rückfragen schreiben Sie an info@groomlyapp.it',
-}
 
 const ORIGINE: Record<FonteAssistenza, string> = { suggerimento: 'suggerimenti', feedback: 'betaFeedback' }
 const ID_MAX = 64

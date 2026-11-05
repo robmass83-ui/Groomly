@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chiaveAssistenza, contaNuove, statoRichiesta, unisciRichieste } from './assistenza'
+import { chiaveAssistenza, contaNuove, filtraRichieste, statoRichiesta, unisciRichieste } from './assistenza'
 
 const TAGLIO = '2026-11-05T00:00:00.000Z'
 const sugg = (id: string, creato: number) => ({ id, email: 'a@b.it', categoria: 'bug', testo: `testo ${id}`, salonId: 's1', creato })
@@ -45,6 +45,26 @@ describe('unisciRichieste', () => {
   it('un suggerimento senza data non rompe l’ordine e non è nuovo', () => {
     const [r] = unisciRichieste([{ ...sugg('a', 0), creato: null }], [], {}, TAGLIO)
     expect(r?.stato).toBe('risolto')
+  })
+})
+
+describe('filtraRichieste', () => {
+  const richieste = unisciRichieste(
+    [sugg('a', Date.parse('2026-11-06T09:00:00.000Z')), { ...sugg('b', Date.parse('2026-11-01T09:00:00.000Z')), categoria: 'altro', salonId: 's3' }],
+    [feed('f', '2026-11-07T09:00:00.000Z')],
+    {},
+    TAGLIO,
+  )
+  const tutti = { fonte: null, categoria: '', stato: 'tutte', cerca: '' } as const
+  const nomi = (id: string) => ({ s1: 'Bauci', s2: 'Pelo', s3: 'Coda' })[id] ?? ''
+  const chiavi = (filtro: Parameters<typeof filtraRichieste>[1]) => filtraRichieste(richieste, filtro, nomi).map((r) => r.idOrigine)
+
+  it('filtra per fonte, categoria, stato e salone', () => {
+    expect(chiavi(tutti)).toEqual(['f', 'a', 'b'])
+    expect(chiavi({ ...tutti, fonte: 'feedback' })).toEqual(['f'])
+    expect(chiavi({ ...tutti, categoria: 'altro' })).toEqual(['b'])
+    expect(chiavi({ ...tutti, stato: 'risolto' })).toEqual(['b'])
+    expect(chiavi({ ...tutti, cerca: ' bau ' })).toEqual(['a'])
   })
 })
 

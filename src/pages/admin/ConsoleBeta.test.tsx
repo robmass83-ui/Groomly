@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { App } from '../app/App'
-import { createAccount, getAccount } from '../data/local/auth'
-import { storageKeys, writeJson } from '../data/local/storage'
-import type { InvitoBeta } from '../lib/betaInvito'
-import type { FeedbackLetto, InvitoAdmin } from '../lib/adminManager'
-import { CONFIG_PIANI_DEFAULT } from '../lib/configPiani'
+import { App } from '../../app/App'
+import { createAccount, getAccount } from '../../data/local/auth'
+import { storageKeys, writeJson } from '../../data/local/storage'
+import type { InvitoBeta } from '../../lib/betaInvito'
+import type { FeedbackLetto, InvitoAdmin } from '../../lib/adminManager'
+import { CONFIG_PIANI_DEFAULT } from '../../lib/configPiani'
 
 const GIORNO = 86_400_000
 const tra = (giorni: number) => new Date(Date.now() + giorni * GIORNO).toISOString()
@@ -24,9 +24,9 @@ const admin = vi.hoisted(() => ({
   mostra: vi.fn(async (_valore: boolean) => undefined),
   config: null as unknown as { mostraPiani: boolean; abbonamentiAttivi: boolean; piani: typeof CONFIG_PIANI_DEFAULT },
 }))
-vi.mock('../data/firebase/adminClient', async () => {
-  const actual = await vi.importActual<typeof import('../data/firebase/adminClient')>('../data/firebase/adminClient')
-  const { contatoriDi } = await vi.importActual<typeof import('../lib/adminManager')>('../lib/adminManager')
+vi.mock('../../data/firebase/adminClient', async () => {
+  const actual = await vi.importActual<typeof import('../../data/firebase/adminClient')>('../../data/firebase/adminClient')
+  const { contatoriDi } = await vi.importActual<typeof import('../../lib/adminManager')>('../../lib/adminManager')
   return {
     ...actual,
     callContatoriAdmin: async () => contatoriDi(await admin.contatori()),
@@ -50,8 +50,8 @@ const client = vi.hoisted(() => ({
   imposta: vi.fn(async (_salonId: string, _azione: string) => ({ ok: true as const, emailStato: null })),
   config: vi.fn(async (_modifiche: unknown): Promise<unknown> => null),
 }))
-vi.mock('../data/firebase/client', async () => {
-  const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
+vi.mock('../../data/firebase/client', async () => {
+  const actual = await vi.importActual<typeof import('../../data/firebase/client')>('../../data/firebase/client')
   return {
     ...actual,
     listSalonDirectory: () => client.directory(),
@@ -62,14 +62,14 @@ vi.mock('../data/firebase/client', async () => {
 })
 
 const scarica = vi.hoisted(() => vi.fn((_blob: Blob, _nome: string) => undefined))
-vi.mock('../data/firebase/abbonamentiClient', () => ({
+vi.mock('../../data/firebase/abbonamentiClient', () => ({
   controlloAccensione: vi.fn(async () => ({ voci: [], pronti: 0, tuttoVerde: false, attivi: false })),
   confermaPartitaIva: vi.fn(async () => undefined),
   accendiAbbonamenti: vi.fn(async () => undefined),
   spegniAbbonamenti: vi.fn(async () => undefined),
 }))
-vi.mock('../lib/shareFile', async () => {
-  const actual = await vi.importActual<typeof import('../lib/shareFile')>('../lib/shareFile')
+vi.mock('../../lib/shareFile', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/shareFile')>('../../lib/shareFile')
   return { ...actual, downloadAnchor: (blob: Blob, nome: string) => scarica(blob, nome) }
 })
 
@@ -105,13 +105,17 @@ const TRE_SALONI = {
   ],
 }
 
-async function apri(percorso = '/admin') {
+async function apriSenzaAttesa(percorso: string) {
   await createAccount('masala.roberto@hotmail.it', 'segretissimo')
   const account = getAccount()
   if (!account) throw new Error('account assente')
   writeJson(storageKeys.auth, { ...account, admin: true })
   render(<App memory isDev={false} initialPath={percorso} />)
-  await screen.findByRole('heading', { name: /Admin Manager|Bauci|Pelo|Zampa/ })
+}
+
+async function apri(percorso = '/admin') {
+  await apriSenzaAttesa(percorso)
+  await screen.findAllByRole('heading', { name: /Panoramica|Saloni|Beta|Assistenza|Piani|Bauci|Pelo|Zampa/ })
 }
 
 describe('Admin Manager: beta', () => {
@@ -127,13 +131,14 @@ describe('Admin Manager: beta', () => {
     admin.config = { mostraPiani: false, abbonamentiAttivi: false, piani: CONFIG_PIANI_DEFAULT }
   })
 
-  it('ha sei tab con aria-selected e i link vecchi portano al tab giusto', async () => {
+  it('la barra del telefono ha cinque voci e i link vecchi portano alla pagina giusta', async () => {
     await apri('/impostazioni/utenti?zona=saloni')
-    const tabs = await screen.findAllByRole('tab')
-    expect(tabs.map((t) => t.textContent?.replace(/\d+.*$/, ''))).toEqual(['Panoramica', 'Saloni', 'Beta', 'Feedback', 'Suggerimenti', 'Piani'])
-    expect(screen.getByRole('tab', { name: /Saloni/ })).toHaveAttribute('aria-selected', 'true')
-    await userEvent.setup().click(screen.getByRole('tab', { name: /Piani/ }))
-    expect(screen.getByRole('tab', { name: /Piani/ })).toHaveAttribute('aria-selected', 'true')
+    const barra = await screen.findByRole('navigation', { name: 'Menu della Console' })
+    expect(within(barra).getAllByRole('link').map((l) => l.textContent?.replace(/\d+.*$/, ''))).toEqual(['Panoramica', 'Saloni', 'Assistenza', 'Beta', 'Altro'])
+    expect(within(barra).getByRole('link', { name: /Saloni/ })).toHaveAttribute('aria-current', 'page')
+    const user = userEvent.setup()
+    await user.click(within(barra).getByRole('link', { name: 'Altro' }))
+    await user.click(await screen.findByRole('link', { name: 'Piani' }))
     expect(await screen.findByRole('heading', { name: 'Abbonamenti spenti' })).toBeInTheDocument()
   })
 
@@ -155,9 +160,19 @@ describe('Admin Manager: beta', () => {
     expect(admin.estendi).toHaveBeenCalledWith({ salonId: 'eva', giorni: 30 })
 
     await user.click(screen.getByRole('button', { name: 'In beta: 1' }))
-    expect(screen.getByRole('tab', { name: /Beta/ })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('link', { name: /Beta/, current: 'page' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Zampa, Eva Blu' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bauci, Ada Neri' })).not.toBeInTheDocument()
+  })
+
+  it('un link diretto alla scheda aspetta i dati prima di dire che il salone non c’è', async () => {
+    let finisci: (valore: unknown) => void = () => undefined
+    client.directory.mockImplementation(() => new Promise((ok) => { finisci = ok }))
+    await apriSenzaAttesa('/admin/saloni/ada')
+    expect(await screen.findByText('Caricamento…')).toBeInTheDocument()
+    expect(screen.queryByText('Nessuna toelettatura')).not.toBeInTheDocument()
+    await act(async () => { finisci(TRE_SALONI) })
+    expect(await screen.findByRole('heading', { name: 'Bauci' })).toBeInTheDocument()
   })
 
   it('se i numeri non arrivano lo dice e Riprova li richiede', async () => {
@@ -222,7 +237,7 @@ describe('Admin Manager: beta', () => {
     expect(await screen.findByText('1 inviti inviati · 1 saltati')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Saltati' }))
     expect(within(screen.getByRole('dialog', { name: 'Saltati' })).getByText('Pelo · VIP')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Saloni' })).toBeInTheDocument()
   })
 
   it('con ultimoAccesso di B1 compaiono i filtri di attività e la pillola nel dettaglio', async () => {
@@ -230,7 +245,7 @@ describe('Admin Manager: beta', () => {
     const user = userEvent.setup()
     await apri()
     expect(await screen.findByRole('button', { name: 'In beta: 7' })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     await user.click(await screen.findByRole('button', { name: /^Attivi 7 gg 1/ }))
     expect(screen.getByRole('button', { name: 'Bauci, Ada Neri' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Pelo, Leo Verdi' })).not.toBeInTheDocument()
@@ -311,17 +326,11 @@ describe('Admin Manager: beta', () => {
       feedback('f2', 'ada', { piano: 'salone', voto: 3, pagheresti: 'no', quanto: null, nonVa: '', manca: '', ricontatto: false }),
     ])
     const user = userEvent.setup()
-    await apri()
-    expect(await screen.findByRole('tab', { name: /Feedback.*2 nuovi/ })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: /Feedback/ }))
+    await apri('/admin/assistenza?fonte=feedback&stato=tutte')
     expect(await screen.findByLabelText('Voto medio: 4')).toBeInTheDocument()
     expect(screen.getByText('Sì 1 · Forse 0 · No 1')).toBeInTheDocument()
-    expect(screen.getByText('Lento')).toBeInTheDocument()
-    expect(screen.getByText('Manca: Stampa')).toBeInTheDocument()
-    expect(screen.getByText('Pagherebbe: sì · 5–10 €')).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: 'Plus 1' }))
-    expect(screen.queryByText('Pagherebbe: no')).not.toBeInTheDocument()
-    expect(screen.queryByRole('tab', { name: /nuovi/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Sì 1 · Forse 0 · No 1')).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Esporta PDF o Excel' }))
     const finestra = screen.getByRole('dialog', { name: 'Esporta PDF o Excel' })
@@ -329,10 +338,6 @@ describe('Admin Manager: beta', () => {
     await user.click(within(finestra).getByRole('button', { name: 'Esporta' }))
     await waitFor(() => expect(scarica).toHaveBeenCalledTimes(1))
     expect(scarica.mock.calls[0][1]).toMatch(/^Groomly_FeedbackBeta_\d{4}-\d{2}-\d{2}\.xlsx$/)
-
-    await user.click(screen.getByRole('button', { name: /Zampa/ }))
-    expect(await screen.findByRole('heading', { name: 'Zampa' })).toBeInTheDocument()
-    expect(screen.getByRole('radio', { name: 'Feedback 1' })).toHaveAttribute('aria-checked', 'true')
   }, 20_000)
 
   it('Piani: interruttori ottimistici con rollback, mostraPiani e offerta early adopter', async () => {

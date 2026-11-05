@@ -662,6 +662,22 @@ const DISISCRIVITI: Record<Lingua, string> = {
   de: 'Abmelden',
 }
 
+export const TITOLO_RISPOSTA: Record<Lingua, string> = {
+  it: 'Risposta da Groomly',
+  en: 'Reply from Groomly',
+  es: 'Respuesta de Groomly',
+  fr: 'Réponse de Groomly',
+  de: 'Antwort von Groomly',
+}
+
+export const PER_CONTINUARE: Record<Lingua, string> = {
+  it: 'Per continuare, scrivi a info@groomlyapp.it',
+  en: 'To continue, write to info@groomlyapp.it',
+  es: 'Para continuar, escribe a info@groomlyapp.it',
+  fr: 'Pour continuer, écrivez à info@groomlyapp.it',
+  de: 'Für Rückfragen schreiben Sie an info@groomlyapp.it',
+}
+
 export function fraseDisiscriviti(lingua: Lingua): string {
   return DISISCRIVITI[lingua]
 }

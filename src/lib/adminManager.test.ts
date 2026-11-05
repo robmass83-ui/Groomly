@@ -111,7 +111,7 @@ describe('filtraSaloni', () => {
 })
 
 describe('daFareOggi', () => {
-  it('mette prima le scadenze più vicine, poi feedback e suggerimenti, al massimo 5', () => {
+  it('mette prima le scadenze più vicine, poi richieste e saloni nuovi, al massimo 5', () => {
     const voci = daFareOggi({
       inviti: [
         invito({ salonId: 'a', scadeInvitoIl: '2026-11-06T10:00:00.000Z' }),
@@ -119,17 +119,17 @@ describe('daFareOggi', () => {
         invito({ salonId: 'c', stato: 'accettato' }),
       ],
       fineBeta: { c: '2026-11-05T10:00:00.000Z' },
-      feedback: [feedback({ id: 'f1', salonId: 'a' }), feedback({ id: 'f2', salonId: 'b', creatoIl: '2026-10-01T00:00:00.000Z' })],
-      feedbackVisti: new Set(),
-      suggerimentiDaVedere: 3,
+      richiesteNuove: 3,
+      nuoviSaloni: 2,
     }, ADESSO)
-    expect(voci.map((v) => v.tipo)).toEqual(['beta-finisce', 'invito-scade', 'feedback', 'suggerimenti'])
+    expect(voci.map((v) => v.tipo)).toEqual(['beta-finisce', 'invito-scade', 'assistenza', 'nuovi-saloni'])
+    expect(voci[2]).toEqual({ tipo: 'assistenza', n: 3 })
     expect(voci[1]).toMatchObject({ salonId: 'a', giorni: 2 })
   })
 
-  it('salta i feedback già visti e si ferma a 5 righe', () => {
+  it('senza richieste nuove non le nomina e si ferma a 5 righe', () => {
     const inviti = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => invito({ salonId: id, scadeInvitoIl: '2026-11-06T10:00:00.000Z' }))
-    const voci = daFareOggi({ inviti, fineBeta: {}, feedback: [feedback({ id: 'f1', salonId: 'a' })], feedbackVisti: new Set(['f1']), suggerimentiDaVedere: 0 }, ADESSO)
+    const voci = daFareOggi({ inviti, fineBeta: {}, richiesteNuove: 0, nuoviSaloni: 0 }, ADESSO)
     expect(voci).toHaveLength(5)
     expect(voci.every((v) => v.tipo === 'invito-scade')).toBe(true)
   })

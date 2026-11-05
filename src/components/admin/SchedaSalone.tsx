@@ -26,7 +26,9 @@ import type { LivelloElenco } from '../../lib/funzioniPiano'
 import { SIZES } from '../../theme/sizes'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, BarraGiorniAdmin, CON_ICONA, MarchioLivello, NOME, type Frasi } from './comuni'
+import type { SchedaAggregata } from '../../data/firebase/adminClient'
 import { RigaFeedback } from './FeedbackAdmin'
+import { NumeriSalone } from './NumeriSalone'
 import type { PianoLocale } from './useAzioniPiano'
 
 export type VistaScheda = 'azioni' | 'storico' | 'feedback'
@@ -98,6 +100,7 @@ export function SchedaSalone({
   vista,
   onVista,
   caricaStorico,
+  caricaNumeri,
   onGo,
   onAttiva,
   onRegala,
@@ -120,6 +123,7 @@ export function SchedaSalone({
   vista: VistaScheda
   onVista: (vista: VistaScheda) => void
   caricaStorico: () => Promise<InvitoAdmin[]>
+  caricaNumeri: () => Promise<SchedaAggregata>
   onGo: () => void
   onAttiva: (piano: 'pro' | 'salone') => void
   onRegala: () => void
@@ -242,6 +246,7 @@ export function SchedaSalone({
         ]}
       />
 
+      {vista === 'azioni' ? <NumeriSalone carica={caricaNumeri} /> : null}
       {vista === 'storico' ? (
         storico === null ? <AttesaRiga testo={frasi.uteCarica} /> : (() => {
           const elenco = vociStorico(frasi, [...(invito ? [invito] : []), ...storico], fineBetaDi(row), data)
