@@ -47,6 +47,7 @@ describe('privacy versione 3', () => {
 
   it('non promette di fermare i crash subito', () => {
     expect(blocco(html, 'it')).toContain('i crash dal prossimo avvio')
+    expect(blocco(html, 'it')).toContain('sugli altri quando riapri l’app')
   })
 })
 

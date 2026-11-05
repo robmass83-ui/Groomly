@@ -9,7 +9,8 @@ export function useProfiloMetriche(): ProfiloMetriche | null {
   const piano = usePiano()
   if (session.gate.kind !== 'in') return null
   const { account } = session.gate
-  const vip = piano.livelloNome === 'vip'
+  // Finché il piano del salone non è arrivato, un VIP sembrerebbe un Go: vale come escluso.
+  const vip = piano.livelloNome === 'vip' || piano.pianoCaricatoPer !== account.salonId
   return {
     nativo: Capacitor.isNativePlatform(),
     ...(account.role ? { role: account.role } : {}),

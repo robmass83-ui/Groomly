@@ -3,13 +3,15 @@ import { livelloElenco } from '../../../src/lib/funzioniPiano'
 import { isLauraEmail } from '../../../src/lib/salonPath'
 import { giornoPrecedenteRoma, limitiGiornoRoma, lunediRoma, type Coorte, type StatisticheGiorno } from '../../../src/lib/statisticheGiorno'
 import { GIORNO_MS, proMainDi, salonIdValido } from '../beta/comune'
-import type { UltimiAccessi } from '../beta/contatoriAdmin'
 
 const COORTI = 12
 const MESI_REGISTRO = 24
 const GRUPPO_CANCELLA = 400
 
-type Persona = { uid: string; email: string; role?: unknown; createdAt?: unknown }
+type Persona = { uid: string; email: string; role?: unknown }
+type InfoPersona = { ultimo: string | null; creato: string | null; admin: boolean }
+/** Da Auth: l'account su Firestore non ha la data di registrazione, e admin è solo un claim. */
+export type InfoPersone = (uids: string[]) => Promise<Map<string, InfoPersona>>
 
 function mailDi(value: unknown): string {
   return typeof value === 'string' ? value.toLowerCase() : ''
@@ -19,20 +21,22 @@ function salonePrivato(persone: Persona[]): boolean {
   return persone.some(({ email }) => isLauraEmail(email) || email.endsWith('@test.groomly'))
 }
 
-/** Le persone dei saloni da contare. Di `shared`, Laura e saloni finti non si apre nessun documento del salone. */
-async function saloniDaContare(db: Firestore, adesso: Date): Promise<{ saloni: Map<string, Persona[]>; esclusi: number }> {
+/** Le persone dei saloni da contare. Di `shared`, Laura, admin e saloni finti non si apre nessun documento del salone. */
+async function saloniDaContare(db: Firestore, adesso: Date, infoPersone: InfoPersone) {
   const tutti = new Map<string, Persona[]>()
-  let shared = 0
+  let esclusi = 0
   for (const doc of (await db.collection('accounts').get()).docs) {
-    const { salonId, email, role, createdAt } = doc.data() ?? {}
-    if (salonId === 'shared') shared = 1
+    const { salonId, email, role } = doc.data() ?? {}
+    if (salonId === 'shared') esclusi = 1
     if (!salonIdValido(salonId)) continue
-    tutti.set(salonId, [...(tutti.get(salonId) ?? []), { uid: doc.id, email: mailDi(email), role, createdAt }])
+    tutti.set(salonId, [...(tutti.get(salonId) ?? []), { uid: doc.id, email: mailDi(email), role }])
   }
+  const candidati = [...tutti].filter(([, persone]) => !salonePrivato(persone))
+  esclusi += tutti.size - candidati.length
+  const info = await infoPersone(candidati.flatMap(([, persone]) => persone.map(({ uid }) => uid)))
   const saloni = new Map<string, Persona[]>()
-  let esclusi = shared
-  for (const [salonId, persone] of tutti) {
-    if (salonePrivato(persone)) {
+  for (const [salonId, persone] of candidati) {
+    if (persone.some(({ uid }) => info.get(uid)?.admin === true)) {
       esclusi += 1
       continue
     }
@@ -40,17 +44,17 @@ async function saloniDaContare(db: Firestore, adesso: Date): Promise<{ saloni: M
     if (livelloElenco(pro, adesso) === 'vip') esclusi += 1
     else saloni.set(salonId, persone)
   }
-  return { saloni, esclusi }
+  return { saloni, esclusi, info }
 }
 
-function piuRecente(uids: string[], accessi: Map<string, string | null>): number | null {
-  const tempi = uids.map((uid) => Date.parse(accessi.get(uid) ?? '')).filter(Number.isFinite)
+function piuRecente(persone: Persona[], info: Map<string, InfoPersona>): number | null {
+  const tempi = persone.map(({ uid }) => Date.parse(info.get(uid)?.ultimo ?? '')).filter(Number.isFinite)
   return tempi.length > 0 ? Math.max(...tempi) : null
 }
 
-function registrato(persone: Persona[]): number | null {
+function registrato(persone: Persona[], info: Map<string, InfoPersona>): number | null {
   const titolare = persone.find(({ role }) => role === 'titolare')
-  const quando = typeof titolare?.createdAt === 'string' ? Date.parse(titolare.createdAt) : NaN
+  const quando = Date.parse((titolare && info.get(titolare.uid)?.creato) ?? '')
   return Number.isFinite(quando) ? quando : null
 }
 
@@ -69,22 +73,21 @@ function coorti(righe: { creato: number; ultimo: number | null }[], adesso: Date
   return [...settimane.values()].sort((a, b) => a.settimana.localeCompare(b.settimana))
 }
 
-export async function calcolaStatistiche(input: { db: Firestore; adesso: Date; ultimiAccessi: UltimiAccessi }): Promise<StatisticheGiorno> {
+export async function calcolaStatistiche(input: { db: Firestore; adesso: Date; infoPersone: InfoPersone }): Promise<StatisticheGiorno> {
   const { db, adesso } = input
   const giorno = giornoPrecedenteRoma(adesso)
   const [inizio, fine] = limitiGiornoRoma(giorno)
-  const { saloni, esclusi } = await saloniDaContare(db, adesso)
-  const accessi = await input.ultimiAccessi([...saloni.values()].flat().map(({ uid }) => uid))
+  const { saloni, esclusi, info } = await saloniDaContare(db, adesso, input.infoPersone)
 
   const totali = { nuovi: 0, attivi1: 0, attivi7: 0, attivi30: 0, attivati: 0, appuntamenti: 0, plus: 0, salon: 0 }
   const coorte: { creato: number; ultimo: number | null }[] = []
   for (const [salonId, persone] of saloni) {
-    const ultimo = piuRecente(persone.map(({ uid }) => uid), accessi)
+    const ultimo = piuRecente(persone, info)
     const fa = ultimo === null ? Infinity : adesso.getTime() - ultimo
     if (fa <= GIORNO_MS) totali.attivi1 += 1
     if (fa <= 7 * GIORNO_MS) totali.attivi7 += 1
     if (fa <= 30 * GIORNO_MS) totali.attivi30 += 1
-    const creato = registrato(persone)
+    const creato = registrato(persone, info)
     if (creato !== null) {
       coorte.push({ creato, ultimo })
       if (creato >= inizio && creato < fine) totali.nuovi += 1

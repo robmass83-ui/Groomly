@@ -78,9 +78,9 @@ Non è una consulenza legale. I testi vanno riletti da un professionista prima d
 - titolari già presenti: subito dopo «Accetto» nella riaccettazione, dalla data di partenza;
 - nuovi saloni: nel tour, dopo la schermata promo (`src/pages/TourPage.tsx`).
 
-Due pulsanti con lo stesso peso, Sì e No. Anche il No si salva, così la domanda non torna. Chi è escluso non la vede mai.
+Chi non la vede in quei due momenti (tour spento o saltato, rete assente) non viene più interrotto: resta l'interruttore in Account, e la raccolta resta spenta. Due pulsanti con lo stesso peso, Sì e No. Anche il No si salva, così la domanda non torna. Chi è escluso non la vede mai.
 
-**Cambiare idea.** L'interruttore in `src/pages/AccountPage.tsx` resta, visibile solo a chi può rispondere e ha già accettato la versione 2. Spegnerlo ferma subito eventi ed errori JavaScript, che passano dal nostro codice. Secondo il README del plugin, la raccolta dei crash nativi cambia solo dal prossimo avvio dell'app: vale anche per il sì. I testi lo dicono così, senza promettere «subito». *Scelta del costruttore.*
+**Cambiare idea.** L'interruttore in `src/pages/AccountPage.tsx` resta, visibile solo a chi può rispondere e ha già accettato la versione 2. Spegnerlo ferma subito eventi ed errori JavaScript su quel telefono; gli altri telefoni leggono la scelta quando si riapre l'app. Secondo il README del plugin, la raccolta dei crash nativi cambia solo dal prossimo avvio dell'app: vale anche per il sì. I testi lo dicono così, senza promettere «subito». *Scelta del costruttore.*
 
 **Testo della domanda.** Dice in parole semplici cosa parte (uso dell'app, crash), che non ci sono dati dei clienti, che è facoltativo e che si può cambiare in Account. Sostituisce `metricheDettaglio`, che oggi dice «dati anonimi»: sono pseudonimi, non anonimi.
 
@@ -124,11 +124,11 @@ User property: `piano` e `lingua`. *Scelte del costruttore:* `ruolo` è tolto, s
 
 *Scelta del costruttore:* il piano dice `stats/giornaliere/{data}`, ma in Firestore quel percorso è una raccolta, non un documento. Rieseguirla sovrascrive lo stesso giorno, senza danni.
 
-**Esclusi.** `shared` e il salone di Laura si riconoscono da `accounts` e non si legge nulla di loro. Lo stesso vale per i saloni di admin e `@test.groomly`. Lo stato VIP sta solo in `salons/{id}/pro/main`: per gli altri saloni si legge quel documento, e se è VIP non si legge altro. *Scelta del costruttore.* Il documento salva quanti sono gli esclusi, non quali.
+**Esclusi.** `shared`, il salone di Laura e `@test.groomly` si riconoscono da `accounts` e non si legge nulla di loro. Gli admin si riconoscono dal claim in Auth, prima di aprire il salone. Lo stato VIP sta solo in `salons/{id}/pro/main`: per gli altri saloni si legge quel documento, e se è VIP non si legge altro. *Scelta del costruttore.* Il documento salva quanti sono gli esclusi, non quali.
 
 **Numeri salvati** (solo totali, nessun id o nome):
 
-- saloni totali e nuovi del giorno;
+- saloni totali e nuovi del giorno (la data di registrazione viene da Auth: su `accounts` non è scritta);
 - attivi a 1, 7 e 30 giorni, dagli accessi usati in `functions/src/beta/contatoriAdmin.ts`;
 - saloni attivati: almeno un cane e almeno un appuntamento;
 - appuntamenti del giorno, totale e media per salone attivo, con `count()` salone per salone;

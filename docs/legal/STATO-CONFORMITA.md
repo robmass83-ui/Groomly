@@ -35,6 +35,8 @@ Nel salone `shared` non si scrive mai, quindi la disiscrizione lì non può funz
 
 - **APK vecchie.** Chi non aggiorna non vede la riaccettazione. Riceve però l'avviso via email, e al primo aggiornamento gli viene chiesta.
 - **Regole di `salon/shared`.** Il claim admin può ancora leggere quel resto in sola lettura. La Console non lo mostra, ma la Privacy dice cosa mostra la Console, non cosa potrebbero leggere le regole. Da chiudere appena `salon/shared` non serve più.
+- **Domanda sulle statistiche.** Compare dopo la riaccettazione e nel tour. Con il tour spento o saltato un salone nuovo non la vede: resta l'interruttore in Account e la raccolta spenta.
+- **Eventi automatici di Analytics.** Chi spegne su un telefono ferma gli altri alla riapertura: da verificare sul telefono se qualche evento automatico parte prima dello spegnimento.
 - **Inviti alla beta.** Far confermare al professionista che possano restare email dirette, senza consenso promozionale.
 - **Conservazione di Analytics.** La Privacy dice 2 mesi: va impostato a mano in Google Analytics.
 

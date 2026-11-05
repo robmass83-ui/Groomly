@@ -547,6 +547,14 @@ export async function callImpostaConsensoMetriche(attivo: boolean, fonte: Consen
   return consenso
 }
 
+/** Dal server: la scelta può essere cambiata su un altro telefono. */
+export async function rileggiConsensoMetriche(): Promise<ConsensoMetriche | undefined> {
+  const user = await currentUser()
+  const consenso = leggiConsensoMetriche((await readDoc(['accounts', user.uid], true))?.consensoMetriche)
+  if (consenso && accountDoc?.uid === user.uid) accountDoc = { uid: user.uid, data: { ...accountDoc.data, consensoMetriche: consenso } }
+  return consenso
+}
+
 export async function callImpostaEmailCliente(dogId: string, bloccata: boolean): Promise<void> {
   await callCallable('impostaEmailCliente', { dogId, bloccata })
 }

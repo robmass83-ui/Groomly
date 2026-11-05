@@ -14,18 +14,18 @@ import { Button } from '../ui/Button'
 import { DomandaStatistiche } from './DomandaStatistiche'
 
 const PAGINA_ELIMINA = '/impostazioni/account/elimina'
-const PAGINA_TOUR = '/benvenuto'
 
 // Valgono per l'apertura dell'app: senza rete si entra, e la richiesta torna alla prossima.
 let rimandataPer: string | null = null
 let provaSilenziosaPer: string | null = null
-let statisticheChiestePer: string | null = null
+// La domanda segue la riaccettazione: i saloni nuovi rispondono nel tour, che può partire solo dopo.
+let appenaAccettatoDa: string | null = null
 
 /** Solo per i test. */
 export function __resetRiaccetta(): void {
   rimandataPer = null
   provaSilenziosaPer = null
-  statisticheChiestePer = null
+  appenaAccettatoDa = null
 }
 
 // Senza connessione vera l'SDK risponde «internal», e su Android onLine può restare vero: blocca solo un rifiuto del server.
@@ -68,13 +68,11 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
   if (!blocca) {
     const chiedi = account !== null && profilo !== null
       && devoChiedere(profilo, account.consensoMetriche, account.termini)
-      && piano.livelloNome !== undefined
-      && statisticheChiestePer !== uid
-      && pathname !== PAGINA_TOUR
+      && appenaAccettatoDa === uid
       && pathname !== PAGINA_ELIMINA
       && !deveRiaccettare(account.termini, richiesta)
     if (!chiedi) return <>{children}</>
-    return <DomandaStatistiche fonte="riaccettazione" onFatto={() => { statisticheChiestePer = uid; setRisposto(true) }} />
+    return <DomandaStatistiche fonte="riaccettazione" onFatto={() => { appenaAccettatoDa = null; setRisposto(true) }} />
   }
 
   const protetto = accountNonEliminabile({
@@ -91,6 +89,7 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     try {
       const mod = await import('../../data/firebase/client')
       await mod.callRegistraAccettazione()
+      appenaAccettatoDa = uid
       session.replaceAccount(await mod.accountRiletto())
     } catch (error) {
       if (senzaRete(error)) {

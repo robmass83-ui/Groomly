@@ -2,7 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { DomandaStatistiche } from './DomandaStatistiche'
 import { __resetRiaccetta, RiaccettaDocumenti } from './RiaccettaDocumenti'
 import { StatisticheRiga } from './StatisticheRiga'
@@ -10,6 +10,8 @@ import { StatisticheRiga } from './StatisticheRiga'
 const m = vi.hoisted(() => ({
   account: {} as Record<string, unknown>,
   livelloNome: 'base',
+  caricatoPer: 'u' as string | undefined,
+  riletto: vi.fn(),
   replaceAccount: vi.fn(),
   imposta: vi.fn(async (attivo: boolean, fonte: string) => ({ attivo, fonte, at: 'x', versione: 1 })),
 }))
@@ -18,9 +20,9 @@ vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => true } 
 vi.mock('../../hooks/useSession', () => ({
   useSession: () => ({ gate: { kind: 'in', account: m.account }, admin: false, replaceAccount: m.replaceAccount, logout: vi.fn() }),
 }))
-vi.mock('../../hooks/usePiano', () => ({ usePiano: () => ({ livelloNome: m.livelloNome }) }))
+vi.mock('../../hooks/usePiano', () => ({ usePiano: () => ({ livelloNome: m.livelloNome, pianoCaricatoPer: m.caricatoPer }) }))
 vi.mock('../../data/firebase/enabled', () => ({ firebaseEnabled: () => true }))
-vi.mock('../../data/firebase/client', () => ({ callImpostaConsensoMetriche: m.imposta, callRegistraAccettazione: vi.fn() }))
+vi.mock('../../data/firebase/client', () => ({ callImpostaConsensoMetriche: m.imposta, callRegistraAccettazione: vi.fn(async () => undefined), accountRiletto: m.riletto }))
 vi.mock('../../lib/openDocument', () => ({ apriEsterno: vi.fn(async () => undefined) }))
 vi.mock('../layout/Toast', () => ({ useToast: () => ({ show: vi.fn() }) }))
 
@@ -40,9 +42,12 @@ describe('domanda sulle statistiche', () => {
     __resetRiaccetta()
     m.account = { ...TITOLARE }
     m.livelloNome = 'base'
-    m.replaceAccount.mockClear()
+    m.caricatoPer = 'u'
+    m.replaceAccount.mockReset()
     m.imposta.mockClear()
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-12-02T10:00:00.000Z') })
   })
+  afterEach(() => { vi.useRealTimers() })
 
   it('Sì e No hanno lo stesso peso', () => {
     render(<DomandaStatistiche fonte="tour" onFatto={vi.fn()} />)
@@ -70,10 +75,26 @@ describe('domanda sulle statistiche', () => {
     expect(m.replaceAccount).not.toHaveBeenCalled()
   })
 
-  it('il titolare che non ha risposto la vede prima dell’app', () => {
+  it('il titolare la vede subito dopo aver riaccettato', async () => {
+    m.account = { ...TITOLARE, termini: { accettati: true, at: 'x', versione: 1, suServer: true } }
+    m.riletto.mockResolvedValue({ ...TITOLARE })
+    m.replaceAccount.mockImplementation((account: Record<string, unknown>) => { m.account = account })
     apri()
-    expect(screen.queryByText('app')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Sì, va bene' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Accetto' }))
+    expect(await screen.findByRole('button', { name: 'Sì, va bene' })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'No, grazie' }))
+    await waitFor(() => { expect(m.imposta).toHaveBeenCalledWith(false, 'riaccettazione') })
+  })
+
+  it('un nuovo titolare non la vede in Home: la risposta è nel tour', () => {
+    apri()
+    expect(screen.getByText('app')).toBeInTheDocument()
+  })
+
+  it('finché il piano non è arrivato il salone non è ancora un titolare qualsiasi', () => {
+    m.caricatoPer = undefined
+    render(<StatisticheRiga />)
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })
 
   it.each([
@@ -87,10 +108,6 @@ describe('domanda sulle statistiche', () => {
     expect(screen.getByText('app')).toBeInTheDocument()
   })
 
-  it('durante il tour la domanda non copre i passi', () => {
-    apri('/benvenuto')
-    expect(screen.getByText('app')).toBeInTheDocument()
-  })
 })
 
 describe('interruttore in Account', () => {

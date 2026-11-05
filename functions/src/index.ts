@@ -1169,6 +1169,21 @@ export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, asyn
   return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
 })
 
+async function infoPersoneAuth(uids: string[]): Promise<Map<string, { ultimo: string | null; creato: string | null; admin: boolean }>> {
+  const out = new Map<string, { ultimo: string | null; creato: string | null; admin: boolean }>()
+  for (let i = 0; i < uids.length; i += 100) {
+    const { users } = await getAuth().getUsers(uids.slice(i, i + 100).map((uid) => ({ uid })))
+    for (const user of users) {
+      out.set(user.uid, {
+        ultimo: user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime ?? null,
+        creato: user.metadata.creationTime ?? null,
+        admin: user.customClaims?.admin === true,
+      })
+    }
+  }
+  return out
+}
+
 export const statisticheGiornaliere = onSchedule({
   schedule: '30 3 * * *',
   timeZone: 'Europe/Rome',
@@ -1177,7 +1192,7 @@ export const statisticheGiornaliere = onSchedule({
 }, async () => {
   const db = getFirestore()
   const adesso = new Date()
-  await salvaStatistiche(db, await calcolaStatistiche({ db, adesso, ultimiAccessi: ultimiAccessiAuth }))
+  await salvaStatistiche(db, await calcolaStatistiche({ db, adesso, infoPersone: infoPersoneAuth }))
   await pulisciRegistroAdmin(db, adesso)
 })
 

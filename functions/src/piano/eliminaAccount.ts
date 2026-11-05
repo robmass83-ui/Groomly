@@ -1,6 +1,5 @@
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
-import { getStorage } from 'firebase-admin/storage'
 import { linguaValida } from '../../../src/i18n/lingua'
 import { isLauraEmail } from '../../../src/lib/salonPath'
 import { revocaMembroAllUscita } from '../../../src/lib/uscitaMembro'
@@ -81,8 +80,7 @@ export async function eliminaAccountPer(
     await restituisciMembri(db, uid)
     await db.recursiveDelete(db.doc(`salons/${uid}`))
     await pulisciRaccolteSalone(db, uid)
-    await db.recursiveDelete(db.doc(`accounts/${uid}`))
-    await svuotaStorage(uid)
+    await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
   }
   const destinazione = utente?.email || emailAccount
   await auth.deleteUser(uid)
@@ -110,13 +108,5 @@ async function restituisciMembri(db: Firestore, salonId: string): Promise<void> 
       }
     }
     await member.ref.set({ status: 'revocato' }, { merge: true })
-  }
-}
-
-async function svuotaStorage(uid: string): Promise<void> {
-  try {
-    await getStorage().bucket().deleteFiles({ prefix: `users/${uid}/` })
-  } catch {
-    // Il bucket può mancare negli ambienti senza Storage: i dati stanno in Firestore.
   }
 }
