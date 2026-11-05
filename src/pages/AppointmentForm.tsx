@@ -832,7 +832,7 @@ export function AppointmentForm({
                 aria-pressed={chosen}
                 data-busy={taken ? 'true' : undefined}
                 data-chiuso={fuori ? 'true' : undefined}
-                disabled={fuori || (taken && !chosen)}
+                disabled={fuori}
                 onClick={() => {
                   setTime(slot)
                   setFieldError(null)
@@ -848,7 +848,6 @@ export function AppointmentForm({
                         ? 'var(--pri-s)'
                         : 'var(--card)',
                   color: chosen ? 'var(--on-pri)' : taken ? 'var(--tx3)' : 'var(--tx)',
-                  textDecoration: taken && !chosen ? 'line-through' : 'none',
                   font: 'inherit',
                   fontSize: TYPE.rowSub,
                   fontVariantNumeric: 'tabular-nums',

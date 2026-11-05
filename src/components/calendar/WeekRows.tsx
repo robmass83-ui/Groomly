@@ -13,9 +13,11 @@ import { closureOn, type Closure } from '../../lib/closures'
 import { splitCritical } from '../../lib/display'
 import { hasExtraNotes } from '../../lib/dogNotes'
 import { formatHomeDate, opzioniDate } from '../../lib/format'
+import { razzaDaMostrare } from '../../lib/dogList'
 import { nomeCaneVisita } from '../../lib/nomeCaneVisita'
 import { appointmentKind } from '../../lib/personal'
 import { SIZES } from '../../theme/sizes'
+import { RIGA_RAZZA } from '../../theme/text'
 import type { Appointment, Dog, Service } from '../../types/models'
 import { PastigliaPersona } from '../team/FiltroPersona'
 import { personaDellaVisita } from '../../lib/filtroPersona'
@@ -190,6 +192,7 @@ function WeekDayRow({
           const extra = hasExtraNotes(appointment.extraNotes)
           const cancelled = appointment.status === STATO_DISDETTO || appointment.status === 'non_venuto'
           const firstService = appointment.services[0]
+          const razza = personal ? '' : razzaDaMostrare(dog, null)
           return (
             <button
               key={appointment.id}
@@ -202,6 +205,7 @@ function WeekDayRow({
               style={{
                 flex: '0 0 auto',
                 width: 'auto',
+                maxWidth: '100%',
                 borderTopWidth: 1,
                 borderRightWidth: 1,
                 borderBottomWidth: 1,
@@ -237,11 +241,14 @@ function WeekDayRow({
                 <span style={{ fontSize: 12 }}>{cardTime(appointment)}</span>
               </span>
               {personal ? null : appointment.provvisorio ? (
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--tx3)' }}>
-                  {t(lingua, 'agendaDaConfermare', { ora: oraEntro(appointment.scadeIl) })}
-                </span>
+                <>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--tx3)' }}>
+                    {t(lingua, 'agendaDaConfermare', { ora: oraEntro(appointment.scadeIl) })}
+                  </span>
+                  {razza ? <span data-razza="" style={{ ...RIGA_RAZZA, fontSize: 12, color: 'var(--tx2)' }}>{razza}</span> : null}
+                </>
               ) : (
-                <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4 }}>
+                <span style={{ display: 'flex', flexWrap: 'nowrap', alignItems: 'center', gap: 4, minWidth: 0 }}>
                   {firstService ? (
                     <ServiceIcon
                       iconKey={services.find((service) => service.id === firstService.serviceId)?.iconKey}
@@ -249,6 +256,7 @@ function WeekDayRow({
                     />
                   ) : null}
                   {appointment.services.length > 1 ? <span>+1</span> : null}
+                  {razza ? <span data-razza="" style={{ ...RIGA_RAZZA, fontSize: 12, color: 'var(--tx2)' }}>{razza}</span> : null}
                 </span>
               )}
               {title || extra ? (

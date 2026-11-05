@@ -13,7 +13,7 @@ import { archiveDog, createDog } from '../data/local/dogs'
 import { storageKeys, writeJson } from '../data/local/storage'
 import { contentMinHeightPx, EMPTY_HOUR_PX } from '../lib/calendarLayout'
 import { oraRoma } from '../lib/disponibilita'
-import type { Appointment, AppointmentWrite, DogWrite, Service } from '../types/models'
+import type { Appointment, AppointmentWrite, Dog, DogWrite, Service } from '../types/models'
 import { AppointmentForm } from './AppointmentForm'
 
 const salonDesk = vi.hoisted(() => ({
@@ -113,6 +113,33 @@ describe('agenda', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('la riga mostra la razza sotto il servizio, una sola volta per gli omonimi', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0)
+    const rex = { id: 'dog-1', name: 'Rex', breed: 'Maltese', temperament: 'bravo', status: 'attivo', clientType: 'occasionale', ageCategory: 'adulto' } as Dog
+    const { rerender } = render(
+      <MemoryRouter>
+        <AppointmentRow appointment={appointment(start)} dog={rex} services={[]} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Maltese')).toHaveAttribute('data-razza')
+    rerender(
+      <MemoryRouter>
+        <AppointmentRow appointment={appointment(start)} dog={rex} services={[]} mark="Maltese · Bianchi" />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('button').querySelector('[data-razza]')).toBeNull()
+  })
+
+  it('un ospite senza scheda non lascia la riga della razza', () => {
+    const start = new Date(2026, 9, 3, 9, 0, 0, 0)
+    render(
+      <MemoryRouter>
+        <AppointmentRow appointment={appointment(start, { dogId: '', ospiteNome: 'Rex' })} dog={undefined} services={[]} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('button').querySelector('[data-razza]')).toBeNull()
   })
 
   it('senza cane la riga non si apre', () => {
@@ -351,6 +378,43 @@ describe('agenda', () => {
     expect(stored.coveredDue).toBe(covered.toISOString())
   })
 
+  it('un orario occupato si sceglie, avvisa e salva due cani della stessa persona', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 3, 8, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const contact = { name: 'Anna Rossi', phone: '333' }
+    createDog(account.uid, dog('Rex', { contact }))
+    const luna = createDog(account.uid, dog('Luna', { contact }))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cerca cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
+    const hours = screen.getByRole('group', { name: 'Ora' })
+    await user.click(within(hours).getByRole('button', { name: '11:00' }))
+    expect(screen.queryByText('Si sovrappone a Luna 09:00–10:00')).not.toBeInTheDocument()
+    const busy = within(hours).getByRole('button', { name: '09:30' })
+    expect(busy).toHaveAttribute('data-busy', 'true')
+    expect(busy).toBeEnabled()
+    expect(busy.getAttribute('style')).not.toContain('line-through')
+    await user.click(busy)
+    expect(busy).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
+    await user.click(within(hours).getByRole('button', { name: '11:00' }))
+    expect(screen.queryByText('Si sovrappone a Luna 09:00–10:00')).not.toBeInTheDocument()
+    await user.click(busy)
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const ask = screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })
+    await user.click(within(ask).getByRole('button', { name: 'Inserisci lo stesso' }))
+    expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(2)
+  })
+
   it('si sovrappone: Salva chiede conferma, poi salva, e la cancellazione apre il giorno', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 3, 8, 0, 0, 0))
@@ -369,9 +433,9 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: /^Bagno · / }))
     expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })).toBeInTheDocument()
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(1)
-    await user.click(screen.getByRole('button', { name: 'Salva comunque' }))
+    await user.click(screen.getByRole('button', { name: 'Inserisci lo stesso' }))
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Apri Rex' }))
@@ -928,6 +992,50 @@ describe('agenda', () => {
     expect(parseFloat(second.style.top)).toBeGreaterThan(parseFloat(first.style.top) + parseFloat(first.style.height))
     expect(parseFloat(second.style.height)).toBeGreaterThan(0)
     expect(parseFloat(first.style.height)).toBeLessThan(slot)
+  })
+
+  it('nel giorno tre cani alla stessa ora si toccano tutti e non hanno il bordo di errore', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    for (const nome of ['Rex', 'Luna', 'Zeus']) {
+      const cane = createDog(account.uid, dog(nome))
+      createAppointment(account.uid, {
+        dogId: cane.id,
+        start: new Date(2026, 9, 5, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+      })
+    }
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const blocchi = await Promise.all(['Rex', 'Luna', 'Zeus'].map((nome) => screen.findByRole('button', { name: `Apri ${nome}` })))
+    for (const blocco of blocchi) {
+      expect(blocco).toHaveAttribute('data-column-count', '2')
+      expect(blocco.getAttribute('style') ?? '').not.toContain('outline')
+    }
+    const sotto = blocchi
+      .filter((blocco) => blocco.getAttribute('data-column') === '0')
+      .sort((sopra, altro) => parseFloat(sopra.style.top) - parseFloat(altro.style.top))
+    expect(sotto).toHaveLength(2)
+    expect(parseFloat(sotto[1].style.top)).toBeGreaterThanOrEqual(parseFloat(sotto[0].style.top) + parseFloat(sotto[0].style.height))
+  })
+
+  it('nel giorno la razza sta sotto il servizio, tagliata, e la scheda le fa posto', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const rex = createDog(account.uid, dog('Rex', { breed: 'Cavalier King Charles Spaniel' }))
+    const luna = createDog(account.uid, dog('Luna'))
+    for (const [cane, ora] of [[rex, 9], [luna, 11]] as const) {
+      createAppointment(account.uid, {
+        dogId: cane.id,
+        start: new Date(2026, 9, 5, ora, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 15, price: 20 }],
+      })
+    }
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const conRazza = await screen.findByRole('button', { name: 'Apri Rex' })
+    const razza = within(conRazza).getByText('Cavalier King Charles Spaniel')
+    expect(razza.style.textOverflow).toBe('ellipsis')
+    expect(within(conRazza).getByText('Bagno').compareDocumentPosition(razza) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const senza = screen.getByRole('button', { name: 'Apri Luna' })
+    expect(senza.querySelector('[data-razza]')).toBeNull()
+    expect(parseFloat(conRazza.style.height)).toBe(parseFloat(senza.style.height) + 22)
   })
 
   it('nel giorno la chip del servizio è corta, icona e nome sulla stessa riga', async () => {
@@ -1496,7 +1604,7 @@ describe('calendario disegnato', () => {
     expect(screen.queryByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).toBeNull()
   })
 
-  it('tre appuntamenti sovrapposti hanno tre colonne e la linea resta sopra', async () => {
+  it('tre appuntamenti sovrapposti stanno in due colonne e restano leggibili', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const clocks = { Rex: '10:00', Luna: '10:30', Birba: '11:00' } as const
     for (const [name, minute] of [['Rex', 0], ['Luna', 30], ['Birba', 60]] as const) {
@@ -1505,9 +1613,8 @@ describe('calendario disegnato', () => {
     }
     render(<App memory isDev={false} initialPath={PAST} />)
     const blocks = await screen.findAllByRole('button', { name: /^Apri (Rex|Luna|Birba)$/ })
-    expect(blocks.map((item) => item.getAttribute('data-column-count'))).toEqual(['3', '3', '3'])
-    expect(blocks.map((item) => item.getAttribute('data-column')).sort()).toEqual(['0', '1', '2'])
-    expect(blocks[0].getAttribute('style')).toContain('var(--warn)')
+    expect(blocks.map((item) => item.getAttribute('data-column-count'))).toEqual(['2', '2', '2'])
+    expect(blocks.map((item) => item.getAttribute('data-column')).sort()).toEqual(['0', '0', '1'])
     for (const block of blocks) {
       const name = block.getAttribute('aria-label')?.replace(/^Apri /, '') as keyof typeof clocks
       expect(within(block).getByText('Bagno')).toBeTruthy()

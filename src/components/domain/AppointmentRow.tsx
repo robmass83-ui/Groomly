@@ -8,8 +8,10 @@ import { oraRoma } from '../../lib/disponibilita'
 import { dogPortrait } from '../../lib/dogPhoto'
 import { formatCompactDuration } from '../../lib/display'
 import { hasExtraNotes } from '../../lib/dogNotes'
+import { razzaDaMostrare } from '../../lib/dogList'
 import { nomeCaneVisita } from '../../lib/nomeCaneVisita'
 import { SIZES } from '../../theme/sizes'
+import { RIGA_RAZZA } from '../../theme/text'
 import { TYPE } from '../../theme/theme'
 import type { Appointment, Dog, Service } from '../../types/models'
 import { ChipRow } from '../ui/ChipRow'
@@ -55,6 +57,7 @@ export function AppointmentRow({
   const spoken = dog && mark ? `${label}, ${mark.split(' · ').join(', ')}` : label
   const time = `${String(appointment.start.getHours()).padStart(2, '0')}:${String(appointment.start.getMinutes()).padStart(2, '0')}`
   const duration = provvisorio ? '' : formatCompactDuration(minutiInGriglia(appointment))
+  const razza = razzaDaMostrare(dog, mark ?? null)
   const conferma = provvisorio ? frasi.agendaDaConfermare.replace('{{ora}}', oraEntro(appointment.scadeIl)) : ''
 
   function open() {
@@ -110,6 +113,7 @@ export function AppointmentRow({
             {aside}
           </ChipRow>
         ) : null}
+        {razza ? <span data-razza="" style={{ ...RIGA_RAZZA, fontSize: TYPE.meta, color: 'var(--tx3)' }}>{razza}</span> : null}
       </span>
       {dog ? <TemperamentIcon kind={dog.temperament} size={SIZES.temperamentIcon.row} /> : null}
       {dog?.ageCategory === 'anziano' ? <FlagIcon kind="anziano" size={SIZES.temperamentIcon.row} /> : null}

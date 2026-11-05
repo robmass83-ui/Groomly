@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSearchKey, countDogs, dogMark, dogMeta, dogSubtitle, dogThirdLine, matchesDog, normalizeSearch, phoneDigits, sortDogs, visibleDogs, type DogChip, type DogTab } from './dogList'
+import { buildSearchKey, countDogs, dogMark, dogMeta, dogSubtitle, dogThirdLine, matchesDog, normalizeSearch, phoneDigits, razzaDaMostrare, sortDogs, visibleDogs, type DogChip, type DogTab } from './dogList'
 import type { Appointment, Dog, DogStatus } from '../types/models'
 
 function dog(partial: Pick<Dog, 'id' | 'name'> & Partial<Dog>): Dog {
@@ -57,6 +57,23 @@ describe('matchesDog', () => {
     expect(matchesDog(found, '3452424242')).toBe(true)
     expect(matchesDog(found, '+393452424242')).toBe(true)
     expect(matchesDog(found, '33')).toBe(false)
+  })
+})
+
+describe('razzaDaMostrare', () => {
+  it('mostra la razza senza spazi attorno', () => {
+    expect(razzaDaMostrare(dog({ id: 'a', name: 'Rex', breed: '  Maltese ' }), null)).toBe('Maltese')
+  })
+
+  it('senza scheda o senza razza non mostra niente', () => {
+    expect(razzaDaMostrare(undefined, null)).toBe('')
+    expect(razzaDaMostrare(dog({ id: 'a', name: 'Rex', breed: '   ' }), null)).toBe('')
+  })
+
+  it('non ripete la razza già scritta nella riga degli omonimi', () => {
+    const maltese = dog({ id: 'a', name: 'Luna', breed: 'Maltese' })
+    expect(razzaDaMostrare(maltese, 'maltese · Bianchi')).toBe('')
+    expect(razzaDaMostrare(maltese, 'G. Bianchi')).toBe('Maltese')
   })
 })
 
