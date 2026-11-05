@@ -9,6 +9,7 @@ export const DEBITO_CATENE: readonly string[] = []
 /** Frasi `fr` e `de` che restano uguali a `en` o `it` di proposito: parole identiche nelle due lingue e nomi. */
 export const FRASI_UGUALI: Record<'fr' | 'de', ReadonlySet<string>> = {
   fr: new Set([
+    ',',
     '{{mese}}', 'Confirmation', 'Messages', 'Agenda', 'OK', 'Client', 'Salon', 'Photo', 'Grande', 'Contact',
     'Menu', 'Notes', 'Contacts', 'Note', 'Type', 'Principale', 'Active', 'grande', 'Date', 'Minutes',
     '{{n}} min', 'Total', 'Style', 'animal', 'Auto', 'Notifications', 'DPA', 'Type {{nome}}', 'Logo', 'Image',
@@ -21,6 +22,7 @@ export const FRASI_UGUALI: Record<'fr' | 'de', ReadonlySet<string>> = {
     'Code', 'Photos', 'Clients', 'Total {{anno}}', 'Source', 'Action',
   ]),
   de: new Set([
+    ',',
     '{{mese}}', 'Team', 'OK', 'Salon', 'Status', 'Adult', 'Senior', 'Foto', 'Name', 'Extra', 'Filter', 'Auto',
     'Info', 'Logo', 'Backup', 'Updates', 'Plus', 'VIP', 'Update', 'App', 'Groomly', 'ELIMINA', 'Version',
     'Website', 'Build {{versione}}', 'Base', 'Go', 'Salons', 'PDF', 'Excel', 'Groomly Go', 'Groomly Plus',

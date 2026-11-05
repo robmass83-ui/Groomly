@@ -1801,7 +1801,7 @@ describe('impostazioni', () => {
     expect(promo).toHaveAttribute('aria-disabled', 'true')
     await user.click(promo)
     expect(getSettings(account.uid).emailPromo).not.toBe(true)
-    expect(screen.getByRole('switch', { name: 'Metriche' })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByRole('switch', { name: 'Statistiche d’uso e crash' })).not.toBeInTheDocument()
     privacy.unmount()
     render(<App memory isDev={false} initialPath="/impostazioni/account?scheda=sicurezza" />)
     expect(await screen.findByRole('heading', { name: 'Sicurezza' })).toBeInTheDocument()

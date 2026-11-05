@@ -42,7 +42,7 @@ describe('Firebase sul sito admin', () => {
     expect(f.initializeAuth).toHaveBeenCalledWith(expect.anything(), { persistence: 'sessione' })
     expect(f.getAuth).not.toHaveBeenCalled()
     expect(f.initializeFirestore).toHaveBeenCalledWith(expect.anything(), { localCache: 'memoria' })
-  })
+  }, 60_000) // Il primo import di client.ts, a freddo, supera il limite comune quando il PC è carico.
 
   it('nell’app resta tutto come prima', async () => {
     vi.stubEnv('VITE_ENTRY', '')

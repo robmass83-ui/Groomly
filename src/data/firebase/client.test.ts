@@ -6,6 +6,7 @@ import { createDog, listDogs } from '../local/dogs'
 import { blankSettings } from '../local/settings'
 import { seedPriceSheet } from '../seed/priceSheet'
 import { storageKeys } from '../local/storage'
+import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI } from '../../lib/versioneLegale'
 import { chiaveEliminazioni } from '../../lib/tombstone'
 import type { DogWrite } from '../../types/models'
 
@@ -341,9 +342,9 @@ describe('client Firebase', () => {
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
     expect(mailFns.call).toHaveBeenCalledTimes(2)
     expect(mailFns.call).toHaveBeenCalledWith('sendVerificationEmail', {})
-    expect(mailFns.call).toHaveBeenCalledWith('registraAccettazione', expect.objectContaining({ versione: 1 }))
+    expect(mailFns.call).toHaveBeenCalledWith('registraAccettazione', expect.objectContaining({ versione: VERSIONE_DOCUMENTI }))
     expect(fs.store.get('accounts')?.get('uid-9')).toMatchObject({
-      termini: { accettati: true, versione: 1, documenti: { termini: '1.1', privacy: '2' } },
+      termini: { accettati: true, versione: VERSIONE_DOCUMENTI, documenti: DOCUMENTI_IN_VIGORE },
     })
     expect(authFns.sendEmail).not.toHaveBeenCalled()
     expect(client.currentSalonId()).toBe('uid-9')

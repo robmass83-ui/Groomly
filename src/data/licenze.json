@@ -5,6 +5,16 @@
   "licenza": "MIT"
  },
  {
+  "nome": "@capacitor-firebase/analytics",
+  "versione": "8.6.0",
+  "licenza": "Apache-2.0"
+ },
+ {
+  "nome": "@capacitor-firebase/crashlytics",
+  "versione": "8.6.0",
+  "licenza": "Apache-2.0"
+ },
+ {
   "nome": "@capacitor/android",
   "versione": "8.5.3",
   "licenza": "MIT"
