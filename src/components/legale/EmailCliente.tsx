@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { firebaseEnabled } from '../../data/firebase/enabled'
 import { useSession } from '../../hooks/useSession'
 import { useFrasi } from '../../i18n/LinguaContext'
-import { SHARED_SALON_ID } from '../../lib/salonPath'
+import { SHARED_SALON_ID, normalizeEmail } from '../../lib/salonPath'
 import type { Dog } from '../../types/models'
 import { useToast } from '../layout/Toast'
 import { Toggle } from '../ui/Toggle'
@@ -13,10 +13,26 @@ export function EmailCliente({ dog, salvaLocale }: { dog: Dog; salvaLocale: (blo
   const toast = useToast()
   const { gate } = useSession()
   const [scelta, setScelta] = useState<boolean | null>(null)
+  const [inElenco, setInElenco] = useState(false)
   const account = gate.kind === 'in' ? gate.account : null
   const email = dog.contact.email?.trim() ?? ''
-  if (email === '' || account?.role === 'collaboratore' || account?.salonId === SHARED_SALON_ID) return null
-  const accese = scelta ?? dog.emailBloccata !== true
+  const nascosto = email === '' || account?.role === 'collaboratore' || account?.salonId === SHARED_SALON_ID
+
+  // Un cane aggiunto dopo il blocco non ha il segno: conta l'elenco degli indirizzi del salone.
+  useEffect(() => {
+    if (nascosto || !firebaseEnabled()) return
+    let vivo = true
+    void import('../../data/firebase/client')
+      .then((mod) => mod.readSalonCollection('emailBloccate'))
+      .then((voci) => {
+        if (vivo) setInElenco(voci.some((voce) => typeof voce.data.email === 'string' && normalizeEmail(voce.data.email) === normalizeEmail(email)))
+      })
+      .catch(() => undefined)
+    return () => { vivo = false }
+  }, [nascosto, email])
+
+  if (nascosto) return null
+  const accese = scelta ?? (dog.emailBloccata !== true && !inElenco)
 
   async function cambia(acceso: boolean) {
     setScelta(acceso)

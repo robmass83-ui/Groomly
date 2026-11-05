@@ -22,9 +22,13 @@ export function __resetRiaccetta(): void {
   provaSilenziosaPer = null
 }
 
+// Senza connessione vera l'SDK risponde «internal», e su Android onLine può restare vero: blocca solo un rifiuto del server.
+const RIFIUTI = new Set(['functions/invalid-argument', 'functions/unauthenticated', 'functions/permission-denied'])
+
 function senzaRete(error?: unknown): boolean {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
-  return (error as { code?: unknown } | null)?.code === 'functions/unavailable'
+  if (error === undefined) return false
+  return !RIFIUTI.has(String((error as { code?: unknown } | null)?.code))
 }
 
 export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }: { richiesta?: number; children: ReactNode }) {

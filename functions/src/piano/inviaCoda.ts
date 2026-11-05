@@ -116,6 +116,11 @@ export function righeDelGiro(righe: readonly RigaInvio[], accesi: readonly TipoC
   })
 }
 
+// Il salone shared non si scrive mai: lì un link di disiscrizione finirebbe in errore.
+function haSilenzio(salonId: string | undefined): salonId is string {
+  return Boolean(salonId) && salonId !== 'shared'
+}
+
 function linkSilenzio(salonId: string, token: string, lingua: Lingua): string {
   const query = new URLSearchParams({ mode: 'silenzio', salon: salonId, token, lang: lingua })
   return `https://groomlyapp.it/azione?${query.toString()}`
@@ -186,10 +191,10 @@ export async function inviaCoda(input: {
       quando,
       rispondi: Boolean(replyTo),
       url: riga.url,
-      silenzio: input.salonId ? linkSilenzio(input.salonId, assegnato, linguaRiga) : undefined,
+      silenzio: haSilenzio(input.salonId) ? linkSilenzio(input.salonId, assegnato, linguaRiga) : undefined,
     })
     try {
-      const uscita = input.salonId ? { 'List-Unsubscribe': `<${linkSilenzio(input.salonId, assegnato, linguaRiga)}>` } : undefined
+      const uscita = haSilenzio(input.salonId) ? { 'List-Unsubscribe': `<${linkSilenzio(input.salonId, assegnato, linguaRiga)}>` } : undefined
       await postBrevoHtml(input.apiKey, riga.email, mail.oggetto, mail.html, input.fetchImpl ?? fetch, replyTo, uscita)
       inviate += 1
       spedite.push(riga.id)
@@ -247,7 +252,7 @@ export async function inviaOfferteAttesa(input: {
       url,
     })
     margine -= 1
-    const uscita = input.salonId && offerta.token ? linkSilenzio(input.salonId, offerta.token, linguaIscritto) : ''
+    const uscita = haSilenzio(input.salonId) && offerta.token ? linkSilenzio(input.salonId, offerta.token, linguaIscritto) : ''
     try {
       await postBrevoHtml(
         input.apiKey,

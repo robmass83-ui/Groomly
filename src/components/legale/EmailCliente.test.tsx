@@ -8,12 +8,13 @@ import { EmailCliente } from './EmailCliente'
 const m = vi.hoisted(() => ({
   account: { uid: 'u', role: 'titolare', salonId: 'u' } as Record<string, unknown>,
   chiama: vi.fn(async () => undefined),
+  elenco: vi.fn(async () => [] as Array<{ id: string; data: Record<string, unknown> }>),
   toast: vi.fn(),
 }))
 
 vi.mock('../../hooks/useSession', () => ({ useSession: () => ({ gate: { kind: 'in', account: m.account } }) }))
 vi.mock('../../data/firebase/enabled', () => ({ firebaseEnabled: () => true }))
-vi.mock('../../data/firebase/client', () => ({ callImpostaEmailCliente: m.chiama }))
+vi.mock('../../data/firebase/client', () => ({ callImpostaEmailCliente: m.chiama, readSalonCollection: m.elenco }))
 vi.mock('../layout/Toast', () => ({ useToast: () => ({ show: m.toast }) }))
 
 function cane(extra: Partial<Dog> = {}): Dog {
@@ -27,6 +28,8 @@ describe('EmailCliente', () => {
     m.chiama.mockReset()
     m.chiama.mockResolvedValue(undefined)
     m.toast.mockClear()
+    m.elenco.mockReset()
+    m.elenco.mockResolvedValue([])
   })
 
   it('titolare e socio lo vedono se c’è un’email', () => {
@@ -64,6 +67,20 @@ describe('EmailCliente', () => {
     await user.click(screen.getByRole('switch'))
     await waitFor(() => expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true'))
     expect(m.toast).toHaveBeenCalled()
+  })
+
+  it('un cane aggiunto dopo con un indirizzo bloccato si vede spento', async () => {
+    m.elenco.mockResolvedValue([{ id: 'x', data: { email: 'ada@cliente.it' } }])
+    render(<EmailCliente dog={cane({ contact: { name: 'Ada', phone: '3', email: ' Ada@Cliente.it ' } })} salvaLocale={() => true} />)
+    await waitFor(() => expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false'))
+    expect(m.elenco).toHaveBeenCalledWith('emailBloccate')
+  })
+
+  it('se l’elenco non si legge vale lo stato del cane', async () => {
+    m.elenco.mockRejectedValue(new Error('no'))
+    render(<EmailCliente dog={cane()} salvaLocale={() => true} />)
+    await new Promise((ok) => setTimeout(ok, 10))
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
   })
 
   it('un’email appena cambiata resta spenta finché il salone non la riaccende', () => {

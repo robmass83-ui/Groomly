@@ -29,7 +29,7 @@ La colonna **Dove si fa** dice chi chiude la voce: *codice* è il blocco 2, *blo
 
 ## Lacuna rimasta della voce 10
 
-Il link di disiscrizione rifiuta il salone `shared`, perché lì non si scrive mai. Se quel salone manda email ai clienti, chi clicca vede un errore. Serve una decisione su come gestire quei clienti.
+Nel salone `shared` non si scrive mai, quindi la disiscrizione lì non può funzionare. Per non mostrare un link rotto, le sue email non hanno il link né `List-Unsubscribe`. Se quel salone manda email ai clienti, serve una decisione su come far uscire chi lo chiede.
 
 ## Da cambiare nel blocco 4 (testi, non toccati qui)
 

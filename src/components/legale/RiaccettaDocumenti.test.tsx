@@ -81,8 +81,16 @@ describe('RiaccettaDocumenti', () => {
     expect(await screen.findByText('app')).toBeInTheDocument()
   })
 
-  it('un altro errore resta sulla schermata con il messaggio', async () => {
+  it('con il Wi-Fi attaccato ma senza rete vera si entra lo stesso', async () => {
     m.chiama.mockRejectedValue({ code: 'functions/internal' })
+    const user = userEvent.setup()
+    apri(2)
+    await user.click(screen.getByRole('button', { name: 'Accetto' }))
+    expect(await screen.findByText('app')).toBeInTheDocument()
+  })
+
+  it('un rifiuto del server resta sulla schermata con il messaggio', async () => {
+    m.chiama.mockRejectedValue({ code: 'functions/invalid-argument' })
     const user = userEvent.setup()
     apri(2)
     await user.click(screen.getByRole('button', { name: 'Accetto' }))

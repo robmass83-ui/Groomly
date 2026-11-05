@@ -65,6 +65,14 @@ describe('inviaCoda', () => {
     expect(applicaEsito([riga], esito)[0]).toMatchObject({ stato: 'fermata', motivo: 'fermata' })
   })
 
+  it('il salone shared non riceve un link che non può funzionare', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaCoda({ apiKey: 'x', righe: [base], emailOggi: 0, fetchImpl, salonId: 'shared' })
+    const body = JSON.parse(String((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body)) as { headers?: unknown; htmlContent: string }
+    expect(body.headers).toBeUndefined()
+    expect(body.htmlContent).not.toContain('mode=silenzio')
+  })
+
   it('la posta con il silenzio porta anche List-Unsubscribe', async () => {
     const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
     await inviaCoda({ apiKey: 'x', righe: [base], emailOggi: 0, fetchImpl, salonId: 's1' })
@@ -600,6 +608,13 @@ describe('inviaOfferteAttesa', () => {
     })
     expect(altra).not.toHaveBeenCalled()
     expect(esito.offerte[0]?.inviataIl).toBeNull()
+  })
+
+  it('il posto libero di shared non ha il link', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaOfferteAttesa({ apiKey: 'x', offerte: [offerta], iscritti: [iscrittoBase], emailOggi: 0, salonId: 'shared', fetchImpl, adesso })
+    const body = JSON.parse(String((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body)) as { htmlContent: string }
+    expect(body.htmlContent).not.toContain('mode=silenzio')
   })
 
   it('in caso di errore, senza chiave o oltre il tetto lascia inviataIl nullo', async () => {

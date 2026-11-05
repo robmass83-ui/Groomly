@@ -1535,7 +1535,7 @@ export function DogPage() {
                   { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
                 ]}
               />
-              <EmailCliente dog={dog} salvaLocale={salvaMailLocale} />
+              <EmailCliente key={dog.id} dog={dog} salvaLocale={salvaMailLocale} />
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             <StrumentiCane dogId={dog.id} appuntamenti={visits.appointments} />
