@@ -36,7 +36,7 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import { APP_VERSION } from '../../lib/appVersion'
-import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiTermini } from '../../lib/versioneLegale'
+import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiEmailPromo, leggiTermini } from '../../lib/versioneLegale'
 import type { Lingua } from '../../i18n/lingua'
 import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 import { primoAvvio } from '../../i18n/scritturaLingua'
@@ -524,6 +524,12 @@ export async function segnaAvvisiLetti(uid: string, lettiFino: number): Promise<
 
 /** Acceso mentre il titolare elimina il suo account: il server cancella il salone e niente deve ricrearlo. */
 let eliminazioneInCorso = false
+
+export async function callImpostaEmailPromo(attivo: boolean, fonte: 'tour' | 'account'): Promise<void> {
+  await callCallable('impostaEmailPromo', { attivo, fonte })
+  const at = new Date().toISOString()
+  if (accountDoc) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, emailPromo: { attivo, at, fonte } } }
+}
 
 export async function callImpostaEmailCliente(dogId: string, bloccata: boolean): Promise<void> {
   await callCallable('impostaEmailCliente', { dogId, bloccata })
@@ -2207,6 +2213,7 @@ function toAccount(user: User): LocalAccount {
   const data = accountDoc?.uid === user.uid ? accountDoc.data : null
   const role = documentRole(data)
   const termini = leggiTermini(data?.termini)
+  const emailPromo = leggiEmailPromo(data?.emailPromo)
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -2220,6 +2227,7 @@ function toAccount(user: User): LocalAccount {
     ...(role ? { role } : {}),
     legacy: data?.legacy === true,
     ...(termini ? { termini } : {}),
+    ...(emailPromo ? { emailPromo } : {}),
   }
 }
 

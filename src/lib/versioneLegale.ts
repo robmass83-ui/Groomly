@@ -13,6 +13,26 @@ export type TerminiAccount = {
   suServer?: boolean
 }
 
+export type EmailPromo = {
+  attivo: boolean
+  at: string
+  fonte: 'tour' | 'account' | 'link'
+  token?: string
+}
+
+export function leggiEmailPromo(value: unknown): EmailPromo | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const dati = value as Record<string, unknown>
+  if (typeof dati.attivo !== 'boolean' || typeof dati.at !== 'string') return undefined
+  if (dati.fonte !== 'tour' && dati.fonte !== 'account' && dati.fonte !== 'link') return undefined
+  return {
+    attivo: dati.attivo,
+    at: dati.at,
+    fonte: dati.fonte,
+    ...(typeof dati.token === 'string' ? { token: dati.token } : {}),
+  }
+}
+
 export function leggiTermini(value: unknown): TerminiAccount | undefined {
   if (!value || typeof value !== 'object') return undefined
   const dati = value as Record<string, unknown>

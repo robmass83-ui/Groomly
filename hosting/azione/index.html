@@ -115,6 +115,7 @@
         reminderBody: 'Puoi confermare, spostare o non ricevere più questa email.', choices: ['Confermo', 'Devo spostare', 'Non scrivermi più'], chosen: 'Scelta registrata',
         silenceTitle: 'Non scrivermi più', silenceBody: 'Non riceverai più mail da questo salone, per nessuno dei tuoi cani. Restano solo quelle legate a una tua prenotazione.',
         silenceDone: 'Mail spente', silenceDoneBody: 'Non arriveranno altre mail da questo salone, tranne quelle legate a una tua prenotazione.', silencing: 'Spegnimento…',
+        promoTitle: 'Disiscriviti', promoBody: 'Non riceverai più email con promozioni e novità da Groomly. Le email di servizio continuano ad arrivare.', promoDoneBody: 'Non riceverai più email con promozioni e novità. Puoi cambiare idea dall’app, in Privacy e dati.',
       },
       en: {
         checking: 'Checking the link…', expired: 'The link has expired or has already been used. Ask for a new one from the app.',
@@ -126,6 +127,7 @@
         reminderBody: 'You can confirm, move it, or stop receiving this email.', choices: ['I confirm', 'I need to move it', 'Do not write to me again'], chosen: 'Choice saved',
         silenceTitle: 'Do not write to me again', silenceBody: 'You will no longer get emails from this salon, for any of your dogs. Only those about a booking of yours remain.',
         silenceDone: 'Emails off', silenceDoneBody: 'No more emails will arrive from this salon, except those about a booking of yours.', silencing: 'Turning off…',
+        promoTitle: 'Unsubscribe', promoBody: 'You will no longer get promotions and news from Groomly. Service emails will still arrive.', promoDoneBody: 'You will no longer get promotions and news. You can change your mind in the app, under Privacy and data.',
       },
       es: {
         checking: 'Comprobando el enlace…', expired: 'El enlace ha caducado o ya se ha usado. Pide uno nuevo desde la app.',
@@ -137,6 +139,7 @@
         reminderBody: 'Puedes confirmar, moverla o dejar de recibir este correo.', choices: ['Confirmo', 'Tengo que moverla', 'No me escribáis más'], chosen: 'Elección registrada',
         silenceTitle: 'No me escribáis más', silenceBody: 'Ya no recibirás correos de esta peluquería, para ninguno de tus perros. Solo quedan los relacionados con una reserva tuya.',
         silenceDone: 'Correos apagados', silenceDoneBody: 'No llegarán más correos de esta peluquería, salvo los relacionados con una reserva tuya.', silencing: 'Apagando…',
+        promoTitle: 'Darse de baja', promoBody: 'Ya no recibirás promociones ni novedades de Groomly. Los correos de servicio seguirán llegando.', promoDoneBody: 'Ya no recibirás promociones ni novedades. Puedes cambiar de idea en la app, en Privacidad y datos.',
       },
       fr: {
         checking: 'Vérification du lien…', expired: 'Le lien a expiré ou a déjà été utilisé. Demandez-en un nouveau depuis l’application.',
@@ -148,6 +151,7 @@
         reminderBody: 'Vous pouvez confirmer, déplacer le rendez-vous ou ne plus recevoir cet e-mail.', choices: ['Je confirme', 'Je dois déplacer', 'Ne plus m’écrire'], chosen: 'Choix enregistré',
         silenceTitle: 'Ne plus m’écrire', silenceBody: 'Vous ne recevrez plus d’e-mails de ce salon, pour aucun de vos chiens. Seuls restent ceux liés à une de vos réservations.',
         silenceDone: 'E-mails désactivés', silenceDoneBody: 'Vous ne recevrez plus d’e-mails de ce salon, sauf ceux liés à une de vos réservations.', silencing: 'Désactivation…',
+        promoTitle: 'Se désabonner', promoBody: 'Vous ne recevrez plus de promotions ni de nouveautés de Groomly. Les e-mails de service continueront d’arriver.', promoDoneBody: 'Vous ne recevrez plus de promotions ni de nouveautés. Vous pouvez changer d’avis dans l’application, sous Confidentialité et données.',
       },
       de: {
         checking: 'Link wird geprüft…', expired: 'Der Link ist abgelaufen oder wurde schon benutzt. Fordern Sie in der App einen neuen an.',
@@ -159,6 +163,7 @@
         reminderBody: 'Sie können bestätigen, den Termin verschieben oder diese E-Mail nicht mehr erhalten.', choices: ['Ich bestätige', 'Ich muss verschieben', 'Nicht mehr schreiben'], chosen: 'Auswahl gespeichert',
         silenceTitle: 'Nicht mehr schreiben', silenceBody: 'Sie erhalten von diesem Salon keine E-Mails mehr, für keinen Ihrer Hunde. Nur E-Mails zu einer Ihrer Buchungen bleiben.',
         silenceDone: 'E-Mails abgestellt', silenceDoneBody: 'Von diesem Salon kommen keine E-Mails mehr, außer zu einer Ihrer Buchungen.', silencing: 'Wird abgestellt…',
+        promoTitle: 'Abmelden', promoBody: 'Sie erhalten von Groomly keine Angebote und Neuigkeiten mehr. Service-E-Mails kommen weiterhin an.', promoDoneBody: 'Sie erhalten keine Angebote und Neuigkeiten mehr. Sie können das in der App unter Datenschutz und Daten ändern.',
       },
     }[LANG]
     const EXPIRED = COPY.expired
@@ -292,7 +297,7 @@
       appId: '1:910480609832:web:e31a34beea50b64b6fdb1d',
     }
 
-    async function spegni(salonId, token, button) {
+    async function spegni(funzione, dati, fatto, etichetta, button) {
       if (button) {
         button.disabled = true
         button.textContent = COPY.silencing
@@ -304,13 +309,13 @@
         ])
         const app = getApps().length > 0 ? getApps()[0] : initializeApp(FIREBASE)
         const functions = fnMod.getFunctions(app, 'europe-west1')
-        await fnMod.httpsCallable(functions, 'silenzioEmail')({ salonId, token })
+        await fnMod.httpsCallable(functions, funzione)(dati)
         document.getElementById('scelte-promemoria')?.remove()
-        showMessage(COPY.silenceDone, COPY.silenceDoneBody, false)
+        showMessage(COPY.silenceDone, fatto, false)
       } catch (error) {
         if (button) {
           button.disabled = false
-          button.textContent = COPY.choices[2]
+          button.textContent = etichetta
         }
         const code = codeOf(error)
         if (code === 'functions/unavailable' || code === 'auth/network-request-failed' || error instanceof TypeError) {
@@ -336,7 +341,7 @@
         button.textContent = scelta
         button.addEventListener('click', () => {
           if (index === COPY.choices.length - 1 && salon && token) {
-            void spegni(salon, token, button)
+            void spegni('silenzioEmail', { salonId: salon, token }, COPY.silenceDoneBody, COPY.choices[2], button)
             return
           }
           showMessage(COPY.chosen, scelta, false)
@@ -344,6 +349,19 @@
         box.append(button)
       })
       document.querySelector('main')?.append(box)
+    } else if (mode === 'promo') {
+      const uid = params.get('uid') || ''
+      if (!uid || !token) {
+        showMessage(COPY.bad, EXPIRED, true)
+      } else {
+        showMessage(COPY.promoTitle, COPY.promoBody, false)
+        const button = document.createElement('button')
+        button.className = 'primary'
+        button.type = 'button'
+        button.textContent = COPY.promoTitle
+        button.addEventListener('click', () => { void spegni('disiscriviPromo', { uid, token }, COPY.promoDoneBody, COPY.promoTitle, button) })
+        card.append(button)
+      }
     } else if (mode === 'silenzio') {
       if (!salon || !token) {
         showMessage(COPY.bad, EXPIRED, true)
@@ -353,7 +371,7 @@
         button.className = 'primary'
         button.type = 'button'
         button.textContent = COPY.choices[2]
-        button.addEventListener('click', () => { void spegni(salon, token, button) })
+        button.addEventListener('click', () => { void spegni('silenzioEmail', { salonId: salon, token }, COPY.silenceDoneBody, COPY.choices[2], button) })
         card.append(button)
       }
     } else if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {

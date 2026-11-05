@@ -40,6 +40,7 @@ import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, impostaEmailClientePer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
+import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 export * from './abbonamenti'
@@ -888,6 +889,22 @@ export const registraAccettazione = onCall(pianoCall, async (request) => {
     versione: typeof versione === 'number' ? versione : 0,
     appVersione: text(field(request.data, 'appVersione')).slice(0, 32),
   }, archivioAccettazione(getFirestore()), new Date())
+})
+
+export const impostaEmailPromo = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  return impostaEmailPromoPer({
+    uid,
+    attivo: field(request.data, 'attivo') === true,
+    fonte: field(request.data, 'fonte') === 'tour' ? 'tour' : 'account',
+  }, archivioPromo(getFirestore()), new Date())
+})
+
+export const disiscriviPromo = onCall(pianoCall, async (request) => {
+  return disiscriviPromoPer({
+    uid: text(field(request.data, 'uid')),
+    token: text(field(request.data, 'token')),
+  }, archivioPromo(getFirestore()), new Date())
 })
 
 export const silenzioEmail = onCall(pianoCall, async (request) => {
