@@ -62,6 +62,7 @@ import { estendiBetaPer } from './beta/estendiBeta'
 import { segnaEarlyAdopterPer } from './beta/segnaEarlyAdopter'
 import { inviaFeedbackBetaPer } from './beta/inviaFeedbackBeta'
 import { contatoriAdminPer } from './beta/contatoriAdmin'
+import { schedaSaloneAdminPer } from './beta/schedaSaloneAdmin'
 import { segnaAvvisoBetaPer } from './beta/segnaAvvisoBeta'
 import { scadiInvitiBetaScaduti } from './beta/scadiInvitiBeta'
 import { mandaAvvisiFineBeta } from './beta/avvisiFineBeta'
@@ -1153,6 +1154,11 @@ async function ultimiAccessiAuth(uids: string[]): Promise<Map<string, string | n
 export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
   requireUid(request.auth)
   return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
+})
+
+export const schedaSaloneAdmin = onCall({ ...pianoCall, timeoutSeconds: 60 }, async (request) => {
+  requireUid(request.auth)
+  return schedaSaloneAdminPer({ token: tokenOperatore(request.auth), salonId: field(request.data, 'salonId') })
 })
 
 export const scadiInvitiBeta = onSchedule({

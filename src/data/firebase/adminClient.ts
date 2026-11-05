@@ -1,3 +1,4 @@
+import { linguaValida, type Lingua } from '../../i18n/lingua'
 import { STATI_ASSISTENZA, type DocAssistenza, type EsitoEmailRisposta, type FonteAssistenza, type RispostaAssistenza, type StatoAssistenza } from '../../lib/assistenza'
 import { tipoAvviso, type TipoAvviso, type Traduzioni } from '../../lib/avvisiSistema'
 import { leggiConfigTour, type ConfigTour } from '../../lib/tourBenvenuto'
@@ -62,6 +63,21 @@ export async function callImpostaMostraPiani(valore: boolean): Promise<void> {
 export async function callAnnunciaPagamenti(data: string): Promise<{ ok: true; email: number }> {
   const esito = oggetto(await callCallableData('annunciaPagamenti', { data }))
   return { ok: true, email: typeof esito.email === 'number' ? esito.email : 0 }
+}
+
+export type SchedaAggregata = { cani: number; appuntamenti: number; appuntamenti30: number; persone: number; versioneApp: string | null; lingua: Lingua | null }
+
+export async function callSchedaSaloneAdmin(salonId: string): Promise<SchedaAggregata> {
+  const d = oggetto(await callCallableData('schedaSaloneAdmin', { salonId }))
+  const numero = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0)
+  return {
+    cani: numero(d.cani),
+    appuntamenti: numero(d.appuntamenti),
+    appuntamenti30: numero(d.appuntamenti30),
+    persone: numero(d.persone),
+    versioneApp: typeof d.versioneApp === 'string' ? d.versioneApp : null,
+    lingua: linguaValida(d.lingua),
+  }
 }
 
 export type ModelloAssistenza = { id: string; titolo: string; testo: string }

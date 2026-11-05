@@ -3,7 +3,7 @@
  * Uso:
  *   const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string, unknown>>() }))
  *   vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
- * Supporta doc/collection/collectionGroup/where (==, in, array-contains, >=)/limit/count/add/listDocuments, set (anche con merge profondo), update con percorsi a punti,
+ * Supporta doc/collection/collectionGroup/where (==, in, array-contains, >=, <=)/limit/count/add/listDocuments, set (anche con merge profondo), update con percorsi a punti,
  * delete, runTransaction e FieldValue.delete(). `scritture` conta le scritture fatte.
  */
 
@@ -59,6 +59,7 @@ function confronta(campo: unknown, op: string, valore: unknown): boolean {
   if (op === 'in') return (valore as unknown[]).includes(campo)
   if (op === 'array-contains') return Array.isArray(campo) && campo.includes(valore)
   if (op === '>=') return (campo as string) >= (valore as string)
+  if (op === '<=') return (campo as string) <= (valore as string)
   return campo === valore
 }
 
