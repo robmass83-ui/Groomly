@@ -7,6 +7,7 @@ import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, tracciaBetaDi, type FeatureKey, type ProMain, type StatoPiano, type TracciaBeta } from '../lib/piano'
 import { CONFIG_PIANI_DEFAULT, datiAcquistoPiano, leggiConfigPiani, provaSelfServiceConcessa, type ConfigPiani, type DatiAcquistoPiano } from '../lib/configPiani'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
+import { traccia } from '../lib/metricheNative'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
 import { useRuoloSessione, useUidSessione } from './useSession'
@@ -174,6 +175,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       messaggioProva,
       apriPaywall: (feature) => {
         if (!aprePaywall(stato, feature)) return
+        traccia({ nome: 'paywall_aperta', feature, fonte: 'app' })
         setEsitoProva('spento')
         setMessaggioProva('')
         setPaywall(feature)
@@ -232,6 +234,7 @@ export function PaywallPiano() {
       onClose={piano.chiudiPaywall}
       onAvvisami={() => {
         if (feature) void piano.avvisa(feature)
+        traccia({ nome: 'avvisami_toccato', piano: 'plus' })
         piano.chiudiPaywall()
         toast.show(frasi.vetTiAvviseremo, 'ok')
       }}

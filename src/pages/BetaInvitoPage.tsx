@@ -18,6 +18,7 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { COLORE_PIANO, COLORE_PIANO_SCURO } from '../lib/abbonamento'
 import { CONFIG_PIANI_DEFAULT } from '../lib/configPiani'
 import { ALTRO_RIFIUTO_MAX, MOTIVI_RIFIUTO_BETA, type MotivoRifiutoBeta } from '../lib/betaInvito'
+import { traccia } from '../lib/metricheNative'
 import { PRO_SEAT_LIMIT } from '../lib/salonAccess'
 import { TYPE } from '../theme/theme'
 import { ShellFrame } from './ShellFrame'
@@ -89,6 +90,7 @@ export function BetaInvitoPage() {
     try {
       const { rispondiInvitoBeta } = await import('../data/firebase/betaClient')
       const { scadeIl } = await rispondiInvitoBeta({ accetta: true })
+      traccia({ nome: 'beta_accettata' })
       const fine = scadeIl ? new Date(scadeIl) : new Date(Date.now() + giorni * GIORNO_MS)
       toast.show(riempi(frasi.betaBenvenuto, { piano: nome, data: dataBeta(lingua, fine) }), 'ok', undefined, undefined, 4000)
       navigate('/', { replace: true })
@@ -190,6 +192,7 @@ function DialogoRifiuto({ open, onClose }: { open: boolean; onClose: () => void 
       const { rispondiInvitoBeta } = await import('../data/firebase/betaClient')
       const testo = altro.trim()
       await rispondiInvitoBeta(motivo === MOTIVO_ALTRO && testo ? { accetta: false, motivo, altro: testo } : { accetta: false, motivo })
+      traccia({ nome: 'beta_rifiutata' })
       toast.show(frasi.betaGrazieRisposta, 'ok')
       navigate('/', { replace: true })
     } catch (error) {

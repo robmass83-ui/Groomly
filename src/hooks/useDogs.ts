@@ -8,6 +8,7 @@ import { archiveDog, createDog, deleteDog, forgetLocalDog, listDogs, restoreDog,
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { Dog, DogWrite } from '../types/models'
 import { notifyLocalWrite, useLocalWrites } from '../lib/dataRefresh'
+import { traccia } from '../lib/metricheNative'
 import { isSharedMirrorTrusted } from '../lib/sharedMirror'
 import { dogHiddenNow, filterDogs, noteSessionDogDeletion, readDeletion, rememberDeletion, rememberPendingDogDeletion } from '../lib/tombstone'
 import { claimDogUpload, forgetPendingDogs, mergePendingDogs, rememberPendingDog } from '../lib/pendingPhoto'
@@ -240,6 +241,7 @@ export function useDogs(uid: string) {
         const dog = withLocalKey(storageKeys.dogs(uid), dogsToLocalMap(dogsRef.current), () => createDog(uid, input))
         lastCreatedId.current = dog.id
         remember(sortDogs([...dogsRef.current.filter((item) => item.id !== dog.id), dog]), dog)
+        traccia({ nome: 'cane_creato' })
         return true
       } catch (caught) {
         return fail(caught)

@@ -22,6 +22,7 @@ import { openPdfBlob } from '../lib/openDocument'
 import { clampPan, pinchScale } from '../lib/pinchScale'
 import { conIntestazioneSalone } from '../lib/intestazioneSalone'
 import { getPriceSheet, PRICE_SHEET_UNREADABLE, savePriceSheet } from '../lib/priceSheet'
+import { traccia } from '../lib/metricheNative'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../lib/shareFile'
 import { buildSheetFile, renderSheetJpegs } from '../lib/priceSheetExport'
 import { SIZES } from '../theme/sizes'
@@ -245,6 +246,7 @@ export function PriceSheetExportPage() {
         return
       }
       await shareFiles(files, etichette.prezzi)
+      traccia({ nome: 'listino_condiviso' })
     } catch (error) {
       if (!isShareCancel(error)) toast.show(frasi.lisExportKo, 'plain')
     } finally {

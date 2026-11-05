@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { ArrowLeft, Bell, CalendarPlus, Check, Clock, Cloud, Download, FlaskConical, Heart, Layers, List, MessageCircle, PawPrint, Star, UserPlus, Users, type LucideIcon } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import iconaPlus from '../../assets/brand/groomly-plus-icon-tonda.svg'
@@ -10,6 +10,7 @@ import { useSession } from '../../hooks/useSession'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import type { Chiave } from '../../i18n/t'
 import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, fineProva, offertaPiano } from '../../lib/abbonamento'
+import { traccia } from '../../lib/metricheNative'
 import { PRO_SEAT_LIMIT } from '../../lib/salonAccess'
 import { useBeta } from '../beta/BetaProvider'
 import { Dialog } from '../layout/Dialog'
@@ -94,6 +95,8 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
   const provaDisponibile = offerta.prova && piano === 'plus'
   const [inArrivo, setInArrivo] = useState(false)
   const testi = TESTI[piano]
+  const pianoMetrica = piano === 'plus' ? 'plus' : 'salon'
+  useEffect(() => { traccia({ nome: 'vetrina_piano_vista', piano: pianoMetrica }) }, [pianoMetrica])
   const toast = useToast()
   const navigate = useNavigate()
   const beta = useBeta()
@@ -111,6 +114,7 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
     if (offerta.acquisto === 'avvisami') {
       // Play non è collegato: ci segniamo chi vuole essere avvisato (errori ignorati, come nel paywall) e diciamo «In arrivo».
       void import('../../data/firebase/client').then(({ scriviInteresse }) => scriviInteresse(`piano-${piano}`)).catch(() => undefined)
+      traccia({ nome: 'avvisami_toccato', piano: pianoMetrica })
       setAvvisato(true)
       toast.show(frasi.vetTiAvviseremo, 'ok')
       return

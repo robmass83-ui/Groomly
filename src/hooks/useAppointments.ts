@@ -15,6 +15,7 @@ import { mergePersonalAppointments } from '../lib/personalSync'
 import { useCloudOnlyData } from './useCloudOnlyData'
 import { useLocalData } from './useLocalData'
 import { frase } from '../i18n/frase'
+import { traccia } from '../lib/metricheNative'
 
 function sortAppointments(items: Appointment[]): Appointment[] {
   return [...items].sort((a, b) => a.start.getTime() - b.start.getTime() || a.id.localeCompare(b.id))
@@ -251,10 +252,16 @@ export function useAppointments(uid: string) {
         })
       }
       try {
+        const primaVisita = !itemsRef.current.some((current) => current.kind !== 'personale')
         const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => createAppointment(uid, input))
         lastCreatedId.current = item.id
         sessionIds.current.add(item.id)
         remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
+        if (item.kind !== 'personale') {
+          traccia({ nome: 'appuntamento_creato' })
+          // Una visita ha sempre un cane: la prima visita vuol dire primo cane e primo appuntamento.
+          if (primaVisita) traccia({ nome: 'salone_attivato' })
+        }
         return true
       } catch (caught) {
         return fail(caught)
@@ -311,6 +318,8 @@ export function useAppointments(uid: string) {
       try {
         const item = withLocalKey(storageKeys.appointments(uid), appointmentsToLocalMap(itemsRef.current), () => setAppointmentStatus(uid, id, status, cancelReason))
         remember(sortAppointments([...itemsRef.current.filter((current) => current.id !== item.id), item]), item)
+        if (status === 'completato') traccia({ nome: 'appuntamento_completato' })
+        if (status === 'disdetto') traccia({ nome: 'appuntamento_disdetto' })
         return true
       } catch (caught) {
         return fail(caught)

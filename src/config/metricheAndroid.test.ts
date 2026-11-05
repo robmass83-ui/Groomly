@@ -13,7 +13,9 @@ describe('raccolta spenta di base', () => {
     ]) {
       expect(manifest).toContain(`android:name="${nome}" android:value="false"`)
     }
-    expect(manifest).toMatch(/com\.google\.android\.gms\.permission\.AD_ID"\s+tools:node="remove"/)
+    for (const permesso of ['com.google.android.gms.permission.AD_ID', 'android.permission.ACCESS_ADSERVICES_AD_ID', 'android.permission.ACCESS_ADSERVICES_ATTRIBUTION']) {
+      expect(manifest).toContain(`android:name="${permesso}" tools:node="remove"`)
+    }
   })
 
   it('il sito admin non carica i plugin', () => {
