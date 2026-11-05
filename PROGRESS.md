@@ -431,9 +431,9 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Tolta la scritta «TOELETTATURA» dai loghi in uso: sito, email, avvio, VIP.
 - Non provati su telefono: trattino automatico nella WebView, email e push vere.
 
-## Accessi admin (5 novembre, ramo `claude/accessi-admin-73f8a8`, non pubblicato)
+## Accessi admin (5 novembre, pubblicati con la 1.1.192)
 - Permessi admin solo dal claim in client, regole e functions; Laura non è più operatrice. Esito `admin` in `entryGate`, rotte `/admin` e `/admin/avvisi`, vecchi link rimandati.
 - robmass83 prende il posto della hotmail in `isSharedEmail`. Il vero I Pelosetti è `salons/{uid di Laura}`, non `salon/shared`: lo script `scripts/imposta-admin.ts` lavora lì e scrive solo `accounts` e `members`.
 - `adminLog`, riconferma password dopo 15 minuti, avvisi di sistema tramite functions con limite di 10 all'ora.
 - Spec `docs/superpowers/specs/2026-11-05-accessi-admin-design.md`, piano `docs/superpowers/plans/2026-11-05-accessi-admin.md`. Passi manuali in `docs/GUIDA-ADMIN-MANAGER.md`.
-- Niente è in produzione: claim, deploy, APK e `collega` aspettano il via di Roberto.
+- In produzione: claim sulla hotmail, functions, regole, APK. Restano `collega` (salone di prova «I coccoli»), le prove d'accesso, `stacca` e `storage.rules` a mano in Console.
