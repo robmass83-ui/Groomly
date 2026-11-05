@@ -1,6 +1,6 @@
 # Audit delle cinque lingue (T7)
 
-Verifica finale del progetto `docs/superpowers/specs/2026-11-04-cinque-lingue-design.md`, fatta il 5 novembre 2026 sul branch `claude/eager-tesla-21ceef`.
+Verifica finale del progetto `docs/superpowers/specs/archive/2026-11-04-cinque-lingue-design.md`, fatta il 5 novembre 2026 sul branch `claude/eager-tesla-21ceef`.
 
 ## Esito
 

@@ -425,3 +425,8 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Catalogo QA aggiornato a mano: `/qa-my-app:sync` non si lancia da una sessione. Impronte nuove, 190 task non riscritti.
 - Da decidere: logo con «TOELETTATURA» su pagine pubbliche ed email, in `docs/DA-FARE-ROBERTO.md`.
 - Non provato: telefono o emulatore Android, push vere, email vere, `giraCoda` e `scadiProposte` sugli emulatori. Elenco completo nel report.
+
+## Cinque lingue — chiusura (5 novembre, 1.1.191)
+- Unite le ondate T1–T7: francese e tedesco, lingua di telefono, push, email, pagine e policy. Report in `docs/audit-cinque-lingue.md`.
+- Tolta la scritta «TOELETTATURA» dai loghi in uso: sito, email, avvio, VIP.
+- Non provati su telefono: trattino automatico nella WebView, email e push vere.

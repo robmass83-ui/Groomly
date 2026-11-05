@@ -1,6 +1,6 @@
 # Glossario delle lingue di Groomly
 
-Le parole da usare sempre uguali in tutta l'app, nelle email, nelle pagine pubbliche e nelle policy. Le colonne inglese e spagnolo riportano ciò che l'app usa già. Un termine nuovo si aggiunge qui, nella stessa modifica che lo usa. Progetto: `docs/superpowers/specs/2026-11-04-cinque-lingue-design.md`.
+Le parole da usare sempre uguali in tutta l'app, nelle email, nelle pagine pubbliche e nelle policy. Le colonne inglese e spagnolo riportano ciò che l'app usa già. Un termine nuovo si aggiunge qui, nella stessa modifica che lo usa. Progetto: `docs/superpowers/specs/archive/2026-11-04-cinque-lingue-design.md`.
 
 ## Tono
 
