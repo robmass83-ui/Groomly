@@ -1,8 +1,24 @@
 # Admin Manager — come si usa
 
-L'Admin Manager prende il posto di «Utenti Groomly». Lo vedono solo gli operatori.
-Si apre da **Impostazioni → Admin Manager**. Il vecchio indirizzo `/impostazioni/utenti` porta qui.
+L'Admin Manager prende il posto di «Utenti Groomly». Lo vede solo chi ha il claim `admin`, cioè la hotmail di Roberto.
+La hotmail entra direttamente in `/admin`, senza salone. I vecchi indirizzi `/impostazioni/admin-manager` e `/impostazioni/utenti` portano qui.
+In alto a destra ci sono **Avvisi** (scrivere ed eliminare gli avvisi di sistema) ed **Esci**.
 In alto ci sono sei tab: **Panoramica · Saloni · Beta · Feedback · Suggerimenti · Piani**.
+
+## Passaggio degli accessi
+
+I Pelosetti sta in `salons/{uid di Laura}`. Lo script `scripts/imposta-admin.ts` sposta solo chi ci entra: non tocca cani, appuntamenti o incassi. Senza `--esegui` non scrive nulla. Serve `GOOGLE_APPLICATION_CREDENTIALS` verso un service account fuori dal repo.
+
+1. `node --experimental-strip-types scripts/imposta-admin.ts controlla`, poi `claim on masala.roberto@hotmail.it --esegui`, poi di nuovo `controlla`.
+2. Deploy delle functions (`FUNCTIONS_DISCOVERY_TIMEOUT=60`, senza `--force`), poi delle regole.
+3. Nuova APK.
+4. `collega` per leggere cosa farebbe, poi `collega --esegui`: elimina l'eventuale salone di prova di robmass83 e lo fa socio di I Pelosetti.
+5. Accesso con robmass83: deve aprire I Pelosetti. Poi con la hotmail: deve aprire `/admin`. Poi Laura aggiorna l'APK e controlla il suo salone.
+6. `stacca --esegui`: toglie alla hotmail account e riga socio. Si rifiuta se robmass83 non è ancora entrato.
+
+## Sicurezza
+
+Ogni azione finisce in `adminLog`, che scrivono solo le functions. Elimina salone, Accendi e Spegni pagamenti e la pubblicazione di un avviso chiedono di nuovo la password se l'ultimo accesso ha più di 15 minuti. Gli avvisi hanno un limite di 10 all'ora.
 
 ## La beta è pronta da usare
 

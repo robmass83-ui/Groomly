@@ -88,15 +88,16 @@ describe('Funzioni Plus', () => {
     desk.annulla.mockReset().mockResolvedValue(undefined)
   })
 
-  it('Pro spento mostra Non attivo; acceso, anche per Laura, mostra Invita', async () => {
+  it('Pro spento mostra Non attivo; acceso, anche per Laura, mostra Invita; nessun interruttore del piano', async () => {
     desk.access = { enabled: true, members: [], openInviteExpiries: [] }
+    pianoForzato.valore = piano('salone')
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
-    const laura = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
-    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
+    const laura = render(<App memory isDev={false} initialPath="/impostazioni/team" />)
+    expect(await screen.findByRole('heading', { name: 'Team' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Invita una persona' })).toBeInTheDocument()
     expect(screen.getByText('Il socio ha il pieno controllo del salone. Il collaboratore gestisce cani e appuntamenti e non vede gli incassi.')).toBeInTheDocument()
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Piano Salon' })).toHaveAttribute('aria-checked', 'true')
+    expect(screen.queryByRole('switch', { name: 'Piano Salon' })).not.toBeInTheDocument()
     expect(screen.getByText('Attivo')).toBeInTheDocument()
     expect(screen.queryByText('Non attivo')).not.toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('button', { name: 'Invita una persona' }))
@@ -107,15 +108,11 @@ describe('Funzioni Plus', () => {
     localStorage.clear()
     desk.access = { enabled: false, members: [], openInviteExpiries: [] }
     await createAccount('laura.masala@tiscali.it', 'segretissimo')
-    const off = render(<App memory isDev={false} initialPath="/impostazioni/pro" />)
+    const off = render(<App memory isDev={false} initialPath="/impostazioni/team" />)
     expect(await screen.findByText('Non attivo')).toBeInTheDocument()
-    expect(screen.getByText(/Accendi il piano Salon per invitare/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invita una persona' })).not.toBeInTheDocument()
-    await userEvent.setup().click(screen.getByRole('switch', { name: 'Piano Salon' }))
-    expect(desk.setPro).toHaveBeenCalledWith('shared', true)
-    expect(await screen.findByRole('button', { name: 'Invita una persona' })).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Piano Salon' })).not.toBeInTheDocument()
     off.unmount()
-
   })
 
   it('Pro acceso: un collaboratore e un invito aperto mostrano 2 di 3 posti', async () => {

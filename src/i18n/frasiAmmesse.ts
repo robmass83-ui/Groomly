@@ -17,6 +17,8 @@ export const FRASI_AMMESSE: Record<string, readonly string[]> = {
   'src/pages/PriceSheetManagePage.tsx': ['Bagno', 'Bagno + sistemazione', 'Pelo corto', 'Pelo lungo'],
   // Il messaggio italiano accanto al codice, per le APK già installate.
   'functions/src/piano/silenzioEmail.ts': ['Cane assente'],
+  // Messaggi per chi lancia scripts/imposta-admin.ts: nessuna schermata li mostra.
+  'src/lib/passaggioAdmin.ts': ['Il salone di Laura non è il suo uid: trovato ${stato.lauraSalonId ?? \'niente\'}.', 'robmass83 non è collegato al salone di Laura.'],
   // Nome di prodotto, uguale in tutte le lingue.
   'src/components/admin/AdminFrame.tsx': ['Groomly Admin'],
   // Nomi su Drive: la conservazione delle copie in Android cerca questo prefisso e il registro si sovrascrive per nome.

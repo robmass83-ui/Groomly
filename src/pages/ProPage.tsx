@@ -6,7 +6,6 @@ import { Button } from '../components/ui/Button'
 import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
-import { Toggle } from '../components/ui/Toggle'
 import { ConfermaRevoca } from '../components/team/ConfermaRevoca'
 import { ConfermaRuolo } from '../components/team/ConfermaRuolo'
 import { messaggioCallable } from '../components/team/messaggioCallable'
@@ -15,7 +14,6 @@ import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
 import { SHARED_SALON_ID, isSharedEmail, type AccountRole } from '../lib/salonPath'
-import { useRuolo } from '../hooks/useRuolo'
 import { rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -85,7 +83,6 @@ export function ProPage({ titolo }: { titolo?: string }) {
     ? ''
     : account.salonId || (isSharedEmail(account.email) ? SHARED_SALON_ID : account.uid)
   const callerRole: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
-  const { admin: operator } = useRuolo()
   const [seen, setSeen] = useState(false)
   const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const [email, setEmail] = useState('')
@@ -94,8 +91,6 @@ export function ProPage({ titolo }: { titolo?: string }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [sending, setSending] = useState(false)
-  const [switching, setSwitching] = useState(false)
-  const [switchError, setSwitchError] = useState('')
   const [pending, setPending] = useState<PendingInvite[]>([])
   const [toRevoke, setToRevoke] = useState<SalonMember | null>(null)
   const [toChangeRole, setToChangeRole] = useState<SalonMember | null>(null)
@@ -155,22 +150,6 @@ export function ProPage({ titolo }: { titolo?: string }) {
     if (!seen || inactive || !canManage || salonId === '') return
     void loadPending()
   }, [seen, inactive, canManage, salonId])
-
-  async function togglePro() {
-    if (switching || salonId === '') return
-    setSwitchError('')
-    setSwitching(true)
-    const next = !access.enabled
-    try {
-      const mod = await import('../data/firebase/client')
-      await mod.callSetSalonPro(salonId, next)
-      setAccess((current) => ({ ...current, enabled: next }))
-    } catch {
-      setSwitchError(frasi.uteNegato)
-    } finally {
-      setSwitching(false)
-    }
-  }
 
   function openInvite() {
     setError('')
@@ -246,16 +225,12 @@ export function ProPage({ titolo }: { titolo?: string }) {
                     {access.enabled ? <> · <span>{t(lingua, 'teamPosti', { n: seats, max: access.seats ?? PRO_SEAT_LIMIT })}</span></> : null}
                   </span>
                 </span>
-                {operator ? (
-                  <Toggle checked={access.enabled} disabled={switching} label={frasi.proPianoSalone} onChange={() => { void togglePro() }} />
-                ) : null}
               </div>
               <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--tx2)', fontSize: 13, lineHeight: 1.35 }}>
                 {access.enabled
                   ? frasi.proRuoloDettaglio
                   : frasi.proAccendi}
               </p>
-              {switchError ? <p style={{ margin: 0, padding: '0 12px 10px', color: 'var(--bad)', ...USER_TEXT }}>{switchError}</p> : null}
             </Card>
             {inactive ? null : (
               <Card>
