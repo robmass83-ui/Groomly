@@ -7,6 +7,7 @@ import { AltroPage } from '../pages/admin/AltroPage'
 import { AssistenzaPage } from '../pages/admin/AssistenzaPage'
 import { BetaPage } from '../pages/admin/BetaPage'
 import { ComunicazioniPage } from '../pages/admin/ComunicazioniPage'
+import { MetrichePage } from '../pages/admin/MetrichePage'
 import { PanoramicaPage } from '../pages/admin/PanoramicaPage'
 import { PianiPage } from '../pages/admin/PianiPage'
 import { RegistroPage } from '../pages/admin/RegistroPage'
@@ -36,6 +37,7 @@ export function adminRoutes(guardia: (pagina: ReactElement) => ReactElement): Ro
       { path: 'assistenza/:id', element: <RichiestaPage /> },
       { path: 'comunicazioni', element: <ComunicazioniPage /> },
       { path: 'piani', element: <PianiPage /> },
+      { path: 'metriche', element: <MetrichePage /> },
       { path: 'registro', element: <RegistroPage /> },
       { path: 'sistema', element: <SistemaPage /> },
       { path: PERCORSO_ALTRO, element: <AltroPage /> },

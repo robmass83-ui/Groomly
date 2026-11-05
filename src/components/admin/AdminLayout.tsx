@@ -1,4 +1,4 @@
-import { CreditCard, FlaskConical, LayoutDashboard, LifeBuoy, Megaphone, MoreHorizontal, ScrollText, Settings, Store, type LucideIcon } from 'lucide-react'
+import { ChartColumn, CreditCard, FlaskConical, LayoutDashboard, LifeBuoy, Megaphone, MoreHorizontal, ScrollText, Settings, Store, type LucideIcon } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useDesktop } from '../../hooks/useDesktop'
@@ -10,7 +10,7 @@ import {
   PERCORSO_ASSISTENZA,
   PERCORSO_BETA,
   PERCORSO_COMUNICAZIONI,
-  PERCORSO_PIANI,
+  PERCORSO_METRICHE, PERCORSO_PIANI,
   PERCORSO_REGISTRO,
   PERCORSO_SALONI,
   PERCORSO_SISTEMA,
@@ -63,6 +63,7 @@ export function useVociAdmin(): { principali: Voce[]; altre: Voce[] } {
     altre: [
       { to: PERCORSO_COMUNICAZIONI, nome: frasi.consComunicazioni, icona: Megaphone },
       { to: PERCORSO_PIANI, nome: frasi.amTabPiani, icona: CreditCard },
+      { to: PERCORSO_METRICHE, nome: frasi.metriche, icona: ChartColumn },
       { to: PERCORSO_REGISTRO, nome: frasi.consRegistro, icona: ScrollText },
       { to: PERCORSO_SISTEMA, nome: frasi.consSistema, icona: Settings },
     ],

@@ -1,3 +1,4 @@
+import { leggiStatistiche, type StatisticheGiorno } from '../../lib/statisticheGiorno'
 import { linguaValida, type Lingua } from '../../i18n/lingua'
 import { STATI_ASSISTENZA, type DocAssistenza, type EsitoEmailRisposta, type FonteAssistenza, type RispostaAssistenza, type StatoAssistenza } from '../../lib/assistenza'
 import { tipoAvviso, type TipoAvviso, type Traduzioni } from '../../lib/avvisiSistema'
@@ -87,6 +88,15 @@ function rispostaDi(value: unknown): RispostaAssistenza | null {
   if (typeof r.testo !== 'string' || typeof r.quando !== 'string') return null
   const email = r.email === 'inviata' || r.email === 'non_inviata' || r.email === 'limite' ? r.email : null
   return { testo: r.testo, quando: r.quando, email }
+}
+
+/** I giorni più recenti in ordine di data, il doppio del periodo per poter confrontare. */
+export async function elencoStatistiche(giorni: 30 | 90): Promise<StatisticheGiorno[]> {
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
+  const db = await database()
+  const { collection, documentId, getDocs, limit, orderBy, query } = await loadFirestore()
+  const snap = await getDocs(query(collection(db, 'statsGiornaliere'), orderBy(documentId(), 'desc'), limit(giorni * 2)))
+  return snap.docs.flatMap((doc) => leggiStatistiche(doc.data()) ?? []).reverse()
 }
 
 /** I documenti di Assistenza, per chiave: una richiesta che non c'è non è ancora stata toccata. */

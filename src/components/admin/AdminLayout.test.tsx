@@ -26,9 +26,9 @@ const nomi = (menu: HTMLElement) => within(menu).getAllByRole('link').map((l) =>
 describe('AdminLayout', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('su PC il menu laterale ha otto voci e niente Metriche', () => {
+  it('su PC il menu laterale ha nove voci, Metriche compresa', () => {
     const menu = apri(true)
-    expect(nomi(menu)).toEqual(['Panoramica', 'Saloni', 'Assistenza', 'Beta', 'Comunicazioni', 'Piani', 'Registro', 'Sistema'])
+    expect(nomi(menu)).toEqual(['Panoramica', 'Saloni', 'Assistenza', 'Beta', 'Comunicazioni', 'Piani', 'Metriche', 'Registro', 'Sistema'])
     expect(within(menu).getByRole('link', { name: /Registro/ })).toHaveAttribute('aria-current', 'page')
   })
 
