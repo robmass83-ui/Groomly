@@ -37,7 +37,7 @@ import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import { APP_VERSION } from '../../lib/appVersion'
 import { solaAdmin } from '../../lib/solaAdmin'
-import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiEmailPromo, leggiTermini } from '../../lib/versioneLegale'
+import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiConsensoMetriche, leggiEmailPromo, leggiTermini, type ConsensoMetriche } from '../../lib/versioneLegale'
 import type { Lingua } from '../../i18n/lingua'
 import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
 import { primoAvvio } from '../../i18n/scritturaLingua'
@@ -539,16 +539,32 @@ export async function callImpostaEmailPromo(attivo: boolean, fonte: 'tour' | 'ac
   if (accountDoc) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, emailPromo: { attivo, at, fonte } } }
 }
 
+export async function callImpostaConsensoMetriche(attivo: boolean, fonte: ConsensoMetriche['fonte']): Promise<ConsensoMetriche> {
+  const risposta = await callCallableData('impostaConsensoMetriche', { attivo, fonte }) as { consenso?: unknown } | null
+  const consenso = leggiConsensoMetriche(risposta?.consenso)
+  if (!consenso) throw new Error('consenso_non_valido')
+  if (accountDoc) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, consensoMetriche: consenso } }
+  return consenso
+}
+
+/** Dal server: la scelta può essere cambiata su un altro telefono. */
+export async function rileggiConsensoMetriche(): Promise<ConsensoMetriche | undefined> {
+  const user = await currentUser()
+  const consenso = leggiConsensoMetriche((await readDoc(['accounts', user.uid], true))?.consensoMetriche)
+  if (consenso && accountDoc?.uid === user.uid) accountDoc = { uid: user.uid, data: { ...accountDoc.data, consensoMetriche: consenso } }
+  return consenso
+}
+
 export async function callImpostaEmailCliente(dogId: string, bloccata: boolean): Promise<void> {
   await callCallable('impostaEmailCliente', { dogId, bloccata })
 }
 
 /** La prova dell'accettazione la scrive il server; qui si aggiorna solo la copia in memoria. */
-export async function callRegistraAccettazione(): Promise<void> {
+export async function callRegistraAccettazione(versione: number = VERSIONE_DOCUMENTI): Promise<void> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
   await attachEmulators('functions', functions)
-  const result = await httpsCallable(functions, 'registraAccettazione')({ versione: VERSIONE_DOCUMENTI, appVersione: APP_VERSION })
+  const result = await httpsCallable(functions, 'registraAccettazione')({ versione, appVersione: APP_VERSION })
   const termini = (result.data as { termini?: unknown } | null)?.termini
   if (accountDoc && termini) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, termini } }
 }
@@ -2228,6 +2244,7 @@ function toAccount(user: User): LocalAccount {
   const role = documentRole(data)
   const termini = leggiTermini(data?.termini)
   const emailPromo = leggiEmailPromo(data?.emailPromo)
+  const consensoMetriche = leggiConsensoMetriche(data?.consensoMetriche)
   return {
     uid: user.uid,
     email: (user.email ?? '').toLowerCase(),
@@ -2243,6 +2260,7 @@ function toAccount(user: User): LocalAccount {
     ...(adminSessione ? { admin: true } : {}),
     ...(termini ? { termini } : {}),
     ...(emailPromo ? { emailPromo } : {}),
+    ...(consensoMetriche ? { consensoMetriche } : {}),
   }
 }
 

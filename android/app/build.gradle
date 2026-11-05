@@ -74,6 +74,8 @@ dependencies {
     implementation project(':capacitor-android')
     implementation "com.google.android.gms:play-services-auth:21.4.0"
     implementation "androidx.work:work-runtime:2.10.1"
+    // Firebase Analytics porta la versione vuota di listenablefuture: a Worker serve la classe vera.
+    implementation 'com.google.guava:guava:33.4.8-android'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
@@ -88,6 +90,7 @@ try {
     def servicesJSON = file('google-services.json')
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
+        apply plugin: 'com.google.firebase.crashlytics'
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")

@@ -15,6 +15,8 @@ const RELEASE = 'https://groomlyapp.it/release.json'
 const TRATTINO = '—'
 const LINK: [string, string][] = [
   ['Firebase', 'https://console.firebase.google.com/project/groomly-3128b'],
+  ['Crashlytics', 'https://console.firebase.google.com/project/groomly-3128b/crashlytics'],
+  ['Analytics', 'https://console.firebase.google.com/project/groomly-3128b/analytics'],
   ['Play Console', 'https://play.google.com/console'],
   ['Brevo', 'https://app.brevo.com'],
   ['RevenueCat', 'https://app.revenuecat.com'],

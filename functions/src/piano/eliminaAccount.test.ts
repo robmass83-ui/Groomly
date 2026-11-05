@@ -115,6 +115,16 @@ describe('eliminare l’account del titolare', () => {
     expect(authCancellati).toEqual(['tit'])
   })
 
+  it('il collaboratore che se ne va porta con sé messaggi e suggerimenti', async () => {
+    archivio.set('suggerimenti/s1', { uid: 'collab', salonId: 'tit', testo: 'x' })
+    archivio.set('assistenza/a1', { uid: 'collab', salonId: 'tit' })
+    archivio.set('betaFeedback/b1', { uid: 'collab', salonId: 'tit' })
+    await eliminaAccountPer('collab')
+    expect(archivio.has('suggerimenti/s1')).toBe(false)
+    expect(archivio.has('assistenza/a1')).toBe(false)
+    expect(archivio.has('betaFeedback/b1')).toBe(false)
+  })
+
   it('quando il membro risulta revocato il suo account già punta al proprio salone', async () => {
     const vistoAlRevoco: Record<string, unknown> = {}
     const originale = archivio.set.bind(archivio)

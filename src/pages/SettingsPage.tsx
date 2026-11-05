@@ -58,6 +58,7 @@ import type { CodiciCaneDoc } from '../lib/codiceCane'
 import { APP_VERSION } from '../lib/appVersion'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import type { DriveCopia } from '../lib/driveAuth'
+import { traccia } from '../lib/metricheNative'
 import { inviaBackupSuDrive, messaggioInvio, programmaInvio } from '../lib/driveInvio'
 import { chiaveErroreDrive, ORARIO_BACKUP, statoDrive, tonoBackup } from '../lib/statoDrive'
 import { unisciRegistri } from '../lib/unisciBackup'
@@ -581,6 +582,7 @@ export function SettingsPage() {
       if (Capacitor.isNativePlatform()) await shareFiles([pronto], frasi.impBackupNome)
       else downloadAnchor(pronto.blob, pronto.name)
       update((c) => ({ ...c, backup: { ...c.backup, lastAt: now.toISOString() } }))
+      traccia({ nome: 'backup_eseguito', tipo: 'manuale' })
     } catch (error) {
       if (isShareCancel(error)) return
       if (error instanceof AppError && error.code === 'backup_offline') toast.show(error.message, 'plain')

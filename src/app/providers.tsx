@@ -7,6 +7,7 @@ import { firebaseEnabled, notifySaveFailed, readsLocal, subscribeSaveFailed } fr
 import { readJson, storageKeys } from '../data/local/storage'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
+import { RaccoltaMetriche } from '../components/legale/RaccoltaMetriche'
 import { SessionProvider, useSession } from '../hooks/useSession'
 import { SettingsProvider, useSettings } from '../hooks/useSettings'
 import { backupDay, buildBackup, isEmptyBackup, maybeDailyBackup } from '../lib/backupDoc'
@@ -166,6 +167,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <DriveInvioAuto />
           <PianoProvider>
             <BetaProvider>
+              <RaccoltaMetriche />
               <DailyBackup />
               {children}
             </BetaProvider>

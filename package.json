@@ -13,6 +13,7 @@
     "test:rules": "node scripts/test-rules-emulator.mjs",
     "test:storage": "node scripts/test-storage-emulator.mjs",
     "licenze": "node scripts/genera-licenze.mjs",
+    "legale:data": "node scripts/data-legale.mjs",
     "test:e2e": "node tests/e2e/tour.cjs",
     "test:360": "node --experimental-strip-types scripts/test360/seed.ts",
     "emu": "node scripts/avvia-emulatori.mjs",
@@ -20,6 +21,8 @@
     "cap:sync": "cap sync android"
   },
   "dependencies": {
+    "@capacitor-firebase/analytics": "8.6.0",
+    "@capacitor-firebase/crashlytics": "8.6.0",
     "@capacitor/android": "^8.5.3",
     "@capacitor/app": "^8.1.2",
     "@capacitor/browser": "^8.0.5",
@@ -69,5 +72,10 @@
     "typescript": "^5.8.2",
     "vite": "^6.2.0",
     "vitest": "^3.0.8"
+  },
+  "overrides": {
+    "@capacitor-firebase/analytics": {
+      "firebase": "$firebase"
+    }
   }
 }

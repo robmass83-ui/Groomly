@@ -1,25 +1,31 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usePiano } from '../../hooks/usePiano'
+import { useProfiloMetriche } from '../../hooks/useProfiloMetriche'
 import { useSession } from '../../hooks/useSession'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { accountNonEliminabile } from '../../lib/accountProtetto'
 import { linkLegale } from '../../lib/distribuzione'
+import { devoChiedere } from '../../lib/metriche'
 import { apriEsterno } from '../../lib/openDocument'
-import { VERSIONE_DOCUMENTI, deveRiaccettare, mancaSuServer } from '../../lib/versioneLegale'
+import { VERSIONE_DOCUMENTI, deveRiaccettare, documentiPerRuolo, mancaSuServer } from '../../lib/versioneLegale'
 import { SIZES } from '../../theme/sizes'
 import { Button } from '../ui/Button'
+import { DomandaStatistiche } from './DomandaStatistiche'
 
 const PAGINA_ELIMINA = '/impostazioni/account/elimina'
 
 // Valgono per l'apertura dell'app: senza rete si entra, e la richiesta torna alla prossima.
 let rimandataPer: string | null = null
 let provaSilenziosaPer: string | null = null
+// La domanda segue la riaccettazione: i saloni nuovi rispondono nel tour, che può partire solo dopo.
+let appenaAccettatoDa: string | null = null
 
 /** Solo per i test. */
 export function __resetRiaccetta(): void {
   rimandataPer = null
   provaSilenziosaPer = null
+  appenaAccettatoDa = null
 }
 
 // Senza connessione vera l'SDK risponde «internal», e su Android onLine può restare vero: blocca solo un rifiuto del server.
@@ -43,12 +49,14 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
   const [occupato, setOccupato] = useState(false)
   const [errore, setErrore] = useState(false)
   const [, setRimandata] = useState(false)
+  const [, setRisposto] = useState(false)
+  const profilo = useProfiloMetriche()
 
   useEffect(() => {
     if (!uid || provaSilenziosaPer === uid || !mancaSuServer(account?.termini)) return
     provaSilenziosaPer = uid
     void import('../../data/firebase/client')
-      .then((mod) => mod.callRegistraAccettazione())
+      .then((mod) => mod.callRegistraAccettazione(account?.termini?.versione))
       .catch(() => undefined)
   }, [uid, account?.termini])
 
@@ -57,7 +65,15 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     && rimandataPer !== uid
     && pathname !== PAGINA_ELIMINA
     && !senzaRete()
-  if (!blocca) return <>{children}</>
+  if (!blocca) {
+    const chiedi = account !== null && profilo !== null
+      && devoChiedere(profilo, account.consensoMetriche, account.termini)
+      && appenaAccettatoDa === uid
+      && pathname !== PAGINA_ELIMINA
+      && !deveRiaccettare(account.termini, richiesta)
+    if (!chiedi) return <>{children}</>
+    return <DomandaStatistiche fonte="riaccettazione" onFatto={() => { appenaAccettatoDa = null; setRisposto(true) }} />
+  }
 
   const protetto = accountNonEliminabile({
     email: account.email,
@@ -73,6 +89,7 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     try {
       const mod = await import('../../data/firebase/client')
       await mod.callRegistraAccettazione()
+      appenaAccettatoDa = uid
       session.replaceAccount(await mod.accountRiletto())
     } catch (error) {
       if (senzaRete(error)) {
@@ -86,11 +103,11 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     }
   }
 
-  const documenti = [
+  const documenti: { titolo: string; voce: 'privacy' | 'termini' | 'dpa' }[] = [
     { titolo: frasi.legPrivacy, voce: 'privacy' },
     { titolo: frasi.legTermini, voce: 'termini' },
-    { titolo: frasi.legDpa, voce: 'dpa' },
-  ] as const
+    ...(documentiPerRuolo(account.role).dpa ? [{ titolo: frasi.legDpa, voce: 'dpa' as const }] : []),
+  ]
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)', color: 'var(--tx)', padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: SIZES.sectionGap }}>

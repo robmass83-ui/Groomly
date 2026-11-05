@@ -37,7 +37,7 @@ async function fillCreate(user: User, skip: string[] = []) {
   for (const [label, value] of fields) {
     if (!skip.includes(label)) await user.type(screen.getByLabelText(label), value)
   }
-  await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy e termini' }))
+  await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy, termini e accordo dati' }))
 }
 
 async function createMaria(user: User) {
@@ -196,7 +196,7 @@ describe('login', () => {
     await user.type(screen.getByLabelText('Cognome'), 'Bianchi')
     await user.type(screen.getByLabelText('Email'), 'ada@salone.it')
     await user.type(screen.getByLabelText('Password'), 'segretissimo')
-    await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy e termini' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Accetto privacy, termini e accordo dati' }))
     await user.click(screen.getByRole('button', { name: 'Crea account' }))
     expect(await screen.findByRole('heading', { name: 'Invito' })).toBeInTheDocument()
     const account = getAccount()!
@@ -221,11 +221,13 @@ describe('login', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} />)
     await user.click(screen.getByRole('button', { name: 'Non hai un account? Crea account' }))
-    const casella = screen.getByRole('checkbox', { name: 'Accetto privacy e termini' })
+    const casella = screen.getByRole('checkbox', { name: 'Accetto privacy, termini e accordo dati' })
     await user.click(screen.getByRole('button', { name: 'l’informativa privacy' }))
     expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/privacy/?lang=it')
     await user.click(screen.getByRole('button', { name: 'i termini d’uso' }))
     expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/termini/?lang=it')
+    await user.click(screen.getByRole('button', { name: 'l’accordo dati per i saloni' }))
+    expect(apriEsterno).toHaveBeenCalledWith('https://groomlyapp.it/dpa/?lang=it')
     expect(casella).not.toBeChecked()
     await user.click(casella)
     expect(casella).toBeChecked()

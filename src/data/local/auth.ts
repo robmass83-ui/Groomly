@@ -1,6 +1,6 @@
 import { PASSWORD_ITERATIONS, hashPassword, verifyPassword } from '../../lib/password'
 import type { AccountRole } from '../../lib/salonPath'
-import type { EmailPromo, TerminiAccount } from '../../lib/versioneLegale'
+import type { ConsensoMetriche, EmailPromo, TerminiAccount } from '../../lib/versioneLegale'
 import { erroreApp } from '../errors'
 import { findCorruptGroomlyKey, readJson, storageKeys, writeJson } from './storage'
 
@@ -20,6 +20,7 @@ export interface LocalAccount {
   legacy?: boolean
   termini?: TerminiAccount
   emailPromo?: EmailPromo
+  consensoMetriche?: ConsensoMetriche
 }
 
 export type SessionGate =

@@ -29,6 +29,7 @@ vi.mock('../pages/HomePage', () => ({
   },
 }))
 vi.mock('../pages/LoginPage', () => ({ LoginPage: () => <p>login</p> }))
+vi.mock('../pages/admin/MetrichePage', () => ({ MetrichePage: () => <p>metriche</p> }))
 vi.mock('../components/AccessoSospeso', () => ({ StaffLock: ({ children }: { children: ReactElement }) => children }))
 vi.mock('./PushHost', () => ({ PushHost: () => null }))
 vi.mock('./TourAvvio', () => ({ TourAvvio: () => null }))
@@ -86,7 +87,11 @@ describe('rotte admin', () => {
   })
 
   it('un indirizzo admin sconosciuto porta alla Panoramica', () => {
-    expect(apri('/admin/metriche', ADMIN)).toBe('/admin')
+    expect(apri('/admin/inesistente', ADMIN)).toBe('/admin')
+  })
+
+  it('le Metriche hanno la loro pagina', () => {
+    expect(apri('/admin/metriche', ADMIN)).toBe('/admin/metriche')
   })
 
   it.each(['/admin', '/admin/avvisi', '/admin/saloni'])('chi ha un salone su %s torna alla Home', (indirizzo) => {

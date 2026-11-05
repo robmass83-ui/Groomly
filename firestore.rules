@@ -91,7 +91,8 @@ service cloud.firestore {
       allow update: if signedIn() && request.auth.uid == uid
         && request.resource.data.salonId == resource.data.salonId
         && request.resource.data.role == resource.data.role
-        && request.resource.data.legacy == resource.data.legacy;
+        && request.resource.data.legacy == resource.data.legacy
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['consensoMetriche']);
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false && resource.data.salonId == uid;
     }
 
@@ -326,6 +327,12 @@ service cloud.firestore {
 
     match /mittentiLimiti/{id} {
       allow read, write: if false;
+    }
+
+    // I numeri della notte: solo totali, li scrive la function e li legge la Console.
+    match /statsGiornaliere/{id} {
+      allow read: if isOperator();
+      allow write: if false;
     }
 
     // Il registro delle azioni admin lo scrivono solo le Cloud Functions.

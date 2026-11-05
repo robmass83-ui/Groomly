@@ -185,9 +185,13 @@ function CreateView({ onEnter }: { onEnter: (email: string) => void }) {
             <button type="button" style={linkTermini} onClick={() => { void apriEsterno(linkLegale('privacy', lingua)) }}>
               {frasi.accettaTerminiPrivacy}
             </button>
-            <span aria-hidden>{frasi.accettaTerminiE}</span>
+            <span aria-hidden>{frasi.accettaTerminiVirgola}</span>
             <button type="button" style={linkTermini} onClick={() => { void apriEsterno(linkLegale('termini', lingua)) }}>
               {frasi.accettaTerminiTermini}
+            </button>
+            <span aria-hidden>{frasi.accettaTerminiE}</span>
+            <button type="button" style={linkTermini} onClick={() => { void apriEsterno(linkLegale('dpa', lingua)) }}>
+              {frasi.accettaTerminiDpa}
             </button>
           </div>
           {errors.accettaTermini?.message ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{errors.accettaTermini.message}</p> : null}

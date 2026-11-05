@@ -1,3 +1,4 @@
+import { traccia } from './metricheNative'
 import { Directory, Filesystem } from '@capacitor/filesystem'
 import { AppError } from '../data/errors'
 import { getSettings } from '../data/local/settings'
@@ -127,5 +128,6 @@ export async function provaInvioAutomatico(uid: string, now: Date): Promise<'inv
   const account = await DriveAuth.leggi({ uid })
   if (!account.collegato) return 'saltato'
   await inviaBackupSuDrive(uid, now)
+  traccia({ nome: 'backup_eseguito', tipo: 'auto' })
   return 'inviato'
 }

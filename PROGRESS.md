@@ -14,12 +14,17 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 **Conteggio (4 novembre, dopo la 1.1.188):** critiche, alte, medie e basse dell'audit tutte chiuse. Le ultime sei righe di basse (Prenotazioni, Team, Animali e mensili, Account, Grafica, Telefono) sono state fatte in sessioni parallele, unite in `main` e pubblicate insieme nella 1.1.188.
 
 ## Stato di `main`
+- **Metriche e testi legali (blocco 4 di 4, 5/11/2026) — sul ramo `claude/metriche-legale-348c15`, non unito, non pubblicato.**
+  - Design `docs/superpowers/specs/2026-11-05-metriche-legale-design.md`, piano `docs/superpowers/plans/2026-11-05-metriche-legale.md`.
+  - `/admin/metriche` con numeri notturni in `statsGiornaliere`. Analytics e Crashlytics spenti fino al sì del titolare, solo sui suoi telefoni.
+  - Privacy 3, Termini 2, DPA 2 in 5 lingue, vecchi testi in `/privacy/v2/`, `/termini/v1-1/`, `/dpa/v1/`. `VERSIONE_DOCUMENTI` è 2.
+  - La riaccettazione parte da `RIACCETTA_DAL`: la data sul ramo è provvisoria. Sequenza del via in `docs/legal/AVVISO-DOCUMENTI.md`.
+  - Da fare a mano: collegare Analytics, attivare Crashlytics, compilare la Scheda da `docs/play/scheda-sicurezza-dati.md`, far rileggere i testi prima di accendere Plus e Salon.
 - **Console Admin e sito admin (blocco 3 di 4, 5/11/2026) — sul ramo `claude/console-admin-a89fd1`, non unita, non pubblicata.**
   - Design `docs/superpowers/specs/2026-11-05-console-admin-design.md`, piano `docs/superpowers/plans/2026-11-05-console-admin.md`.
   - Rotte `/admin/*` con `AdminLayout`, Assistenza con risposte, Comunicazioni con email promozionali e di servizio, Registro, Sistema, scheda salone con numeri aggregati, sito con ingresso proprio (`build:admin`, `deploy:admin`).
   - Avvisi per account in `accounts/{uid}/avvisi`, contatore email comune in `functions/src/postaGiorno.ts`.
   - Da fare a mano: sito Hosting `groomly-admin`, DNS Hostinger, domini autorizzati, App Check. Elenco in `docs/GUIDA-ADMIN-MANAGER.md`.
-  - Il blocco 4 aggiunge `/admin/metriche`, Analytics, Crashlytics e i testi legali.
 - Ultima release: **1.1.189** (GitHub release v1.1.189 + hosting `release.json` aggiornati; functions ridistribuite il 4 novembre). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
 - Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`, `fix/medie-prenotazioni-online`, `fix/medie-piani`, `fix/medie-team-inviti`, `fix/medie-team-ruoli`, `fix/medie-agenda-incassi`, `fix/medie-animali-listino`, `fix/medie-account-profilo`, `fix/medie-home-telefono`, `fix/listino-razza-server`, `fix/basse-validazioni`.
 - **Beta Plus/Salon (4/11/2026) — unita in `main`, pubblicata con la 1.1.189.**

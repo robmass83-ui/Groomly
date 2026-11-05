@@ -44,7 +44,9 @@ import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
-import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
+import { archivioAccettazione, datiAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
+import { archivioConsenso, impostaConsensoMetrichePer } from './legale/consensoMetriche'
+import { calcolaStatistiche, pulisciRegistroAdmin, salvaStatistiche } from './metriche/statisticheGiornaliere'
 import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
@@ -889,11 +891,13 @@ export const scadiProposte = onSchedule({
 export const registraAccettazione = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
   const versione = field(request.data, 'versione')
+  const db = getFirestore()
   return registraAccettazionePer({
     uid,
     versione: typeof versione === 'number' ? versione : 0,
     appVersione: text(field(request.data, 'appVersione')).slice(0, 32),
-  }, archivioAccettazione(getFirestore()), new Date())
+    ...await datiAccettazione(db, uid),
+  }, archivioAccettazione(db), new Date())
 })
 
 export const impostaEmailPromo = onCall(pianoCall, async (request) => {
@@ -903,6 +907,15 @@ export const impostaEmailPromo = onCall(pianoCall, async (request) => {
     attivo: field(request.data, 'attivo') === true,
     fonte: field(request.data, 'fonte') === 'tour' ? 'tour' : 'account',
   }, archivioPromo(getFirestore()), new Date())
+})
+
+export const impostaConsensoMetriche = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  return impostaConsensoMetrichePer({
+    uid,
+    attivo: field(request.data, 'attivo') === true,
+    fonte: text(field(request.data, 'fonte')),
+  }, archivioConsenso(getFirestore()), new Date())
 })
 
 export const disiscriviPromo = onCall(pianoCall, async (request) => {
@@ -1138,22 +1151,39 @@ export const segnaAvvisoBeta = onCall(pianoCall, async (request) => {
   return segnaAvvisoBetaPer(requireUid(request.auth))
 })
 
+export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
+  requireUid(request.auth)
+  return contatoriAdminPer({ token: tokenOperatore(request.auth), infoPersone: infoPersoneAuth })
+})
+
+const dataIso = (quando: string | null | undefined) => (quando ? new Date(quando).toISOString() : null)
+
 // Ultimo uso dell'app per ogni persona: il rinnovo del token, se manca l'ultimo accesso.
-async function ultimiAccessiAuth(uids: string[]): Promise<Map<string, string | null>> {
-  const out = new Map<string, string | null>()
+async function infoPersoneAuth(uids: string[]): Promise<Map<string, { ultimo: string | null; creato: string | null; admin: boolean }>> {
+  const out = new Map<string, { ultimo: string | null; creato: string | null; admin: boolean }>()
   for (let i = 0; i < uids.length; i += 100) {
     const { users } = await getAuth().getUsers(uids.slice(i, i + 100).map((uid) => ({ uid })))
     for (const user of users) {
-      const quando = user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime ?? null
-      out.set(user.uid, quando ? new Date(quando).toISOString() : null)
+      out.set(user.uid, {
+        ultimo: dataIso(user.metadata.lastRefreshTime ?? user.metadata.lastSignInTime),
+        creato: dataIso(user.metadata.creationTime),
+        admin: user.customClaims?.admin === true,
+      })
     }
   }
   return out
 }
 
-export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
-  requireUid(request.auth)
-  return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
+export const statisticheGiornaliere = onSchedule({
+  schedule: '30 3 * * *',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+  timeoutSeconds: 540,
+}, async () => {
+  const db = getFirestore()
+  const adesso = new Date()
+  await salvaStatistiche(db, await calcolaStatistiche({ db, adesso, infoPersone: infoPersoneAuth }))
+  await pulisciRegistroAdmin(db, adesso)
 })
 
 export const schedaSaloneAdmin = onCall({ ...pianoCall, timeoutSeconds: 60 }, async (request) => {

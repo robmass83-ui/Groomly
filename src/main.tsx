@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { finisciCambioSalone } from './data/local/cambioSalone'
 import { finisciUscita } from './data/local/uscita'
+import { segnalaErrore } from './lib/metricheNative'
 import { applyPlatform } from './theme/theme'
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
@@ -20,6 +21,8 @@ if (ponte) {
   applyPlatform(Capacitor.isNativePlatform())
   finisciCambioSalone()
   finisciUscita()
+  window.addEventListener('error', (evento) => { segnalaErrore(evento.error) })
+  window.addEventListener('unhandledrejection', (evento) => { segnalaErrore(evento.reason) })
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <App />

@@ -7,6 +7,7 @@ import { leggiConfigTour, type ConfigTour } from '../lib/tourBenvenuto'
 import { aprePaywall, statoPiano, tracciaBetaDi, type FeatureKey, type ProMain, type StatoPiano, type TracciaBeta } from '../lib/piano'
 import { CONFIG_PIANI_DEFAULT, datiAcquistoPiano, leggiConfigPiani, provaSelfServiceConcessa, type ConfigPiani, type DatiAcquistoPiano } from '../lib/configPiani'
 import { leggiPausa, type PausaSalone } from '../lib/pausaSalone'
+import { traccia } from '../lib/metricheNative'
 import { salvaPiano } from '../lib/pianoSalvato'
 import { offertaPiano } from '../lib/abbonamento'
 import { useRuoloSessione, useUidSessione } from './useSession'
@@ -33,6 +34,8 @@ export type PianoValore = {
   fonte?: string
   statoAbbonamento?: string
   livelloNome?: 'base' | 'pro' | 'salone' | 'vip'
+  /** Il salone di cui è arrivato davvero il piano: `pronto` è vero anche prima che il salone sia noto. */
+  pianoCaricatoPer?: string
   // false finché il documento del piano del salone non è arrivato: prima il piano non si conosce.
   pronto?: boolean
   // Salone personale in pausa mentre si lavora in un altro; null se non lo è.
@@ -82,6 +85,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
   const [messaggioProva, setMessaggioProva] = useState('')
   const [adesso, setAdesso] = useState(() => new Date())
   const [caricato, setCaricato] = useState(() => !firebaseEnabled())
+  const [pianoCaricatoPer, setPianoCaricatoPer] = useState<string | undefined>(undefined)
   const uid = useUidSessione()
 
   // I giorni della prova e la scadenza seguono l’orologio anche se l’app resta aperta.
@@ -135,6 +139,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
             setPro(data)
             setAdesso(new Date())
             setCaricato(true)
+            setPianoCaricatoPer(richiesto)
           },
           (data) => { if (!chiuso && currentSalonId() === richiesto) setConfig(data) },
         )
@@ -174,6 +179,7 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       messaggioProva,
       apriPaywall: (feature) => {
         if (!aprePaywall(stato, feature)) return
+        traccia({ nome: 'paywall_aperta', feature, fonte: 'app' })
         setEsitoProva('spento')
         setMessaggioProva('')
         setPaywall(feature)
@@ -204,12 +210,13 @@ export function PianoProvider({ children }: { children: ReactNode }) {
       statoAbbonamento: typeof pro?.stato === 'string' ? pro.stato : undefined,
       livelloNome: livelloElenco(comePro(pro), adesso),
       pronto: caricato,
+      pianoCaricatoPer,
       pausa: leggiPausa(pro?.pausa),
       traccia: tracciaBetaDi(pro),
       configPiani: leggiConfigPiani(config),
       acquisto: datiAcquistoPiano(config, pro),
     }
-  }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato])
+  }, [pro, config, paywall, adesso, esitoProva, messaggioProva, caricato, pianoCaricatoPer])
 
   return <PianoContext.Provider value={valore}>{children}</PianoContext.Provider>
 }
@@ -232,6 +239,7 @@ export function PaywallPiano() {
       onClose={piano.chiudiPaywall}
       onAvvisami={() => {
         if (feature) void piano.avvisa(feature)
+        traccia({ nome: 'avvisami_toccato', piano: 'plus' })
         piano.chiudiPaywall()
         toast.show(frasi.vetTiAvviseremo, 'ok')
       }}

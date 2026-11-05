@@ -130,6 +130,15 @@ Nello **Storico** vedi ogni invio. **Riprendi** manda solo a chi manca, se un in
 
 Brevo gratuito dà **300 email al giorno**, in comune con i promemoria che i saloni mandano ai clienti. La Console può usarne al massimo la **metà di quelle rimaste**, così i promemoria non si fermano. Il numero si vede in Panoramica, in Sistema e nell'Anteprima («Email oggi: 120 su 300»). Oltre il limite l'invio con email è bloccato; l'avviso nell'app può partire sempre.
 
+## Metriche
+
+In **Metriche** trovi i numeri calcolati di notte dal server: saloni, attivi, attivati, appuntamenti, «Avvisami» e la tabella di chi resta. Ci sono anche senza il consenso alle statistiche, perché sono solo totali.
+
+- Il primo dato compare dopo la prima notte dalla pubblicazione delle functions.
+- Sono esclusi I Pelosetti, i saloni VIP, gli admin e gli account di test.
+- «Chi resta» è una stima dall'ultimo accesso. Le settimane troppo recenti mostrano un trattino.
+- I crash non sono contati qui: il link porta a Crashlytics. Analytics mostra solo i saloni il cui titolare ha detto sì.
+
 ## Piani e pagamenti
 
 - **Durante la beta** ci sono tre interruttori:

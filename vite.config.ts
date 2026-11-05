@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config'
 
 // Il sito admin non è un'app nativa: questi plugin non devono entrare nel suo bundle.
 const PLUGIN_NATIVI = [
+  '@capacitor-firebase/analytics',
+  '@capacitor-firebase/crashlytics',
   '@capacitor/app',
   '@capacitor/browser',
   '@capacitor/camera',

@@ -23,6 +23,7 @@ import { toPdf } from '../../lib/earningsPdf'
 import { maskEuro } from '../../lib/earnings'
 import type { Lingua } from '../../i18n/lingua'
 import { maiuscolaIniziale, opzioniDate } from '../../lib/format'
+import { traccia } from '../../lib/metricheNative'
 import { downloadAnchor, isShareCancel, shareFiles, writeDocuments } from '../../lib/shareFile'
 import type { Appointment, Dog, Service } from '../../types/models'
 
@@ -186,6 +187,7 @@ export function ExportSheet({
     setBusy(true)
     try {
       const file = await makeFile()
+      traccia({ nome: 'report_esportato' })
       if (kind === 'save' && !Capacitor.isNativePlatform()) {
         downloadAnchor(file.blob, file.name)
         return
