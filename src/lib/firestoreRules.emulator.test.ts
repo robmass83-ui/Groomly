@@ -609,4 +609,15 @@ describe('regole Firestore sull’emulatore', () => {
     await assertFails(setDoc(doc(titolare, 'accounts', ALTRO), { consensoMetriche: { attivo: true } }, { merge: true }))
     await assertSucceeds(setDoc(doc(titolare, 'accounts', ALTRO), { lingua: 'it' }, { merge: true }))
   })
+
+  it('le statistiche della notte le legge solo l’operatore e non le scrive nessuno', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'statsGiornaliere', '2026-11-04'), { saloni: 1 })
+    })
+    const operatore = env.authenticatedContext('uid-operatore', { admin: true }).firestore()
+    const titolare = env.authenticatedContext(ALTRO).firestore()
+    await assertSucceeds(getDoc(doc(operatore, 'statsGiornaliere', '2026-11-04')))
+    await assertFails(getDoc(doc(titolare, 'statsGiornaliere', '2026-11-04')))
+    await assertFails(setDoc(doc(operatore, 'statsGiornaliere', '2026-11-04'), { saloni: 2 }))
+  })
 })

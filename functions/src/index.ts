@@ -46,6 +46,7 @@ import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { archivioConsenso, impostaConsensoMetrichePer } from './legale/consensoMetriche'
+import { calcolaStatistiche, pulisciRegistroAdmin, salvaStatistiche } from './metriche/statisticheGiornaliere'
 import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
@@ -1164,6 +1165,18 @@ async function ultimiAccessiAuth(uids: string[]): Promise<Map<string, string | n
 export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
   requireUid(request.auth)
   return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
+})
+
+export const statisticheGiornaliere = onSchedule({
+  schedule: '30 3 * * *',
+  timeZone: 'Europe/Rome',
+  region: 'europe-west1',
+  timeoutSeconds: 540,
+}, async () => {
+  const db = getFirestore()
+  const adesso = new Date()
+  await salvaStatistiche(db, await calcolaStatistiche({ db, adesso, ultimiAccessi: ultimiAccessiAuth }))
+  await pulisciRegistroAdmin(db, adesso)
 })
 
 export const schedaSaloneAdmin = onCall({ ...pianoCall, timeoutSeconds: 60 }, async (request) => {
