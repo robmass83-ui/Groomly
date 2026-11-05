@@ -96,7 +96,7 @@ const { driveCollega, driveLeggi, driveScollega, driveProgramma, driveElencoCopi
   provaInvioAutomatico: vi.fn(async () => 'saltato' as const),
 }))
 
-vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, scriviCodiciCane }))
+vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup, raccogliAltriDati: async () => undefined, scriviCodiciCane }))
 vi.mock('../data/firebase/ripristinoFile', () => ({ scriviFileRipristino, eliminaFileDalSalone }))
 vi.mock('../data/firebase/ripristinoSicurezza', () => ({ salvaCopiaCloud, leggiCopiaCloud, cancellaCopiaCloud, esisteCopiaCloud }))
 vi.mock('../lib/driveAuth', () => ({

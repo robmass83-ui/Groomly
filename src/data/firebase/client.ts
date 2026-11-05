@@ -525,6 +525,16 @@ export async function segnaAvvisiLetti(uid: string, lettiFino: number): Promise<
 /** Acceso mentre il titolare elimina il suo account: il server cancella il salone e niente deve ricrearlo. */
 let eliminazioneInCorso = false
 
+/** I dati del proprio account, senza il token del link di disiscrizione. */
+export async function leggiMioAccount(): Promise<Record<string, unknown>> {
+  const user = await currentUser()
+  const dati = (await readDoc(['accounts', user.uid], true)) ?? {}
+  const promo = dati.emailPromo
+  if (!promo || typeof promo !== 'object') return dati
+  const { token: _token, ...consenso } = promo as Record<string, unknown>
+  return { ...dati, emailPromo: consenso }
+}
+
 export async function callImpostaEmailPromo(attivo: boolean, fonte: 'tour' | 'account'): Promise<void> {
   await callCallable('impostaEmailPromo', { attivo, fonte })
   const at = new Date().toISOString()

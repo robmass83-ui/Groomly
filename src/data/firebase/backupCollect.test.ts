@@ -5,7 +5,7 @@ import JSZip from 'jszip'
 import { sha256Hex } from '../../lib/backupBundle'
 import { leggiRipristino } from '../../lib/leggiRipristino'
 import { bindSalon, clearSalon, salonDocPath, salonRootPath } from './salonRoot'
-import { LIMITE_LETTURE, mappaConLimite, raccogliBackup, scriviCodiciCane } from './backupCollect'
+import { LIMITE_LETTURE, mappaConLimite, raccogliAltriDati, raccogliBackup, scriviCodiciCane } from './backupCollect'
 
 class FakeBytes {
   constructor(readonly raw: Uint8Array) {}
@@ -41,6 +41,7 @@ const cur = () => hoisted.current as Fake
 vi.mock('./client', () => ({
   readSalonDoc: (kind: string, id: string, ...sub: string[]) => cur().readDoc(kind, id, ...sub),
   readSalonCollection: (kind: string) => cur().readCollection(kind),
+  leggiMioAccount: async () => ({ email: 'a@b.it' }),
   transactionSalon: (run: never) => cur().transaction(run),
 }))
 
@@ -665,5 +666,21 @@ describe('raccogliBackup', () => {
     await scriviCodiciCane({ next: 1, cartella: 'cani', byId: {} })
     expect(fake.writes).toEqual(['salons/uid-9/meta/codici-cani'])
     expect(fake.docs.has('salon/shared/meta/codici-cani')).toBe(false)
+  })
+})
+
+describe('raccogliAltriDati', () => {
+  it('toglie i token e segna la raccolta illeggibile senza fermarsi', async () => {
+    hoisted.current = {
+      readCollection: async (kind: string) => {
+        if (kind === 'attesa') throw new Error('negato')
+        return [{ id: 'x', data: { nome: 'Ada', token: 'segreto' } }]
+      },
+    }
+    const altri = await raccogliAltriDati()
+    expect(altri.richieste).toEqual({ x: { nome: 'Ada' } })
+    expect(altri.attesa).toEqual({})
+    expect(altri.nonLette).toEqual(['attesa'])
+    expect(altri.account).toEqual({ email: 'a@b.it' })
   })
 })

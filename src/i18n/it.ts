@@ -2131,4 +2131,8 @@ export const it = {
   tourPromoNo: 'No, grazie',
   accEmailPromo: 'Email con promozioni e novità',
   accEmailPromoDettaglio: 'Le email di servizio arrivano comunque',
+  regRichieste: 'Richieste',
+  regAttesa: 'Lista d\'attesa',
+  regEmail: 'Email ai clienti',
+  accScaricaAccount: 'Un file con i dati del tuo account',
 } as const

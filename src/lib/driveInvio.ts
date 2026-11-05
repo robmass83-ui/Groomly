@@ -46,7 +46,7 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
   const nomi: string[] = []
   try {
     await prendiBlocco(now)
-    const { raccogliBackup } = await import('../data/firebase/backupCollect')
+    const { raccogliAltriDati, raccogliBackup } = await import('../data/firebase/backupCollect')
     const { registroXlsx } = await import('../lib/registroXlsx')
     const { backupCompleto, cartellaFoto } = await import('../lib/backupCompleto')
     const scritti: string[] = []
@@ -60,8 +60,9 @@ export async function inviaBackupSuDrive(uid: string, now: Date): Promise<void> 
         candidati.push({ id: meta.id, percorso, bytes })
       },
     })
-    const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti) })
-    const pronto = await backupCompleto(raccolto, registro, file, now)
+    const altri = await raccogliAltriDati()
+    const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti), altri })
+    const pronto = await backupCompleto(raccolto, registro, file, now, altri)
     const written = await scriviCache(pronto.name, await blobBase64(pronto.blob))
     nomi.push(pronto.name)
     const cartella = cartellaBackup(raccolto.manifest.salone.nome)

@@ -2133,4 +2133,8 @@ export const en = {
   tourPromoNo: 'No, thanks',
   accEmailPromo: 'Emails with promotions and news',
   accEmailPromoDettaglio: 'Service emails arrive anyway',
+  regRichieste: 'Requests',
+  regAttesa: 'Waiting list',
+  regEmail: 'Client emails',
+  accScaricaAccount: 'A file with your account data',
 } as const satisfies Record<keyof typeof italiano, string>

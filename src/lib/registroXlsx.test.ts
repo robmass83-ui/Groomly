@@ -1,3 +1,4 @@
+import { Workbook } from 'exceljs'
 import { describe, expect, it } from 'vitest'
 import type { GroomlyDati } from './backupBundle'
 import { registroXlsx } from './registroXlsx'
@@ -106,5 +107,15 @@ describe('registroXlsx', () => {
     const workbook = await book(await registroXlsx(empty, { now: NOW }))
     expect(workbook.getWorksheet('Cani')?.getRow(1).getCell(1).value).toBe('Codice')
     expect(workbook.getWorksheet('Incassi mensili')?.getRow(1).getCell(1).value).toBe('Mese')
+  })
+
+  it('con gli altri dati aggiunge i tre fogli', async () => {
+    const altri = { richieste: { r: { nome: 'Ada' } }, attesa: {}, coda: { c: { email: 'a@b.it' } }, nonLette: [], account: null }
+    const blob = await registroXlsx(dati(), { now: NOW, altri })
+    const libro = new Workbook()
+    await libro.xlsx.load(await blob.arrayBuffer())
+    expect(libro.getWorksheet('Richieste')?.getCell('A2').value).toBe('Ada')
+    expect(libro.getWorksheet('Lista d\'attesa')).toBeDefined()
+    expect(libro.getWorksheet('Email ai clienti')?.getCell('A1').value).toBe('email')
   })
 })
