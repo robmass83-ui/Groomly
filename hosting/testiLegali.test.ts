@@ -29,3 +29,22 @@ describe('archivio delle versioni in uso', () => {
     }
   })
 })
+
+describe('privacy versione 3', () => {
+  const html = readFileSync('hosting/privacy/index.html', 'utf8')
+
+  it.each(LINGUE)('in %s ci sono titolare, fornitori e date', (lingua) => {
+    const testo = blocco(html, lingua)
+    for (const parola of ['Roberto Masala', 'Groomly Italia', 'Google Places', 'Hostinger', 'ImprovMX', 'GitHub', 'Analytics', 'Crashlytics', 'info@groomlyapp.it', 'Google Firebase (Authentication']) {
+      expect(testo, parola).toContain(parola)
+    }
+    expect(testo).toContain(`href="/privacy/v2/?lang=${lingua}"`)
+    expect(testo).toContain('class="in-vigore"')
+    expect(testo).toMatch(/>\s*(Versione|Version|Versión) 3/)
+    expect(testo).toContain('15')
+  })
+
+  it('non promette di fermare i crash subito', () => {
+    expect(blocco(html, 'it')).toContain('i crash dal prossimo avvio')
+  })
+})
