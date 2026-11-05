@@ -61,7 +61,6 @@ import { BetaInvitoPage } from '../pages/BetaInvitoPage'
 import { AperturaFineBeta } from '../components/beta/AperturaFineBeta'
 import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
-import { isOperator } from '../lib/salonPath'
 import { useFrasi } from '../i18n/LinguaContext'
 import { AdminManagerPage } from '../pages/AdminManagerPage'
 import { PERCORSO_ADMIN, PERCORSO_AVVISI_ADMIN, percorsoAdminDaUtenti } from '../lib/percorsoAdmin'
@@ -98,12 +97,10 @@ function AdminGuard({ children }: { children: ReactElement }) {
 
 function ProOTeam() {
   const piano = usePiano()
-  const { gate } = useSession()
   // Prima che il piano sia letto non si sa dove mandare: chi ha Salone non deve rimbalzare.
   if (piano.pronto === false) return null
   if (haAccesso(piano.stato, 'team')) return <Navigate to="/impostazioni/team" replace />
-  // Solo l'operatore resta qui, per l'interruttore; gli altri scelgono il piano in Abbonamento.
-  if (gate.kind === 'in' && isOperator(gate.account.email)) return <ProPage />
+  // L'admin qui non arriva: nelle pagine del salone è già rimandato a /admin.
   return <Navigate to="/impostazioni/abbonamento" replace />
 }
 

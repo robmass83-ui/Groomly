@@ -14,7 +14,8 @@ import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { PRO_SEAT_LIMIT, createInviteDecision, roleLabel, usedSeats } from '../lib/salonAccess'
-import { SHARED_SALON_ID, isOperator, isSharedEmail, type AccountRole } from '../lib/salonPath'
+import { SHARED_SALON_ID, isSharedEmail, type AccountRole } from '../lib/salonPath'
+import { useRuolo } from '../hooks/useRuolo'
 import { rosterLabel, type SalonAccess, type SalonMember } from '../lib/salonRoster'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -84,7 +85,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
     ? ''
     : account.salonId || (isSharedEmail(account.email) ? SHARED_SALON_ID : account.uid)
   const callerRole: AccountRole = account?.role === 'socio' || account?.role === 'collaboratore' ? account.role : 'titolare'
-  const operator = isOperator(account?.email)
+  const { admin: operator } = useRuolo()
   const [seen, setSeen] = useState(false)
   const [access, setAccess] = useState<SalonAccess>({ enabled: false, members: [], openInviteExpiries: [] })
   const [email, setEmail] = useState('')

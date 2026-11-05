@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import '@fontsource/poppins/800.css'
-import { Archive, Bell, BookOpen, ChevronRight, Cloud, Crown, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
+import { Archive, Bell, BookOpen, ChevronRight, Cloud, IdCard, Image, Languages, Lightbulb, LogOut, Palette, Scissors, Upload, UserRound, Users, Wallet } from 'lucide-react'
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
@@ -65,7 +65,6 @@ import { cartellaBackup, elencoCopie, etichettaCopia, leggiCopia, messaggioRipri
 import { cancellaCopiaLocale, leggiCopiaLocale, salvaCopiaLocale } from '../lib/ripristinoSicurezza'
 import { localDayKey } from '../lib/appointments'
 import { reportBadgeVisible } from '../lib/earnings'
-import { isOperator } from '../lib/salonPath'
 import { downloadAnchor, isShareCancel, shareFiles } from '../lib/shareFile'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
@@ -766,23 +765,6 @@ export function SettingsPage() {
     <ShellFrame>
       <Header title={frasi.navImpostazioni} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
-        {isOperator(email) ? (
-          <>
-            <SectionTitle>{frasi.hubOperatori}</SectionTitle>
-            <Card>
-              <SRow style={{ borderTop: 'none' }}>
-                <Link to="/impostazioni/admin-manager" className="tocco" style={menuLink}>
-                  <span aria-hidden style={{ width: 24, height: 24, borderRadius: 7, display: 'grid', placeItems: 'center', background: 'color-mix(in srgb, #7B3FE4 14%, var(--card))', color: '#7B3FE4', flex: 'none' }}>
-                    <Crown size={13} strokeWidth={2} />
-                  </span>
-                  <MenuBody title={frasi.adminManager} detail={frasi.amSoloOperatori} />
-                  <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
-                </Link>
-              </SRow>
-            </Card>
-          </>
-        ) : null}
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button

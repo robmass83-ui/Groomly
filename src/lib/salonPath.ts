@@ -36,18 +36,9 @@ export function usesOnlyCloudData(email: string | null | undefined, salonId: str
   return salonId === SHARED_SALON_ID && isSharedNonLauraEmail(email)
 }
 
-export function isOperator(email: string | null | undefined): boolean {
-  return isSharedEmail(email)
-}
-
-/** Come le regole Firestore: claim admin, oppure Laura o Roberto con l’email già verificata. */
-export function operatoreAutorizzato(input: {
-  email: string | null | undefined
-  emailVerified?: boolean
-  admin?: boolean
-}): boolean {
-  if (input.admin === true) return true
-  return input.emailVerified === true && isOperator(input.email)
+/** Come le regole Firestore: decide solo il claim admin, mai l'email. */
+export function operatoreAutorizzato(input: { admin?: boolean }): boolean {
+  return input.admin === true
 }
 
 export function salonCollection(salonId: string): string[] {

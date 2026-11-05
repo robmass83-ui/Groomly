@@ -6,7 +6,7 @@ import { useFrasi } from '../i18n/LinguaContext'
 import { APP_VERSION } from '../lib/appVersion'
 import { aggiornamentiApkAttivi } from '../lib/distribuzione'
 import { vedeIncassi } from '../lib/salonAccess'
-import { isOperator } from '../lib/salonPath'
+import { useRuolo } from '../hooks/useRuolo'
 import { leggiPrimoDato } from '../lib/primoDato'
 import { useSession } from '../hooks/useSession'
 import { SIZES } from '../theme/sizes'
@@ -18,9 +18,8 @@ const link = { display: 'flex', flex: 1, alignItems: 'center', gap: 8, color: 'i
 export function InfoGroomlyPage() {
   const frasi = useFrasi()
   const session = useSession()
-  const email = session.gate.kind === 'in' ? session.gate.account.email : null
   const role = session.gate.kind === 'in' ? session.gate.account.role : undefined
-  const primo = isOperator(email) ? leggiPrimoDato() : null
+  const primo = useRuolo().admin ? leggiPrimoDato() : null
   return (
     <ShellFrame>
       <Header title={frasi.hubInfoApp} backTo="/impostazioni/account" />

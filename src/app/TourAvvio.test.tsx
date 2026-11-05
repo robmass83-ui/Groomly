@@ -9,7 +9,6 @@ import { createAccount } from '../data/local/auth'
 import { invitoInSospeso, ricordaInvito } from '../data/local/invitoInSospeso'
 import { getSettings } from '../data/local/settings'
 import { storageKeys, writeJson } from '../data/local/storage'
-import { ROBERTO_EMAIL } from '../lib/salonPath'
 import type { TourSalone } from '../lib/tourBenvenuto'
 
 const DAL = '2026-10-01T00:00:00.000Z'
@@ -294,8 +293,9 @@ describe('avvio del tour', () => {
     expect(avviso()).not.toBeInTheDocument()
   })
 
-  it('operatore (salone condiviso): né reindirizzamento né avviso', async () => {
-    await nuovoSalone({ stato: 'in-corso', saltati: [] }, ROBERTO_EMAIL)
+  it('salone condiviso: né reindirizzamento né avviso, anche per Laura che non è più admin', async () => {
+    const account = await nuovoSalone({ stato: 'in-corso', saltati: [] }, 'laura.masala@tiscali.it')
+    writeJson(storageKeys.auth, { ...account, salonId: 'shared' })
     apri()
     await home()
     expect(benvenuto()).not.toBeInTheDocument()

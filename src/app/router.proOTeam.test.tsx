@@ -57,12 +57,10 @@ describe('/impostazioni/pro', () => {
     expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
   })
 
-  it('l’operatore senza Salone vede ancora la pagina con l’interruttore del Salone', async () => {
+  it('Laura non è più operatrice: senza Salone va ad Abbonamento, senza interruttore', async () => {
     await apri('laura.masala@tiscali.it', 'pro')
-    expect(await screen.findByRole('heading', { name: 'Funzioni Plus' })).toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Piano Salon' })).toBeInTheDocument()
-    expect(screen.getByText('Piano Salon')).toBeInTheDocument()
-    expect(screen.queryByText('Piano Plus')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Abbonamento' })).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Piano Salon' })).not.toBeInTheDocument()
   })
 
   it('con Salone va alla pagina Team, che dice Piano Salon e non Piano Plus', async () => {

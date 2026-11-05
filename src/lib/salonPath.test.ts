@@ -3,7 +3,6 @@ import {
   accountCreateAllowed,
   canReadSalon,
   isLauraEmail,
-  isOperator,
   operatoreAutorizzato,
   isSharedEmail,
   lauraAccount,
@@ -25,17 +24,14 @@ describe('salonPath', () => {
     expect(isLauraEmail('masala.roberto@hotmail.it')).toBe(false)
   })
 
-  it('le due email del salone sono condivise e operatrici, in qualunque maiuscolo', () => {
+  it('l’email di Laura è condivisa in qualunque maiuscolo', () => {
     expect(isSharedEmail(' Laura.Masala@tiscali.it ')).toBe(true)
-    expect(isOperator(' MASALA.ROBERTO@hotmail.it ')).toBe(true)
-    expect(isSharedEmail('robmass83@gmail.com')).toBe(false)
-    expect(isOperator('robmass83@gmail.com')).toBe(false)
-    expect(operatoreAutorizzato({ email: 'laura.masala@tiscali.it', emailVerified: true })).toBe(true)
-    expect(operatoreAutorizzato({ email: ' MASALA.ROBERTO@hotmail.it ', emailVerified: true })).toBe(true)
-    expect(operatoreAutorizzato({ email: 'laura.masala@tiscali.it', emailVerified: false })).toBe(false)
-    expect(operatoreAutorizzato({ email: 'laura.masala@tiscali.it' })).toBe(false)
-    expect(operatoreAutorizzato({ email: 'robmass83@gmail.com', emailVerified: true })).toBe(false)
-    expect(operatoreAutorizzato({ email: 'altro@example.com', admin: true })).toBe(true)
+  })
+
+  it('decide solo il claim, mai l’email', () => {
+    expect(operatoreAutorizzato({ admin: true })).toBe(true)
+    expect(operatoreAutorizzato({ admin: false })).toBe(false)
+    expect(operatoreAutorizzato({})).toBe(false)
   })
 
   it('solo Roberto dentro shared usa solo il cloud: Laura, un altro salone e le altre email no', () => {

@@ -5,6 +5,8 @@ import { useFrasi } from '../../i18n/LinguaContext'
 import { PERCORSO_ADMIN, PERCORSO_AVVISI_ADMIN } from '../../lib/percorsoAdmin'
 import { PhoneShell } from '../layout/PhoneShell'
 
+const TITOLO = 'Groomly Admin'
+
 const barra: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -37,7 +39,7 @@ export function AdminFrame({ children }: { children: ReactNode }) {
   return (
     <PhoneShell>
       <div style={barra}>
-        <strong style={{ flex: 1 }}>Groomly Admin</strong>
+        <strong style={{ flex: 1 }}>{TITOLO}</strong>
         <Link to={suAvvisi ? PERCORSO_ADMIN : PERCORSO_AVVISI_ADMIN} style={azione}>{suAvvisi ? frasi.adminManager : frasi.hubAvvisi}</Link>
         <button type="button" disabled={occupato} onClick={esci} style={azione}>{frasi.impEsci}</button>
       </div>

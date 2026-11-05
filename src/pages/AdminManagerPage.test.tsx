@@ -109,6 +109,13 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     expect(directory.load).not.toHaveBeenCalled()
   })
 
+  it('Laura non vede più l’Admin Manager nelle Impostazioni', async () => {
+    await createAccount('laura.masala@tiscali.it', 'segretissimo')
+    render(<App memory isDev={false} initialPath="/impostazioni" />)
+    await screen.findByRole('heading', { name: 'Impostazioni' })
+    expect(screen.queryByRole('link', { name: /Admin Manager/ })).not.toBeInTheDocument()
+  })
+
   it('mostra l’Admin Manager all’admin senza il campione delle email', async () => {
     await accountAdmin()
     render(<App memory isDev={false} initialPath="/admin" />)
