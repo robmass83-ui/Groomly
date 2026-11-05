@@ -72,6 +72,8 @@ export function InfoGroomlyPage() {
             { titolo: frasi.navAnimali, dettaglio: `${frasi.messaggiDove} ${frasi.strumMessaggiDettaglio}` },
             { titolo: frasi.navAgenda, dettaglio: frasi.infoGuidaAgenda },
             { titolo: frasi.navListino, dettaglio: frasi.infoGuidaListino },
+            { titolo: frasi.navImpostazioni, dettaglio: frasi.infoGuidaImpostazioni },
+            { titolo: frasi.navAltro, dettaglio: frasi.infoGuidaAltro },
             { titolo: frasi.impDati, dettaglio: frasi.infoGuidaDati },
             ...(vedeIncassi(role) ? [{ titolo: frasi.incTitolo, dettaglio: frasi.infoGuidaIncassi }] : []),
             { titolo: frasi.impBackupTitolo, dettaglio: frasi.infoGuidaBackup },

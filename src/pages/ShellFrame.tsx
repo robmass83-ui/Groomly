@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { AttesaArt, ChiusuraArt, NuovoCaneArt, PelosettoArt, PersonaleArt } from '../components/domain/AddMenuArt'
 import { usePiano } from '../hooks/usePiano'
@@ -15,6 +15,7 @@ import { fiscalNoticeVisible } from '../lib/profile'
 import { useFrasi } from '../i18n/LinguaContext'
 import { Dialog } from '../components/layout/Dialog'
 import { PhoneShell } from '../components/layout/PhoneShell'
+import { ProfiloContext } from '../components/layout/ProfiloTestata'
 import { TYPE } from '../theme/theme'
 
 const choice: CSSProperties = {
@@ -48,7 +49,9 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   const datiStantii = firebaseEnabled() && !attesaSalone && (caniStantii || agendaStantia || impostazioniStantie)
   const alerts = unbookedMonthly(dogs, appointments, new Date()).length
   // Prima che arrivino le impostazioni del salone i campi sono vuoti: il bollino non deve lampeggiare.
-  const tax = ready && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
+  // Il collaboratore non può completare i dati fiscali: come in Home, niente avviso.
+  const tax = ready && creaChiusure && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
+  const profilo = useMemo(() => ({ avviso: tax }), [tax])
   const openSheet = useOpenSheet()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()
@@ -83,7 +86,8 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   // Tutti i ruoli la vedono: il servizio lo accendono titolare e socio, la lista la usa chiunque stia al banco.
   const attesaAcceso = servizioEmailAcceso(serviziPerStato(settings.serviziEmail, piano.stato)?.attesa?.modo ?? 'spento')
   return (
-    <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} tax={tax} onFab={() => setOpen(true)}>
+    <ProfiloContext.Provider value={profilo}>
+    <PhoneShell fill={fill} showNav showFab={showFab} menuOpen={open} alerts={alerts} onFab={() => setOpen(true)}>
       {datiStantii ? (
         <p style={{ margin: 0, padding: '8px 16px 0', color: 'var(--tx3)', fontSize: TYPE.meta, textAlign: 'center' }}>{frasi.homeDatiStantii}</p>
       ) : null}
@@ -132,5 +136,6 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
         </div>
       </Dialog>
     </PhoneShell>
+    </ProfiloContext.Provider>
   )
 }

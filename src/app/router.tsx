@@ -22,6 +22,7 @@ import { RiaccettaDocumenti } from '../components/legale/RiaccettaDocumenti'
 import { AppointmentPage } from '../pages/AppointmentPage'
 import { ClosurePage } from '../pages/ClosurePage'
 import { PersonalAppointmentPage } from '../pages/PersonalAppointmentPage'
+import { AltroPage } from '../pages/AltroPage'
 import { AttesaPage } from '../pages/AttesaPage'
 import { CalendarPage } from '../pages/CalendarPage'
 import { DogPage } from '../pages/DogPage'
@@ -198,6 +199,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/listino/prezzi', element: <Guard><StaffSettings><PriceSheetPricesPage /></StaffSettings></Guard> },
     { path: '/listino/gestione', element: <Guard><StaffSettings><PriceSheetManagePage /></StaffSettings></Guard> },
     { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
+    { path: '/altro', element: <Guard><AltroPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/account', element: <Guard><AccountPage /></Guard> },
     { path: '/impostazioni/suggerimenti', element: <Guard><SuggerimentiPage /></Guard> },

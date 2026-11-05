@@ -43,6 +43,10 @@ export function SystemBack() {
         navigate('/incassi', { replace: true })
         return
       }
+      if (choice === 'home') {
+        navigate('/', { replace: true })
+        return
+      }
       if (choice === 'history') {
         window.history.back()
         return

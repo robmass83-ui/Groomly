@@ -696,7 +696,7 @@ describe('home', () => {
     expect(order[2]).toContain('Mensili')
   })
 
-  it('la fascia fiscale c’è senza partita IVA e codice fiscale, con il bollino su Altro', async () => {
+  it('la fascia fiscale c’è senza partita IVA e codice fiscale, con il bollino sul profilo', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/" />)
     const fiscal = await screen.findByRole('region', { name: 'Completa l\'attività' })

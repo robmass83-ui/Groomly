@@ -14,7 +14,7 @@ function LineIcon({ children }: { children: ReactNode }) {
   )
 }
 
-const items: { to: string; chiave: 'navHome' | 'navAnimali' | 'navAgenda' | 'navMensili' | 'navListino' | 'navImpostazioni'; end?: boolean; alerts?: boolean; icon: ReactNode }[] = [
+const items: { to: string; chiave: 'navHome' | 'navAnimali' | 'navAgenda' | 'navMensili' | 'navListino' | 'navAltro'; end?: boolean; alerts?: boolean; icon: ReactNode }[] = [
   {
     to: '/',
     chiave: 'navHome',
@@ -70,8 +70,8 @@ const items: { to: string; chiave: 'navHome' | 'navAnimali' | 'navAgenda' | 'nav
     ),
   },
   {
-    to: '/impostazioni',
-    chiave: 'navImpostazioni',
+    to: '/altro',
+    chiave: 'navAltro',
     icon: (
       <LineIcon>
         <rect x="4" y="4" width="6.5" height="6.5" rx="2" />
@@ -83,7 +83,7 @@ const items: { to: string; chiave: 'navHome' | 'navAnimali' | 'navAgenda' | 'nav
   },
 ]
 
-export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false, showFab = true }: { onFab?: () => void; menuOpen?: boolean; alerts?: number; tax?: boolean; showFab?: boolean }) {
+export function BottomNav({ onFab, menuOpen = false, alerts = 0, showFab = true }: { onFab?: () => void; menuOpen?: boolean; alerts?: number; showFab?: boolean }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
   const count = Math.max(0, Math.floor(alerts))
@@ -97,18 +97,13 @@ export function BottomNav({ onFab, menuOpen = false, alerts = 0, tax = false, sh
       <div className="bottom-nav__bar">
         {items.map((item) => {
           const label = frasi[item.chiave]
-          const hint = item.alerts && count > 0
-            ? t(lingua, 'navDaFissare', { count })
-            : item.to === '/impostazioni' && tax
-              ? frasi.navDati
-              : ''
+          const hint = item.alerts && count > 0 ? t(lingua, 'navDaFissare', { count }) : ''
           const name = hint ? `${label}, ${hint}` : label
           return (
             <NavLink key={item.to} to={item.to} end={item.end} className="bottom-nav__tab" aria-label={name}>
               <span className="bottom-nav__icon">
                 {item.icon}
                 {item.alerts && count > 0 ? <span data-testid="bell-count" className="bottom-nav__count">{count}</span> : null}
-                {item.to === '/impostazioni' && tax ? <span data-testid="tax-dot" className="bottom-nav__dot" /> : null}
               </span>
               <span className="bottom-nav__label">{label}</span>
             </NavLink>
