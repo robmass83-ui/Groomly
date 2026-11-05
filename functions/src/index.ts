@@ -36,6 +36,7 @@ import { inviaCampione } from './campioneEmail'
 import { conRegistro } from './adminLog'
 import { controllaAdminRecente } from './accessoRecente'
 import { avviaAssistenzaPer, eliminaModelloAssistenzaPer, impostaStatoAssistenzaPer, rispondiAssistenzaPer, salvaModelloAssistenzaPer } from './assistenza/assistenza'
+import { anteprimaComunicazionePer, eliminaComunicazionePer, inviaComunicazionePer, riprendiComunicazionePer } from './comunicazioni/comunicazioni'
 import { cancellaAvviso, eliminaAvvisoSistemaPer, pubblicaAvvisoSistemaPer, riservaAvviso, scriviAvviso } from './config/avvisiSistema'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
@@ -1006,6 +1007,39 @@ export const eliminaAvvisoSistema = onCall(pianoCall, async (request) => {
     id,
     cancella: (daCancellare) => cancellaAvviso(daCancellare),
   }))
+})
+
+// Comunicazioni: nel registro vanno tipo e conteggi, mai il testo.
+export const anteprimaComunicazione = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return anteprimaComunicazionePer({ admin: request.auth?.token.admin === true, dati: request.data })
+})
+
+export const inviaComunicazione = onCall({ ...pianoCall, timeoutSeconds: 300, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('inviaComunicazione', (esito) => ({ dettagli: { id: esito.id, tipo: field(request.data, 'tipo'), email: field(request.data, 'email'), inviate: esito.inviate, nonInviate: esito.nonInviate } }), () => inviaComunicazionePer({
+    admin: request.auth?.token.admin === true,
+    adminUid: uid,
+    authTime: request.auth?.token.auth_time,
+    dati: request.data,
+    apiKey: chiaveBrevo(),
+  }))
+})
+
+export const riprendiComunicazione = onCall({ ...pianoCall, timeoutSeconds: 300, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('riprendiComunicazione', (esito) => ({ dettagli: { id: esito.id, inviate: esito.inviate, nonInviate: esito.nonInviate } }), () => riprendiComunicazionePer({
+    admin: request.auth?.token.admin === true,
+    adminUid: uid,
+    id: field(request.data, 'id'),
+    apiKey: chiaveBrevo(),
+  }))
+})
+
+export const eliminaComunicazione = onCall({ ...pianoCall, timeoutSeconds: 300 }, async (request) => {
+  requireUid(request.auth)
+  const id = field(request.data, 'id')
+  return conRegistro('eliminaComunicazione', () => ({ dettagli: { id } }), () => eliminaComunicazionePer({ admin: request.auth?.token.admin === true, id }))
 })
 
 // Assistenza: nel registro vanno fonte e id, mai il testo.

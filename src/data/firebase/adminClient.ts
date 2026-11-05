@@ -1,4 +1,5 @@
 import { STATI_ASSISTENZA, type DocAssistenza, type EsitoEmailRisposta, type FonteAssistenza, type RispostaAssistenza, type StatoAssistenza } from '../../lib/assistenza'
+import { tipoAvviso, type TipoAvviso, type Traduzioni } from '../../lib/avvisiSistema'
 import { leggiConfigTour, type ConfigTour } from '../../lib/tourBenvenuto'
 import { invitoBetaDi } from '../../lib/betaInvito'
 import { leggiConfigPiani, type ConfigPiani } from '../../lib/configPiani'
@@ -119,6 +120,81 @@ export async function callSalvaModelloAssistenza(input: { id?: string; titolo: s
 
 export async function callEliminaModelloAssistenza(id: string): Promise<void> {
   await callCallableData('eliminaModelloAssistenza', { id })
+}
+
+export type TipoEmailComunicazione = 'nessuna' | 'promozionale' | 'servizio'
+export type InputComunicazione = {
+  tipo: TipoAvviso
+  salonIds: string[] | 'tutti'
+  testi: { it: { titolo: string; testo: string } } & Traduzioni
+  email: TipoEmailComunicazione
+  idRichiesta: string
+}
+export type AnteprimaComunicazione = { account: number; email: number; inItaliano: number; senzaConsenso: number; restanoOggi: number; massimo: number; bloccata: boolean }
+export type VoceComunicazione = {
+  id: string
+  quando: string
+  tipo: TipoAvviso
+  titolo: string
+  saloni: number | 'tutti'
+  emailTipo: TipoEmailComunicazione
+  account: number
+  email: number
+  inviate: number
+  eliminata: boolean
+}
+
+function intero(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+export async function callAnteprimaComunicazione(input: Omit<InputComunicazione, 'idRichiesta'>): Promise<AnteprimaComunicazione> {
+  const d = oggetto(await callCallableData('anteprimaComunicazione', input))
+  return {
+    account: intero(d.account),
+    email: intero(d.email),
+    inItaliano: intero(d.inItaliano),
+    senzaConsenso: intero(d.senzaConsenso),
+    restanoOggi: intero(d.restanoOggi),
+    massimo: intero(d.massimo),
+    bloccata: d.bloccata === true,
+  }
+}
+
+export async function callInviaComunicazione(input: InputComunicazione): Promise<{ inviate: number; nonInviate: number }> {
+  const d = oggetto(await callCallableData('inviaComunicazione', input))
+  return { inviate: intero(d.inviate), nonInviate: intero(d.nonInviate) }
+}
+
+export async function callRiprendiComunicazione(id: string): Promise<{ inviate: number; nonInviate: number }> {
+  const d = oggetto(await callCallableData('riprendiComunicazione', { id }))
+  return { inviate: intero(d.inviate), nonInviate: intero(d.nonInviate) }
+}
+
+export async function callEliminaComunicazione(id: string): Promise<void> {
+  await callCallableData('eliminaComunicazione', { id })
+}
+
+export async function elencoComunicazioni(): Promise<VoceComunicazione[]> {
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
+  const db = await database()
+  const { collection, getDocs, limit, orderBy, query } = await loadFirestore()
+  const snap = await getDocs(query(collection(db, 'comunicazioni'), orderBy('quando', 'desc'), limit(50)))
+  return snap.docs.map((doc) => {
+    const d = doc.data()
+    return {
+      id: doc.id,
+      quando: typeof d.quando === 'string' ? d.quando : '',
+      tipo: tipoAvviso(d.tipo),
+      titolo: typeof oggetto(d.testo).titolo === 'string' ? oggetto(d.testo).titolo as string : '',
+      saloni: d.salonIds === 'tutti' ? 'tutti' : Array.isArray(d.salonIds) ? d.salonIds.length : 0,
+      emailTipo: d.emailTipo === 'promozionale' || d.emailTipo === 'servizio' ? d.emailTipo : 'nessuna',
+      account: intero(d.account),
+      email: intero(d.email),
+      inviate: intero(d.inviate),
+      eliminata: d.eliminata === true,
+    }
+  })
 }
 
 export const LIMITE_FEEDBACK_ADMIN = 400

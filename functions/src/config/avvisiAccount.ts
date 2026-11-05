@@ -12,9 +12,10 @@ export type AvvisoAccount = {
 }
 
 /** Un avviso che vede solo questo account, nella stessa lista degli Avvisi di sistema. */
-export async function scriviAvvisoAccount(db: Firestore, uid: string, avviso: AvvisoAccount): Promise<string> {
+export async function scriviAvvisoAccount(db: Firestore, uid: string, avviso: AvvisoAccount, id?: string): Promise<string> {
   if (uid === '' || uid.includes('/')) throw erroreServer('invalid-argument', 'richiesta_non_valida')
-  const ref = db.collection(`accounts/${uid}/avvisi`).doc()
+  const raccolta = db.collection(`accounts/${uid}/avvisi`)
+  const ref = id ? raccolta.doc(id) : raccolta.doc()
   await ref.set({ ...avviso, creato: FieldValue.serverTimestamp() })
   return ref.id
 }

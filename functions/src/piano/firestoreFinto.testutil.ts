@@ -154,6 +154,17 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
         if (chiave === ref.path || chiave.startsWith(`${ref.path}/`)) archivio.delete(chiave)
       }
     },
+    batch: () => {
+      const coda: (() => void)[] = []
+      const lotto = {
+        set: (ref: { path: string }, dati: Dati, opzioni?: { merge?: boolean }) => {
+          coda.push(() => scrivi.set(ref.path, dati, opzioni))
+          return lotto
+        },
+        commit: async () => coda.forEach((passo) => passo()),
+      }
+      return lotto
+    },
     bulkWriter: () => {
       const coda: string[] = []
       return {
