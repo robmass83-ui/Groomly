@@ -1,0 +1,1213 @@
+[
+  {
+    "tipo": "isolamento",
+    "estranei": [],
+    "saloniEstranei": [],
+    "mio": "CaneSalone7"
+  },
+  {
+    "percorso": "/",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "",
+    "indietro": [
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 369
+  },
+  {
+    "percorso": "/animali",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Animali",
+    "indietro": [
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 196
+  },
+  {
+    "percorso": "/animali/nuovo",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Nuovo cane",
+    "indietro": [],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 182
+  },
+  {
+    "percorso": "/calendario",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Novembre 2026",
+    "indietro": [
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 201
+  },
+  {
+    "percorso": "/mensili",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Mensili",
+    "indietro": [
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 133
+  },
+  {
+    "percorso": "/incassi",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Incassi",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 366
+  },
+  {
+    "percorso": "/incassi/report",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Incassi e report",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 282
+  },
+  {
+    "percorso": "/incassi/statistiche",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Statistiche",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 162
+  },
+  {
+    "percorso": "/listino",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Listino prezzi",
+    "indietro": [
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 3006
+  },
+  {
+    "percorso": "/listino/vedi",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Listino",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 63
+  },
+  {
+    "percorso": "/listino/prezzi",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Aggiorna prezzi",
+    "indietro": [
+      "Indietro"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 622
+  },
+  {
+    "percorso": "/listino/gestione",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Gestione listino",
+    "indietro": [
+      "Indietro"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 2435
+  },
+  {
+    "percorso": "/listino/stampa",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Stampa e condividi",
+    "indietro": [
+      "Indietro"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 5959
+  },
+  {
+    "percorso": "/impostazioni",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Impostazioni",
+    "indietro": [
+      "Backup impostato",
+      "Backup. Mai eseguito. Automatico spento",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 553
+  },
+  {
+    "percorso": "/impostazioni/account",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Gestisci account Groomly",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 160
+  },
+  {
+    "percorso": "/impostazioni/suggerimenti",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Suggerimenti",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 363
+  },
+  {
+    "percorso": "/impostazioni/legale",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Legale",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 147
+  },
+  {
+    "percorso": "/impostazioni/licenze",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Licenze open source",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 202
+  },
+  {
+    "percorso": "/impostazioni/info",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Info su Groomly",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 737
+  },
+  {
+    "percorso": "/impostazioni/servizi",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Servizi e durate",
+    "indietro": [
+      "Indietro"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 528
+  },
+  {
+    "percorso": "/impostazioni/archivio",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Archivio",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 99
+  },
+  {
+    "percorso": "/impostazioni/pro",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Abbonamento",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 213
+  },
+  {
+    "percorso": "/impostazioni/piano",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Piano",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 951
+  },
+  {
+    "percorso": "/impostazioni/team",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Abbonamento",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 213
+  },
+  {
+    "percorso": "/impostazioni/messaggi",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Info su Groomly",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 737
+  },
+  {
+    "percorso": "/impostazioni/strumenti",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Abbonamento",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 213
+  },
+  {
+    "percorso": "/impostazioni/notifiche",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Notifiche",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 144
+  },
+  {
+    "percorso": "/impostazioni/aggiornamenti",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Aggiornamenti",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 117
+  },
+  {
+    "percorso": "/impostazioni/utenti",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Impostazioni",
+    "indietro": [
+      "Backup impostato",
+      "Backup. Mai eseguito. Automatico spento",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 553
+  },
+  {
+    "percorso": "/impostazioni/privacy",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Privacy e termini",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 126
+  },
+  {
+    "percorso": "/impostazioni/account/elimina",
+    "lingua": "it",
+    "errore": "",
+    "titolo": "Elimina account",
+    "indietro": [
+      "Indietro",
+      "Impostazioni, dati da completare"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 207
+  },
+  {
+    "percorso": "/",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "",
+    "indietro": [
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 341
+  },
+  {
+    "percorso": "/animali",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Dogs",
+    "indietro": [
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 177
+  },
+  {
+    "percorso": "/animali/nuovo",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "New dog",
+    "indietro": [
+      "Back to dogs"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 154
+  },
+  {
+    "percorso": "/calendario",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "November 2026",
+    "indietro": [
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 192
+  },
+  {
+    "percorso": "/mensili",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Monthly",
+    "indietro": [
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 119
+  },
+  {
+    "percorso": "/incassi",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Earnings",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 325
+  },
+  {
+    "percorso": "/incassi/report",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Earnings and report",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 262
+  },
+  {
+    "percorso": "/incassi/statistiche",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Statistics",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 150
+  },
+  {
+    "percorso": "/listino",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Price list",
+    "indietro": [
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 2712
+  },
+  {
+    "percorso": "/listino/vedi",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Price list",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 57
+  },
+  {
+    "percorso": "/listino/prezzi",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Update prices",
+    "indietro": [
+      "Back"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 622
+  },
+  {
+    "percorso": "/listino/gestione",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Manage price list",
+    "indietro": [
+      "Back"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "su valutazione",
+      "Toelettatura"
+    ],
+    "caratteri": 2422
+  },
+  {
+    "percorso": "/listino/stampa",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Print and share",
+    "indietro": [
+      "Back"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 4643
+  },
+  {
+    "percorso": "/impostazioni",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Settings",
+    "indietro": [
+      "Backup set up",
+      "Backup. Never run. Automatic backup off",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 532
+  },
+  {
+    "percorso": "/impostazioni/account",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Manage Groomly account",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 148
+  },
+  {
+    "percorso": "/impostazioni/suggerimenti",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Tips",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 343
+  },
+  {
+    "percorso": "/impostazioni/legale",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Legal",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 139
+  },
+  {
+    "percorso": "/impostazioni/licenze",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Open-source licenses",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 188
+  },
+  {
+    "percorso": "/impostazioni/info",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "About Groomly",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 686
+  },
+  {
+    "percorso": "/impostazioni/servizi",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Services and durations",
+    "indietro": [
+      "Back"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 509
+  },
+  {
+    "percorso": "/impostazioni/archivio",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Archive",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 91
+  },
+  {
+    "percorso": "/impostazioni/pro",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Subscription",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 218
+  },
+  {
+    "percorso": "/impostazioni/piano",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Plan",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 930
+  },
+  {
+    "percorso": "/impostazioni/team",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Subscription",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 218
+  },
+  {
+    "percorso": "/impostazioni/messaggi",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "About Groomly",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 686
+  },
+  {
+    "percorso": "/impostazioni/strumenti",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Subscription",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 218
+  },
+  {
+    "percorso": "/impostazioni/notifiche",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Notifications",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 131
+  },
+  {
+    "percorso": "/impostazioni/aggiornamenti",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Updates",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 107
+  },
+  {
+    "percorso": "/impostazioni/utenti",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Settings",
+    "indietro": [
+      "Backup set up",
+      "Backup. Never run. Automatic backup off",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 532
+  },
+  {
+    "percorso": "/impostazioni/privacy",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Privacy and terms",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 119
+  },
+  {
+    "percorso": "/impostazioni/account/elimina",
+    "lingua": "en",
+    "errore": "",
+    "titolo": "Delete account",
+    "indietro": [
+      "Back",
+      "Settings, details to complete"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 200
+  },
+  {
+    "percorso": "/",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "",
+    "indietro": [
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 353
+  },
+  {
+    "percorso": "/animali",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Animales",
+    "indietro": [
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 215
+  },
+  {
+    "percorso": "/animali/nuovo",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Nuevo perro",
+    "indietro": [],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 189
+  },
+  {
+    "percorso": "/calendario",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Noviembre 2026",
+    "indietro": [
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 207
+  },
+  {
+    "percorso": "/mensili",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Mensuales",
+    "indietro": [
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 155
+  },
+  {
+    "percorso": "/incassi",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Ingresos",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 338
+  },
+  {
+    "percorso": "/incassi/report",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Ingresos e informe",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 289
+  },
+  {
+    "percorso": "/incassi/statistiche",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Estadísticas",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 177
+  },
+  {
+    "percorso": "/listino",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Lista de precios",
+    "indietro": [
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 2898
+  },
+  {
+    "percorso": "/listino/vedi",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Lista",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 73
+  },
+  {
+    "percorso": "/listino/prezzi",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Actualizar precios",
+    "indietro": [
+      "Atrás"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 671
+  },
+  {
+    "percorso": "/listino/gestione",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Gestionar lista",
+    "indietro": [
+      "Atrás"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "su valutazione",
+      "Toelettatura"
+    ],
+    "caratteri": 2419
+  },
+  {
+    "percorso": "/listino/stampa",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Imprimir y compartir",
+    "indietro": [
+      "Atrás"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 4946
+  },
+  {
+    "percorso": "/impostazioni",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Ajustes",
+    "indietro": [
+      "Backup. Nunca hecho. Automático apagado",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 567
+  },
+  {
+    "percorso": "/impostazioni/account",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Gestionar cuenta Groomly",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 173
+  },
+  {
+    "percorso": "/impostazioni/suggerimenti",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Sugerencias",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 363
+  },
+  {
+    "percorso": "/impostazioni/legale",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Legal",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 176
+  },
+  {
+    "percorso": "/impostazioni/licenze",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Licencias de código abierto",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 227
+  },
+  {
+    "percorso": "/impostazioni/info",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Acerca de Groomly",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 740
+  },
+  {
+    "percorso": "/impostazioni/servizi",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Servicios y duraciones",
+    "indietro": [
+      "Atrás"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 524
+  },
+  {
+    "percorso": "/impostazioni/archivio",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Archivo",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 108
+  },
+  {
+    "percorso": "/impostazioni/pro",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Suscripción",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 218
+  },
+  {
+    "percorso": "/impostazioni/piano",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Plan",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 970
+  },
+  {
+    "percorso": "/impostazioni/team",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Suscripción",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 218
+  },
+  {
+    "percorso": "/impostazioni/messaggi",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Acerca de Groomly",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 740
+  },
+  {
+    "percorso": "/impostazioni/strumenti",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Suscripción",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 218
+  },
+  {
+    "percorso": "/impostazioni/notifiche",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Avisos",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 143
+  },
+  {
+    "percorso": "/impostazioni/aggiornamenti",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Actualizaciones",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 129
+  },
+  {
+    "percorso": "/impostazioni/utenti",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Ajustes",
+    "indietro": [
+      "Backup. Nunca hecho. Automático apagado",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [
+      "Toelettatura"
+    ],
+    "caratteri": 567
+  },
+  {
+    "percorso": "/impostazioni/privacy",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Privacidad y condiciones",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 153
+  },
+  {
+    "percorso": "/impostazioni/account/elimina",
+    "lingua": "es",
+    "errore": "",
+    "titolo": "Eliminar cuenta",
+    "indietro": [
+      "Atrás",
+      "Ajustes, datos por completar"
+    ],
+    "dialoghi": [],
+    "italiano": [],
+    "caratteri": 215
+  }
+]
