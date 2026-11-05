@@ -38,8 +38,9 @@ vi.mock('../data/firebase/client', async () => {
   return { ...actual, callImpostaEmailPromo: promo.chiama, callSuggerisciIndirizzi: vi.fn(async () => []), callDettaglioIndirizzo: vi.fn(async () => null) }
 })
 
-const promo = vi.hoisted(() => ({ chiedi: false, chiama: vi.fn(async () => undefined) }))
+const promo = vi.hoisted(() => ({ chiedi: false, statistiche: false, chiama: vi.fn(async () => undefined) }))
 vi.mock('../lib/tourPromo', () => ({ chiediPromo: () => promo.chiedi }))
+vi.mock('../lib/metriche', async (originale) => ({ ...await originale<typeof import('../lib/metriche')>(), devoChiedere: () => promo.statistiche }))
 
 async function nuovoSalone(nome = 'Il Cane Felice') {
   const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -58,6 +59,7 @@ describe('tour Prepariamo il salone', () => {
   beforeEach(() => {
     localStorage.clear()
     promo.chiedi = false
+    promo.statistiche = false
     promo.chiama.mockClear()
     vi.restoreAllMocks()
     caricamento.nonPronto = false
@@ -168,6 +170,17 @@ describe('tour Prepariamo il salone', () => {
     await user.click(screen.getByRole('button', { name: 'Sì' }))
     expect(await screen.findByRole('heading', { name: 'Il salone è quasi pronto!' })).toBeInTheDocument()
     await waitFor(() => expect(promo.chiama).toHaveBeenCalledWith(true, 'tour'))
+  })
+
+  it('dopo le email chiede le statistiche', async () => {
+    promo.chiedi = true
+    promo.statistiche = true
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await finoAllaDomanda(user)
+    await user.click(screen.getByRole('button', { name: 'Salta' }))
+    expect(await screen.findByRole('heading', { name: 'Ci aiuti a migliorare Groomly?' })).toBeInTheDocument()
   })
 
   it('il No si registra, Salta non scrive nulla', async () => {

@@ -1,4 +1,5 @@
 import { EmailPromoRiga } from '../components/legale/EmailPromoRiga'
+import { StatisticheRiga } from '../components/legale/StatisticheRiga'
 import { ScaricaAccount } from '../components/legale/ScaricaAccount'
 import { ChevronRight, Info, Pencil, Scale } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
@@ -472,13 +473,7 @@ export function AccountPage() {
                   <small style={{ color: 'var(--tx3)' }}>{frasi.accServizioDettaglio}</small>
                 </span>
               </Row>
-              <Row style={{ minHeight: 52 }}>
-                <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <span>{frasi.metriche}</span>
-                  <small style={{ color: 'var(--tx3)' }}>{frasi.metricheDettaglio}</small>
-                </span>
-                <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} disabled={collaboratore} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
-              </Row>
+              <StatisticheRiga />
               <EmailPromoRiga />
             </Card>
             {collaboratore ? <ScaricaAccount /> : (

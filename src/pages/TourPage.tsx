@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { rimandaAvvisoTour } from '../app/TourAvvio'
+import { DomandaStatistiche } from '../components/legale/DomandaStatistiche'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Mascotte } from '../components/tour/Mascotte'
 import { cascata, linkTour, PassoBackup, PassoFiscale, PassoLogo, PassoPrezzi, PassoPromo, PassoSede, Piede, TourFine, useImpostazioniTour } from '../components/tour/TourPassi'
 import { TourFesta, TourPulsante } from '../components/tour/TourScena'
 import type { SettingsMain } from '../data/local/settings'
 import { usePassiSalone } from '../hooks/usePassiSalone'
+import { useProfiloMetriche } from '../hooks/useProfiloMetriche'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import type { PassoSalone } from '../lib/completaSalone'
+import { devoChiedere } from '../lib/metriche'
 import { chiediPromo } from '../lib/tourPromo'
 import { passiDelTour } from '../lib/tourBenvenuto'
 import { AttesaRiga } from '../components/ui/Zampette'
@@ -20,6 +23,7 @@ type Schermata =
   | { tipo: 'benvenuto' }
   | { tipo: 'passo'; indice: number; fase?: 'tempi' }
   | { tipo: 'promo' }
+  | { tipo: 'statistiche' }
   | { tipo: 'fine' }
 
 type Ricetta = (current: SettingsMain) => SettingsMain
@@ -72,6 +76,7 @@ export function TourPage() {
   const session = useSession()
   const { gate } = session
   const account = gate.kind === 'in' ? gate.account : null
+  const profilo = useProfiloMetriche()
   const uid = account?.uid ?? null
   const [elenco, setElenco] = useState<PassoSalone[]>([])
   const stato = location.state as Partial<StatoTour> | null
@@ -164,12 +169,16 @@ export function TourPage() {
     return indice + 1 < elenco.length ? { tipo: 'passo', indice: indice + 1 } : finale()
   }
 
+  function dopoPromo(): Schermata {
+    return profilo && devoChiedere(profilo, account?.consensoMetriche, account?.termini) ? { tipo: 'statistiche' } : { tipo: 'fine' }
+  }
+
   function finale(): Schermata {
-    return chiediPromo(account) ? { tipo: 'promo' } : { tipo: 'fine' }
+    return chiediPromo(account) ? { tipo: 'promo' } : dopoPromo()
   }
 
   function rispostaPromo(attivo: boolean) {
-    vai({ tipo: 'fine' })
+    vai(dopoPromo())
     if (!account) return
     void import('../data/firebase/client')
       .then((mod) => mod.callImpostaEmailPromo(attivo, 'tour'))
@@ -239,7 +248,8 @@ export function TourPage() {
       )
     }
     // la verifica email non è un passo del tour: non entra nel conto finale
-    if (schermata.tipo === 'promo') return <PassoPromo onRisposta={rispostaPromo} onSalta={() => vai({ tipo: 'fine' })} />
+    if (schermata.tipo === 'promo') return <PassoPromo onRisposta={rispostaPromo} onSalta={() => vai(dopoPromo())} />
+    if (schermata.tipo === 'statistiche') return <DomandaStatistiche fonte="tour" onFatto={() => vai({ tipo: 'fine' })} />
     if (schermata.tipo === 'fine') return <TourFine passi={passi.filter((passo) => passo.id !== 'email')} onEntra={esci} />
     const { indice } = schermata
     const id = elenco[indice]

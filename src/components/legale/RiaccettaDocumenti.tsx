@@ -1,25 +1,31 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usePiano } from '../../hooks/usePiano'
+import { useProfiloMetriche } from '../../hooks/useProfiloMetriche'
 import { useSession } from '../../hooks/useSession'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { accountNonEliminabile } from '../../lib/accountProtetto'
 import { linkLegale } from '../../lib/distribuzione'
+import { devoChiedere } from '../../lib/metriche'
 import { apriEsterno } from '../../lib/openDocument'
 import { VERSIONE_DOCUMENTI, deveRiaccettare, mancaSuServer } from '../../lib/versioneLegale'
 import { SIZES } from '../../theme/sizes'
 import { Button } from '../ui/Button'
+import { DomandaStatistiche } from './DomandaStatistiche'
 
 const PAGINA_ELIMINA = '/impostazioni/account/elimina'
+const PAGINA_TOUR = '/benvenuto'
 
 // Valgono per l'apertura dell'app: senza rete si entra, e la richiesta torna alla prossima.
 let rimandataPer: string | null = null
 let provaSilenziosaPer: string | null = null
+let statisticheChiestePer: string | null = null
 
 /** Solo per i test. */
 export function __resetRiaccetta(): void {
   rimandataPer = null
   provaSilenziosaPer = null
+  statisticheChiestePer = null
 }
 
 // Senza connessione vera l'SDK risponde «internal», e su Android onLine può restare vero: blocca solo un rifiuto del server.
@@ -43,6 +49,8 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
   const [occupato, setOccupato] = useState(false)
   const [errore, setErrore] = useState(false)
   const [, setRimandata] = useState(false)
+  const [, setRisposto] = useState(false)
+  const profilo = useProfiloMetriche()
 
   useEffect(() => {
     if (!uid || provaSilenziosaPer === uid || !mancaSuServer(account?.termini)) return
@@ -57,7 +65,17 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     && rimandataPer !== uid
     && pathname !== PAGINA_ELIMINA
     && !senzaRete()
-  if (!blocca) return <>{children}</>
+  if (!blocca) {
+    const chiedi = account !== null && profilo !== null
+      && devoChiedere(profilo, account.consensoMetriche, account.termini)
+      && piano.livelloNome !== undefined
+      && statisticheChiestePer !== uid
+      && pathname !== PAGINA_TOUR
+      && pathname !== PAGINA_ELIMINA
+      && !deveRiaccettare(account.termini, richiesta)
+    if (!chiedi) return <>{children}</>
+    return <DomandaStatistiche fonte="riaccettazione" onFatto={() => { statisticheChiestePer = uid; setRisposto(true) }} />
+  }
 
   const protetto = accountNonEliminabile({
     email: account.email,
