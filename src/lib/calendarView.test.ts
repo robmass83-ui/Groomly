@@ -75,9 +75,24 @@ describe('placeAppointments', () => {
       { id: 'd', start: new Date(2026, 9, 10, 12, 30), durationMin: 60 },
     ])
     const byId = Object.fromEntries(placed.map((item) => [item.id, item]))
-    expect(new Set([byId.a.column, byId.b.column, byId.c.column]).size).toBe(3)
-    expect(byId.a.columnCount).toBe(3)
+    expect(byId.a.column).toBe(0)
+    expect(byId.b.column).toBe(1)
+    expect(byId.c.column).toBe(0)
+    expect(byId.a.columnCount).toBe(2)
     expect(byId.d.columnCount).toBe(1)
+  })
+
+  it('tre cani alla stessa ora stanno in due colonne, il terzo dove si libera prima', () => {
+    const placed = placeAppointments([
+      { id: 'a', start: new Date(2026, 9, 10, 10, 0), durationMin: 90 },
+      { id: 'b', start: new Date(2026, 9, 10, 10, 0), durationMin: 60 },
+      { id: 'c', start: new Date(2026, 9, 10, 10, 0), durationMin: 60 },
+    ])
+    const byId = Object.fromEntries(placed.map((item) => [item.id, item]))
+    expect(byId.a.column).toBe(0)
+    expect(byId.b.column).toBe(1)
+    expect(byId.c.column).toBe(1)
+    expect(placed.every((item) => item.columnCount === 2)).toBe(true)
   })
 
   it('tiene sulla stessa colonna due appuntamenti che si toccano', () => {
@@ -94,7 +109,6 @@ describe('placeAppointments', () => {
 
   it('la durata 0 conta come 15 minuti per le colonne', () => {
     const placed = placeAppointments([
-      { id: 'ponte', start: new Date(2026, 9, 10, 10, 0), durationMin: 120 },
       { id: 'zero', start: new Date(2026, 9, 10, 10, 0), durationMin: 0 },
       { id: 'dentro', start: new Date(2026, 9, 10, 10, 10), durationMin: 15 },
       { id: 'quarto', start: new Date(2026, 9, 10, 10, 15), durationMin: 15 },

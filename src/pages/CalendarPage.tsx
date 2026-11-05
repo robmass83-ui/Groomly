@@ -527,10 +527,6 @@ function AppointmentBlock({
     touchAction: 'pan-y',
   }
   if (overdue) style.boxShadow = 'inset 0 0 0 1.5px var(--warn)'
-  if (shared) {
-    style.outline = '2px solid var(--warn)'
-    style.outlineOffset = -2
-  }
 
   const statusIcons = (
     <>

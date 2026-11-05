@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { placeAppointments } from './calendarView'
 import { blockGeometry, contentMinHeightPx, daySegments, EMPTY_HOUR_PX, pxPerMinuteForDay, topEtichettaChiusura, yAtMinute, type DayLayoutItem } from './calendarLayout'
 
 function item(partial: Partial<DayLayoutItem> & Pick<DayLayoutItem, 'id' | 'startMin'>): DayLayoutItem {
@@ -165,5 +166,24 @@ describe('calendarLayout', () => {
     if (group?.kind !== 'group') throw new Error('manca il gruppo')
     expect(group.items.map((entry) => entry.id)).toEqual(['a'])
     expect(group.endMin).toBe(24 * 60)
+  })
+})
+
+describe('visite accavallate nel giorno', () => {
+  it('quattro cani alla stessa ora restano tutti interi, due per colonna', () => {
+    const start = new Date(2026, 9, 10, 10, 0)
+    const ids = ['a', 'b', 'c', 'd']
+    const placed = placeAppointments(ids.map((id) => ({ id, start, durationMin: 60 })))
+    const items: DayLayoutItem[] = placed.map((item) => ({ ...item, startMin: 600, durationMin: 60, contentPx: 80 }))
+    const { segments } = daySegments(items, 8, 19)
+    const group = segments.find((segment) => segment.kind === 'group')
+    if (group?.kind !== 'group') throw new Error('manca il gruppo')
+    expect(group.items).toHaveLength(4)
+    for (const column of [0, 1]) {
+      const inColumn = group.items.filter((item) => item.column === column).sort((left, right) => left.top - right.top)
+      expect(inColumn).toHaveLength(2)
+      expect(inColumn[1].top).toBeGreaterThanOrEqual(inColumn[0].top + inColumn[0].height)
+    }
+    expect(group.height).toBeGreaterThanOrEqual(160)
   })
 })

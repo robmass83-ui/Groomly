@@ -967,6 +967,29 @@ describe('agenda', () => {
     expect(parseFloat(first.style.height)).toBeLessThan(slot)
   })
 
+  it('nel giorno tre cani alla stessa ora si toccano tutti e non hanno il bordo di errore', async () => {
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    for (const nome of ['Rex', 'Luna', 'Zeus']) {
+      const cane = createDog(account.uid, dog(nome))
+      createAppointment(account.uid, {
+        dogId: cane.id,
+        start: new Date(2026, 9, 5, 9, 0, 0, 0),
+        services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+      })
+    }
+    render(<App memory isDev={false} initialPath="/calendario?data=2026-10-05" />)
+    const blocchi = await Promise.all(['Rex', 'Luna', 'Zeus'].map((nome) => screen.findByRole('button', { name: `Apri ${nome}` })))
+    for (const blocco of blocchi) {
+      expect(blocco).toHaveAttribute('data-column-count', '2')
+      expect(blocco.getAttribute('style') ?? '').not.toContain('outline')
+    }
+    const sotto = blocchi
+      .filter((blocco) => blocco.getAttribute('data-column') === '0')
+      .sort((sopra, altro) => parseFloat(sopra.style.top) - parseFloat(altro.style.top))
+    expect(sotto).toHaveLength(2)
+    expect(parseFloat(sotto[1].style.top)).toBeGreaterThanOrEqual(parseFloat(sotto[0].style.top) + parseFloat(sotto[0].style.height))
+  })
+
   it('nel giorno la chip del servizio è corta, icona e nome sulla stessa riga', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const rex = createDog(account.uid, dog('Rex'))
@@ -1533,7 +1556,7 @@ describe('calendario disegnato', () => {
     expect(screen.queryByRole('button', { name: 'Apri Luna, Maltese, Bianchi' })).toBeNull()
   })
 
-  it('tre appuntamenti sovrapposti hanno tre colonne e la linea resta sopra', async () => {
+  it('tre appuntamenti sovrapposti stanno in due colonne e restano leggibili', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const clocks = { Rex: '10:00', Luna: '10:30', Birba: '11:00' } as const
     for (const [name, minute] of [['Rex', 0], ['Luna', 30], ['Birba', 60]] as const) {
@@ -1542,9 +1565,8 @@ describe('calendario disegnato', () => {
     }
     render(<App memory isDev={false} initialPath={PAST} />)
     const blocks = await screen.findAllByRole('button', { name: /^Apri (Rex|Luna|Birba)$/ })
-    expect(blocks.map((item) => item.getAttribute('data-column-count'))).toEqual(['3', '3', '3'])
-    expect(blocks.map((item) => item.getAttribute('data-column')).sort()).toEqual(['0', '1', '2'])
-    expect(blocks[0].getAttribute('style')).toContain('var(--warn)')
+    expect(blocks.map((item) => item.getAttribute('data-column-count'))).toEqual(['2', '2', '2'])
+    expect(blocks.map((item) => item.getAttribute('data-column')).sort()).toEqual(['0', '0', '1'])
     for (const block of blocks) {
       const name = block.getAttribute('aria-label')?.replace(/^Apri /, '') as keyof typeof clocks
       expect(within(block).getByText('Bagno')).toBeTruthy()

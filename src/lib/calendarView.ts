@@ -122,6 +122,8 @@ export function pezzoDelGiorno(
   }
 }
 
+const MAX_COLONNE_GIORNO = 2
+
 export function placeAppointments(
   items: { id: string; start: Date; durationMin: number }[],
 ): { id: string; column: number; columnCount: number }[] {
@@ -155,11 +157,13 @@ export function placeAppointments(
       clusterMaxEnd = Number.NEGATIVE_INFINITY
     }
     let column = columnEnds.findIndex((end) => end <= item.startMs)
-    if (column < 0) {
+    if (column < 0 && columnEnds.length < MAX_COLONNE_GIORNO) {
       column = columnEnds.length
       columnEnds.push(item.endMs)
     } else {
-      columnEnds[column] = item.endMs
+      // Dal terzo cane accavallato la scheda scende nella colonna che si libera prima: su telefono tre colonne non si leggono.
+      if (column < 0) column = columnEnds.indexOf(Math.min(...columnEnds))
+      columnEnds[column] = Math.max(columnEnds[column], item.startMs) + item.endMs - item.startMs
     }
     if (item.endMs > clusterMaxEnd) clusterMaxEnd = item.endMs
     item.column = column
