@@ -7,6 +7,7 @@ import { annunciaPagamentiPer } from './annuncio'
 import { emailAnnuncio } from './emailAnnuncio'
 import { leggiOfferingRc } from './offeringRc'
 import { erroreServer } from '../erroriServer'
+import { conRegistro } from '../adminLog'
 
 // Callable degli abbonamenti (fase 4), tutte solo per operatori. Esportate da index.ts con una riga.
 const brevoApiKey = defineSecret('BREVO_API_KEY')
@@ -30,17 +31,17 @@ const offering = (offeringId: string) => leggiOfferingRc({ projectId: revenueCat
 
 export const controlloAccensione = onCall(conRevenueCat, async (request) => controlloAccensionePer({ ...operatore(request), offering }))
 
-export const confermaPartitaIva = onCall(opzioni, async (request) => confermaPartitaIvaPer({ ...operatore(request), valore: campo(request.data, 'valore') }))
+export const confermaPartitaIva = onCall(opzioni, async (request) => conRegistro('confermaPartitaIva', () => ({ dettagli: { valore: campo(request.data, 'valore') } }), () => confermaPartitaIvaPer({ ...operatore(request), valore: campo(request.data, 'valore') })))
 
-export const accendiAbbonamenti = onCall(conRevenueCat, async (request) => accendiAbbonamentiPer({ ...operatore(request), parola: campo(request.data, 'parola'), offering }))
+export const accendiAbbonamenti = onCall(conRevenueCat, async (request) => conRegistro('accendiAbbonamenti', () => ({}), () => accendiAbbonamentiPer({ ...operatore(request), parola: campo(request.data, 'parola'), offering })))
 
-export const spegniAbbonamenti = onCall(opzioni, async (request) => spegniAbbonamentiPer(operatore(request)))
+export const spegniAbbonamenti = onCall(opzioni, async (request) => conRegistro('spegniAbbonamenti', () => ({}), () => spegniAbbonamentiPer(operatore(request))))
 
-export const annunciaPagamenti = onCall({ ...opzioni, secrets: [brevoApiKey], timeoutSeconds: 300 }, async (request) => annunciaPagamentiPer({
+export const annunciaPagamenti = onCall({ ...opzioni, secrets: [brevoApiKey], timeoutSeconds: 300 }, async (request) => conRegistro('annunciaPagamenti', (esito) => ({ dettagli: { data: campo(request.data, 'data'), email: esito.email } }), () => annunciaPagamentiPer({
   ...operatore(request),
   data: campo(request.data, 'data'),
   inviaEmail: async ({ email, lingua, pagamentiDal }) => {
     const { oggetto, html } = emailAnnuncio(lingua, pagamentiDal)
     await postBrevoHtml(brevoApiKey.value(), email, oggetto, html)
   },
-}))
+})))

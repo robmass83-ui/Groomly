@@ -322,6 +322,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Il registro delle azioni admin lo scrivono solo le Cloud Functions.
+    match /adminLog/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
     match /suggerimentiLimiti/{id} {
       allow read, write: if false;
     }

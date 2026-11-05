@@ -33,6 +33,7 @@ import { mittenteDi } from './piano/mittente'
 import { membroTitolareMancante } from './piano/titolareMembro'
 import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
+import { conRegistro } from './adminLog'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
@@ -676,11 +677,11 @@ export const setSalonPro = onCall(pianoCall, async (request) => {
   const salonId = text(field(request.data, 'salonId'))
   const enabled = field(request.data, 'enabled')
   if (typeof enabled !== 'boolean') deny('accesso_negato')
-  await impostaPianoManualePer({
+  await conRegistro('setSalonPro', () => ({ salonId, dettagli: { enabled } }), () => impostaPianoManualePer({
     ...tokenOperatore(request.auth),
     salonId,
     azione: enabled ? 'salone' : 'base',
-  })
+  }))
   return { ok: true }
 })
 
@@ -702,11 +703,11 @@ export const eliminaAccount = onCall({ ...pianoCall, timeoutSeconds: 300, secret
 // Solo per i test: l'operatore cancella una toelettatura intera, persone comprese.
 export const eliminaSalone = onCall({ ...pianoCall, timeoutSeconds: 300 }, async (request) => {
   const uid = requireUid(request.auth)
-  return eliminaSalonePer({
+  return conRegistro('eliminaSalone', (esito) => ({ salonId: text(field(request.data, 'salonId')), dettagli: { persone: esito.persone, riportate: esito.riportate } }), () => eliminaSalonePer({
     ...tokenOperatore(request.auth),
     chiamante: uid,
     salonId: text(field(request.data, 'salonId')),
-  })
+  }))
 })
 
 export const esciAltriDispositivi = onCall(pianoCall, async (request) => {
@@ -899,13 +900,13 @@ export const impostaPianoManuale = onCall({ ...pianoCall, secrets: [brevoApiKey]
   requireUid(request.auth)
   const salonId = text(field(request.data, 'salonId'))
   const azione = text(field(request.data, 'azione'))
-  return impostaPianoManualePer({
+  return conRegistro('impostaPianoManuale', () => ({ salonId, dettagli: { azione } }), () => impostaPianoManualePer({
     ...tokenOperatore(request.auth),
     salonId,
     azione,
     testo: text(field(request.data, 'testo')),
     apiKey: chiaveBrevo(),
-  })
+  }))
 })
 
 export const segnaAvvisoPiano = onCall(pianoCall, async (request) => {
@@ -916,36 +917,36 @@ export const segnaAvvisoPiano = onCall(pianoCall, async (request) => {
 
 export const impostaTourBenvenuto = onCall(pianoCall, async (request) => {
   requireUid(request.auth)
-  return impostaTourPer({
+  return conRegistro('impostaTourBenvenuto', () => ({ dettagli: { acceso: field(request.data, 'acceso') === true } }), () => impostaTourPer({
     ...tokenOperatore(request.auth),
     acceso: field(request.data, 'acceso') === true,
-  })
+  }))
 })
 
 export const impostaConfigPiani = onCall(pianoCall, async (request) => {
   requireUid(request.auth)
-  return impostaConfigPianiPer({
+  return conRegistro('impostaConfigPiani', () => ({ dettagli: { modifiche: request.data as Record<string, unknown> } }), () => impostaConfigPianiPer({
     ...tokenOperatore(request.auth),
     modifiche: request.data,
-  })
+  }))
 })
 
 export const impostaMostraPiani = onCall(pianoCall, async (request) => {
   requireUid(request.auth)
-  return impostaMostraPianiPer({ token: tokenOperatore(request.auth), valore: field(request.data, 'valore') })
+  return conRegistro('impostaMostraPiani', () => ({ dettagli: { valore: field(request.data, 'valore') } }), () => impostaMostraPianiPer({ token: tokenOperatore(request.auth), valore: field(request.data, 'valore') }))
 })
 
 // Beta su invito (B1): firme nei Contratti di docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md.
 export const invitaBeta = onCall({ ...pianoCall, secrets: [brevoApiKey], timeoutSeconds: 120 }, async (request) => {
   requireUid(request.auth)
-  return invitaBetaPer({
+  return conRegistro('invitaBeta', () => ({ dettagli: { salonIds: field(request.data, 'salonIds'), piano: field(request.data, 'piano'), giorni: field(request.data, 'giorni') } }), () => invitaBetaPer({
     token: tokenOperatore(request.auth),
     salonIds: field(request.data, 'salonIds'),
     piano: field(request.data, 'piano'),
     giorni: field(request.data, 'giorni'),
     messaggio: field(request.data, 'messaggio'),
     apiKey: chiaveBrevo(),
-  })
+  }))
 })
 
 export const rispondiInvitoBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
@@ -954,31 +955,31 @@ export const rispondiInvitoBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] 
 
 export const revocaBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   requireUid(request.auth)
-  return revocaBetaPer({
+  return conRegistro('revocaBeta', () => ({ salonId: text(field(request.data, 'salonId')) }), () => revocaBetaPer({
     token: tokenOperatore(request.auth),
     salonId: field(request.data, 'salonId'),
     testo: field(request.data, 'testo'),
     apiKey: chiaveBrevo(),
-  })
+  }))
 })
 
 export const estendiBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
   requireUid(request.auth)
-  return estendiBetaPer({
+  return conRegistro('estendiBeta', () => ({ salonId: text(field(request.data, 'salonId')), dettagli: { giorni: field(request.data, 'giorni') } }), () => estendiBetaPer({
     token: tokenOperatore(request.auth),
     salonId: field(request.data, 'salonId'),
     giorni: field(request.data, 'giorni'),
     apiKey: chiaveBrevo(),
-  })
+  }))
 })
 
 export const segnaEarlyAdopter = onCall(pianoCall, async (request) => {
   requireUid(request.auth)
-  return segnaEarlyAdopterPer({
+  return conRegistro('segnaEarlyAdopter', () => ({ salonId: text(field(request.data, 'salonId')), dettagli: { valore: field(request.data, 'valore') } }), () => segnaEarlyAdopterPer({
     token: tokenOperatore(request.auth),
     salonId: field(request.data, 'salonId'),
     valore: field(request.data, 'valore'),
-  })
+  }))
 })
 
 export const inviaFeedbackBeta = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {

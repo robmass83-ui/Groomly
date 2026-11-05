@@ -217,6 +217,16 @@ describe('regole Firestore sull’emulatore', () => {
       })
     })
 
+    it('il registro admin lo legge solo l’admin e non lo scrive nessun client', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'adminLog', 'v1'), { azione: 'prova' })
+      })
+      await assertSucceeds(getDoc(doc(admin(), 'adminLog', 'v1')))
+      await assertFails(getDoc(doc(laura(), 'adminLog', 'v1')))
+      await assertFails(setDoc(doc(admin(), 'adminLog', 'v2'), { azione: 'finta' }))
+      await assertFails(deleteDoc(doc(admin(), 'adminLog', 'v1')))
+    })
+
     it('l’admin legge saloni e account', async () => {
       await assertSucceeds(getDoc(doc(admin(), 'salons', SALON, 'settings', 'main')))
       await assertSucceeds(getDoc(doc(admin(), 'accounts', LAURA_UID)))
