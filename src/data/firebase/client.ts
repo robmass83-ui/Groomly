@@ -36,6 +36,7 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import { APP_VERSION } from '../../lib/appVersion'
+import { solaAdmin } from '../../lib/solaAdmin'
 import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiEmailPromo, leggiTermini } from '../../lib/versioneLegale'
 import type { Lingua } from '../../i18n/lingua'
 import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
@@ -762,7 +763,7 @@ async function firebaseApp(): Promise<FirebaseApp> {
       const { getApps, initializeApp } = await import('firebase/app')
       const { preparaAppCheck } = await import('../../lib/appCheck')
       const app = getApps()[0] ?? initializeApp(firebaseConfig())
-      await preparaAppCheck(app, 'app')
+      await preparaAppCheck(app, solaAdmin() ? 'pagina' : 'app')
       return app
     })().catch((error: unknown) => {
       appPromise = null
@@ -775,8 +776,9 @@ async function firebaseApp(): Promise<FirebaseApp> {
 async function auth(): Promise<Auth> {
   if (!authPromise) {
     authPromise = (async () => {
-      const { getAuth } = await import('firebase/auth')
-      const session = getAuth(await firebaseApp())
+      const modulo = await import('firebase/auth')
+      const app = await firebaseApp()
+      const session = solaAdmin() ? modulo.initializeAuth(app, { persistence: modulo.browserSessionPersistence }) : modulo.getAuth(app)
       await attachEmulators('auth', session)
       return session
     })().catch((error: unknown) => {
@@ -786,6 +788,9 @@ async function auth(): Promise<Auth> {
   }
   return authPromise
 }
+
+/** Per le prove: `auth()` resta interna. */
+export const sessioneAuth = auth
 
 let firestoreNs: Promise<typeof import('firebase/firestore')> | null = null
 
@@ -869,11 +874,12 @@ export async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const app = await firebaseApp()
-      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await loadFirestore()
+      const modulo = await loadFirestore()
+      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = modulo
       let db: Firestore
       try {
         db = initializeFirestore(app, {
-          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+          localCache: solaAdmin() ? modulo.memoryLocalCache() : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         })
         await svuotaCacheRimasta(db)
       } catch {

@@ -2219,4 +2219,6 @@ export const de = {
   consEmailOggi: 'E-Mails heute: {{n}} von {{tetto}}',
   consFeedbackOrfani: 'Feedback gelöschter Salons: {{n}}',
   consCollegamenti: 'Links',
+  consRiservato: 'Zugang beschränkt',
+  consRiservatoTesto: 'Diese Seite ist nur für die Verwaltung von Groomly. Ihr Salon öffnet sich in der App.',
 } as const satisfies Record<keyof typeof italiano, string>

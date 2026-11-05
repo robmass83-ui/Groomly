@@ -2217,4 +2217,6 @@ export const it = {
   consEmailOggi: 'Email oggi: {{n}} su {{tetto}}',
   consFeedbackOrfani: 'Feedback di saloni eliminati: {{n}}',
   consCollegamenti: 'Collegamenti',
+  consRiservato: 'Accesso riservato',
+  consRiservatoTesto: 'Questa pagina è solo per chi amministra Groomly. Il tuo salone si apre dall’app.',
 } as const

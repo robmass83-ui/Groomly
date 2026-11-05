@@ -5,24 +5,82 @@
   },
   "functions": {
     "source": "functions",
-    "predeploy": ["npm --prefix functions run build"]
-  },
-  "hosting": {
-    "public": "hosting",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/*.apk"],
-    "rewrites": [
-      { "source": "/azione", "destination": "/azione/index.html" },
-      { "source": "/s/pagina.js", "destination": "/s/pagina.js" },
-      { "source": "/s/**", "function": { "functionId": "paginaPubblica", "region": "europe-west1" } }
-    ],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          { "key": "Access-Control-Allow-Origin", "value": "*" },
-          { "key": "Cache-Control", "value": "no-cache" }
-        ]
-      }
+    "predeploy": [
+      "npm --prefix functions run build"
     ]
-  }
+  },
+  "hosting": [
+    {
+      "target": "pubblico",
+      "public": "hosting",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "**/*.apk"
+      ],
+      "rewrites": [
+        {
+          "source": "/azione",
+          "destination": "/azione/index.html"
+        },
+        {
+          "source": "/s/pagina.js",
+          "destination": "/s/pagina.js"
+        },
+        {
+          "source": "/s/**",
+          "function": {
+            "functionId": "paginaPubblica",
+            "region": "europe-west1"
+          }
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "admin",
+      "public": "dist-admin",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/admin.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "groomly-3128b"
+  },
+  "targets": {
+    "groomly-3128b": {
+      "hosting": {
+        "pubblico": [
+          "groomly-3128b"
+        ],
+        "admin": [
+          "groomly-admin"
+        ]
+      }
+    }
   }
 }
