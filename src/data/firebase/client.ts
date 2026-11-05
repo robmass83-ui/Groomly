@@ -127,6 +127,7 @@ let accountDoc: { uid: string; data: Record<string, unknown> } | null = null
 let accountDaRileggere = false
 let riprovaInCorso: Promise<boolean> | null = null
 let emailVerified = false
+let adminSessione = false
 let registration: Promise<unknown> | null = null
 
 function salonPath(...tail: string[]): [string, ...string[]] {
@@ -2202,6 +2203,7 @@ function toAccount(user: User): LocalAccount {
     salonId: docText(data, 'salonId'),
     ...(role ? { role } : {}),
     legacy: data?.legacy === true,
+    ...(adminSessione ? { admin: true } : {}),
   }
 }
 
@@ -2209,6 +2211,7 @@ function forgetAccount(): void {
   accountDoc = null
   accountDaRileggere = false
   emailVerified = false
+  adminSessione = false
   clearSalon()
 }
 
@@ -2281,8 +2284,30 @@ async function readAccount(uid: string): Promise<LetturaAccount> {
   return { data: null, esito: 'sconosciuto' }
 }
 
+// Senza aggiornare si legge il token sul telefono: l'ingresso non aspetta la rete.
+async function leggiClaimAdmin(user: User, aggiorna = false): Promise<boolean> {
+  try {
+    return (await user.getIdTokenResult(aggiorna)).claims.admin === true
+  } catch {
+    return false
+  }
+}
+
+// L'admin non ha salone, anche se un documento vecchio ne indica ancora uno.
+function apriSessioneAdmin(): void {
+  adminSessione = true
+  accountDoc = null
+  accountDaRileggere = false
+  clearSalon()
+}
+
 async function resolveSalon(user: User): Promise<void> {
   if (registration) await registration
+  adminSessione = false
+  if (await leggiClaimAdmin(user)) {
+    apriSessioneAdmin()
+    return
+  }
   const { data, esito } = await readAccount(user.uid)
   const readFailed = esito === 'fallito'
   const salonId = docText(data, 'salonId')
@@ -2639,6 +2664,7 @@ async function finishUser(user: User): Promise<LocalAccount> {
   knownUid = user.uid
   impostaAccountEliminazioni(user.uid)
   await resolveSalon(user)
+  if (adminSessione) return toAccount(user)
   const ok = await migrate(user.uid)
   try {
     await ensureShared(user.uid, user.email ?? null)
@@ -2735,6 +2761,17 @@ export async function watchAuth(onAccount: (account: LocalAccount | null) => voi
     impostaAccountEliminazioni(user.uid)
     void resolveSalon(user).then(async () => {
       if (mine !== generation) return
+      if (adminSessione) {
+        onAccount(toAccount(user))
+        return
+      }
+      // Un telefono già dentro ha il token di prima del claim: si scopre qui, senza far aspettare chi admin non è.
+      void leggiClaimAdmin(user, true).then((admin) => {
+        if (!admin || mine !== generation) return
+        generation += 1
+        apriSessioneAdmin()
+        onAccount(toAccount(user))
+      })
       if (currentSalonId() !== SHARED_SALON_ID) await migrate(user.uid)
       if (mine !== generation) return
       if (isCloudReady()) {

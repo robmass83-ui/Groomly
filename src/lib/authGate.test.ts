@@ -3,6 +3,17 @@ import { confirmEmailCopy, entryGate, passwordResetMessage, resendWaitCopy } fro
 import { loginFailureMessage } from './authAction'
 
 describe('entryGate', () => {
+  it('il claim admin vince su tutto: mai riparazione, conferma o attesa del salone', () => {
+    const base = { firebase: true, email: 'masala.roberto@hotmail.it', admin: true }
+    expect(entryGate({ ...base, emailVerified: true, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'admin' })
+    expect(entryGate({ ...base, emailVerified: false, legacy: false, hasAccountDoc: true })).toEqual({ kind: 'admin' })
+    expect(entryGate({ ...base, emailVerified: true, legacy: false, hasAccountDoc: false, salonUnreachable: true })).toEqual({ kind: 'admin' })
+  })
+
+  it('senza claim la stessa email non è admin', () => {
+    expect(entryGate({ firebase: true, email: 'ada@salone.it', emailVerified: true, legacy: false, hasAccountDoc: true, admin: false })).toEqual({ kind: 'home' })
+  })
+
   it('senza Firebase entra in home', () => {
     expect(entryGate({ firebase: false, email: 'ada@salone.it', emailVerified: false, legacy: false, hasAccountDoc: false })).toEqual({ kind: 'home' })
   })

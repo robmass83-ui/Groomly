@@ -1,6 +1,6 @@
 import { storageKeys } from './storage'
 
-export type SignInHint = { uid: string; email: string }
+export type SignInHint = { uid: string; email: string; admin?: boolean }
 
 export function readSignInHint(): SignInHint | null {
   try {
@@ -8,15 +8,15 @@ export function readSignInHint(): SignInHint | null {
     if (!raw) return null
     const value = JSON.parse(raw) as Partial<SignInHint> | null
     if (!value || typeof value.uid !== 'string' || !value.uid || typeof value.email !== 'string') return null
-    return { uid: value.uid, email: value.email }
+    return { uid: value.uid, email: value.email, ...(value.admin === true ? { admin: true } : {}) }
   } catch {
     return null
   }
 }
 
-export function writeSignInHint(account: { uid: string; email: string }): void {
+export function writeSignInHint(account: { uid: string; email: string; admin?: boolean }): void {
   try {
-    localStorage.setItem(storageKeys.lastSignIn, JSON.stringify({ uid: account.uid, email: account.email }))
+    localStorage.setItem(storageKeys.lastSignIn, JSON.stringify({ uid: account.uid, email: account.email, ...(account.admin === true ? { admin: true } : {}) }))
   } catch {
     return
   }

@@ -14,6 +14,8 @@ export interface LocalAccount {
   lastName?: string
   salonId?: string
   role?: AccountRole
+  /** Dal claim del token, mai salvato qui dal salone: l'admin non ha salone. */
+  admin?: boolean
   legacy?: boolean
 }
 

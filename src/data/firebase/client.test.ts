@@ -1660,6 +1660,83 @@ describe('client Firebase', () => {
     expect(fs.writes.some((item) => item.path.startsWith('salon/shared'))).toBe(false)
   })
 
+  describe('sessione admin', () => {
+    function utenteAdmin(risposte: { cache: boolean; server?: boolean | Error }) {
+      return {
+        ...firebaseUser('uid-admin', 'masala.roberto@hotmail.it'),
+        getIdTokenResult: vi.fn(async (aggiorna?: boolean) => {
+          if (aggiorna !== true) return { claims: { admin: risposte.cache } }
+          if (risposte.server instanceof Error) throw risposte.server
+          return { claims: { admin: risposte.server ?? risposte.cache } }
+        }),
+      }
+    }
+
+    function ascolta() {
+      let next: (user: ReturnType<typeof firebaseUser> | null) => void = () => undefined
+      authFns.onAuthStateChanged.mockImplementation((_auth: unknown, cb: typeof next) => {
+        next = cb
+        return () => undefined
+      })
+      const accounts: ({ uid: string; salonId?: string; admin?: boolean } | null)[] = []
+      return {
+        accounts,
+        avvia: async () => {
+          await client.watchAuth((account) => { accounts.push(account) })
+          return next
+        },
+      }
+    }
+
+    it('col claim non legge l’account e non lega il salone, anche se il documento punta a shared', async () => {
+      fs.store.set('accounts', new Map([['uid-admin', { email: 'masala.roberto@hotmail.it', salonId: 'shared', role: 'titolare', legacy: true }]]))
+      const { accounts, avvia } = ascolta()
+      const next = await avvia()
+      fs.getDoc.mockClear()
+      next(utenteAdmin({ cache: true }))
+      await vi.waitFor(() => expect(accounts).toHaveLength(1))
+      expect(accounts[0]).toMatchObject({ uid: 'uid-admin', salonId: '', admin: true })
+      expect(client.currentSalonId()).toBeNull()
+      expect(fs.getDoc).not.toHaveBeenCalled()
+      expect(fs.writes).toHaveLength(0)
+    })
+
+    it('senza rete basta il token sul telefono', async () => {
+      const { accounts, avvia } = ascolta()
+      const next = await avvia()
+      next(utenteAdmin({ cache: true, server: new Error('offline') }))
+      await vi.waitFor(() => expect(accounts).toHaveLength(1))
+      expect(accounts[0]).toMatchObject({ admin: true })
+    })
+
+    it('un token vecchio senza claim passa ad admin appena si aggiorna', async () => {
+      fs.store.set('accounts', new Map([['uid-admin', { email: 'masala.roberto@hotmail.it', salonId: 'shared', role: 'titolare', legacy: true }]]))
+      const { accounts, avvia } = ascolta()
+      const next = await avvia()
+      next(utenteAdmin({ cache: false, server: true }))
+      await vi.waitFor(() => expect(accounts.at(-1)).toMatchObject({ admin: true, salonId: '' }))
+      expect(client.currentSalonId()).toBeNull()
+    })
+
+    it('chi non ha il claim resta sul suo salone anche se l’aggiornamento del token fallisce', async () => {
+      fs.store.set('accounts', new Map([['uid-admin', { email: 'ada@salone.it', salonId: 'uid-admin', role: 'titolare', legacy: false }]]))
+      const { accounts, avvia } = ascolta()
+      const next = await avvia()
+      next(utenteAdmin({ cache: false, server: new Error('offline') }))
+      await vi.waitFor(() => expect(accounts.length).toBeGreaterThan(0))
+      expect(accounts.at(-1)).not.toHaveProperty('admin')
+      expect(client.currentSalonId()).toBe('uid-admin')
+    })
+
+    it('all’accesso con password il claim evita salone e migrazione', async () => {
+      authFns.signIn.mockResolvedValue({ user: utenteAdmin({ cache: true }) })
+      const account = await client.signInEmail('masala.roberto@hotmail.it', 'segretissimo')
+      expect(account).toMatchObject({ admin: true, salonId: '' })
+      expect(client.currentSalonId()).toBeNull()
+      expect(fs.writes).toHaveLength(0)
+    })
+  })
+
   describe('account irraggiungibile all’accesso', () => {
     const ADA = { firstName: 'Ada', lastName: 'Neri', email: 'ada@salone.it', salonId: 'uid-9', role: 'titolare', legacy: false }
 

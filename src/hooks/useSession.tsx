@@ -36,6 +36,9 @@ export type RegistrationValues = {
 export type RepairProfile = { firstName: string; lastName: string; salonName: string }
 
 type SessionApi = {
+  /** Il claim admin del token; `ruoloCaricato` dice se Firebase ha già risposto. */
+  admin: boolean
+  ruoloCaricato: boolean
   gate: SessionGate
   /** Quale schermata spetta a chi è entrato: home, conferma email o riparazione del salone. */
   entry: EntryGate
@@ -158,12 +161,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const emailVerified = !firebase || verified
     const legacy = account?.legacy === true
     const hasAccountDoc = Boolean(account?.salonId)
-    const entry: EntryGate = account && (!firebase || cloudSeen)
-      ? entryGate({ firebase, email: account.email, emailVerified, legacy, hasAccountDoc, salonUnreachable })
+    // Prima della risposta di Firebase vale il segno dell'ultimo accesso: l'admin non deve aprire pagine del salone.
+    const admin = firebase && (cloudSeen ? account?.admin === true : readSignInHint()?.admin === true)
+    const entry: EntryGate = account && (!firebase || cloudSeen || admin)
+      ? entryGate({ firebase, email: account.email, emailVerified, legacy, hasAccountDoc, salonUnreachable, admin })
       : { kind: 'home' }
     return {
       gate,
       entry,
+      admin,
+      ruoloCaricato: !firebase || cloudSeen,
       emailVerified,
       legacy,
       hasAccountDoc,
