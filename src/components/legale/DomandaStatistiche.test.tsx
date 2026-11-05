@@ -24,7 +24,7 @@ vi.mock('../../data/firebase/client', () => ({ callImpostaConsensoMetriche: m.im
 vi.mock('../../lib/openDocument', () => ({ apriEsterno: vi.fn(async () => undefined) }))
 vi.mock('../layout/Toast', () => ({ useToast: () => ({ show: vi.fn() }) }))
 
-const TITOLARE = { uid: 'u', email: 'a@b.it', salonId: 'u', role: 'titolare', termini: { accettati: true, at: 'x', versione: 1, suServer: true } }
+const TITOLARE = { uid: 'u', email: 'a@b.it', salonId: 'u', role: 'titolare', termini: { accettati: true, at: 'x', versione: 2, suServer: true } }
 
 function apri(percorso = '/') {
   return render(
@@ -113,7 +113,7 @@ describe('interruttore in Account', () => {
   })
 
   it('chi deve ancora accettare i documenti non lo vede', () => {
-    m.account = { ...TITOLARE, termini: { accettati: true, at: 'x', versione: 0 } }
+    m.account = { ...TITOLARE, termini: { accettati: true, at: 'x', versione: 1 } }
     render(<StatisticheRiga />)
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
   })

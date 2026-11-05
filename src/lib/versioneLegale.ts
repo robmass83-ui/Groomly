@@ -1,14 +1,22 @@
+import { chiaveGiornoRoma } from './disponibilita'
+
 // Un numero solo per tutti i documenti: quando i testi cambiano si alza qui e ognuno riaccetta una volta.
-export const VERSIONE_DOCUMENTI = 1
-export const DOCUMENTI_IN_VIGORE = { termini: '1.1', privacy: '2' } as const
+export const VERSIONE_DOCUMENTI = 2
+export const DOCUMENTI_IN_VIGORE = { termini: '2', privacy: '3', dpa: '2' } as const
+// Da questo giorno, a Roma, chi ha già un account riaccetta. Si cambia solo con `npm run legale:data`, insieme alle pagine.
+export const RIACCETTA_DAL = '2026-12-01'
+// Cosa valeva con le versioni passate: serve a chi ha ancora l'accettazione senza riga sul server.
+const DOCUMENTI_PASSATI: Record<number, DocumentiAccettati> = { 1: { termini: '1.1', privacy: '2' } }
 
 const VERSIONE_BASE = 1
+
+export type DocumentiAccettati = { termini: string; privacy: string; dpa?: string }
 
 export type TerminiAccount = {
   accettati: boolean
   at: string
   versione?: number
-  documenti?: { termini: string; privacy: string }
+  documenti?: DocumentiAccettati
   /** La data l'ha scritta il server e c'è la riga di registro. */
   suServer?: boolean
 }
@@ -63,8 +71,16 @@ export function leggiTermini(value: unknown): TerminiAccount | undefined {
 }
 
 // Chi non ha una versione salvata vale come la prima: la richiesta parte solo quando il numero sale.
-export function deveRiaccettare(termini: TerminiAccount | undefined, richiesta: number = VERSIONE_DOCUMENTI): boolean {
-  return (termini?.versione ?? VERSIONE_BASE) < richiesta
+export function deveRiaccettare(termini: TerminiAccount | undefined, richiesta: number = VERSIONE_DOCUMENTI, adesso: Date = new Date()): boolean {
+  return chiaveGiornoRoma(adesso) >= RIACCETTA_DAL && (termini?.versione ?? VERSIONE_BASE) < richiesta
+}
+
+/** Il DPA è fra il salone e Groomly: soci e collaboratori non ne sono parte. */
+export function documentiPerRuolo(role: unknown, versione: number = VERSIONE_DOCUMENTI): DocumentiAccettati {
+  if (versione !== VERSIONE_DOCUMENTI) return DOCUMENTI_PASSATI[versione] ?? { termini: '', privacy: '' }
+  if (role === 'titolare') return DOCUMENTI_IN_VIGORE
+  const { dpa: _dpa, ...resto } = DOCUMENTI_IN_VIGORE
+  return resto
 }
 
 export function mancaSuServer(termini: TerminiAccount | undefined): boolean {

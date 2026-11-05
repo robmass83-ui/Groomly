@@ -64,7 +64,7 @@ describe('archivi su Firestore', () => {
 
   it('l’accettazione scrive account e registro', async () => {
     const adesso = new Date('2026-11-05T10:00:00.000Z')
-    await registraAccettazionePer({ uid: UID, versione: VERSIONE_DOCUMENTI, appVersione: '1' }, archivioAccettazione(db), adesso)
+    await registraAccettazionePer({ uid: UID, versione: VERSIONE_DOCUMENTI, appVersione: '1', role: 'titolare' }, archivioAccettazione(db), adesso)
     expect((await db.doc(`accounts/${UID}`).get()).get('termini')).toMatchObject({ suServer: true, at: adesso.toISOString() })
     expect((await db.doc(`accounts/${UID}/registro/documenti-${VERSIONE_DOCUMENTI}`).get()).exists).toBe(true)
   })

@@ -44,7 +44,7 @@ import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
 import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
-import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
+import { archivioAccettazione, datiAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { archivioConsenso, impostaConsensoMetrichePer } from './legale/consensoMetriche'
 import { calcolaStatistiche, pulisciRegistroAdmin, salvaStatistiche } from './metriche/statisticheGiornaliere'
 import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
@@ -891,11 +891,13 @@ export const scadiProposte = onSchedule({
 export const registraAccettazione = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
   const versione = field(request.data, 'versione')
+  const db = getFirestore()
   return registraAccettazionePer({
     uid,
     versione: typeof versione === 'number' ? versione : 0,
     appVersione: text(field(request.data, 'appVersione')).slice(0, 32),
-  }, archivioAccettazione(getFirestore()), new Date())
+    ...await datiAccettazione(db, uid),
+  }, archivioAccettazione(db), new Date())
 })
 
 export const impostaEmailPromo = onCall(pianoCall, async (request) => {

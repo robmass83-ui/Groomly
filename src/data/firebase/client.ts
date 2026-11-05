@@ -552,11 +552,11 @@ export async function callImpostaEmailCliente(dogId: string, bloccata: boolean):
 }
 
 /** La prova dell'accettazione la scrive il server; qui si aggiorna solo la copia in memoria. */
-export async function callRegistraAccettazione(): Promise<void> {
+export async function callRegistraAccettazione(versione: number = VERSIONE_DOCUMENTI): Promise<void> {
   const { getFunctions, httpsCallable } = await import('firebase/functions')
   const functions = getFunctions(await firebaseApp(), 'europe-west1')
   await attachEmulators('functions', functions)
-  const result = await httpsCallable(functions, 'registraAccettazione')({ versione: VERSIONE_DOCUMENTI, appVersione: APP_VERSION })
+  const result = await httpsCallable(functions, 'registraAccettazione')({ versione, appVersione: APP_VERSION })
   const termini = (result.data as { termini?: unknown } | null)?.termini
   if (accountDoc && termini) accountDoc = { uid: accountDoc.uid, data: { ...accountDoc.data, termini } }
 }

@@ -32,17 +32,39 @@ describe('RiaccettaDocumenti', () => {
   beforeEach(() => {
     localStorage.setItem('groomly.lingua', 'it')
     __resetRiaccetta()
-    m.account = { uid: 'u', email: 'a@b.it', salonId: 'u' }
+    m.account = { uid: 'u', email: 'a@b.it', salonId: 'u', role: 'titolare' }
     m.chiama.mockReset()
     m.chiama.mockResolvedValue(undefined)
     m.replaceAccount.mockClear()
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-12-02T10:00:00.000Z') })
   })
-  afterEach(() => { vi.restoreAllMocks() })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
 
-  it('con la versione attuale non compare per nessuno', () => {
+  it('prima della data di partenza non compare per nessuno', () => {
+    vi.setSystemTime(new Date('2026-11-20T10:00:00.000Z'))
     apri()
     expect(screen.getByText('app')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Accetto' })).not.toBeInTheDocument()
+  })
+
+  it('il titolare vede i tre documenti, gli altri due', () => {
+    m.account = { uid: 'u', email: 'a@b.it', salonId: 'u', role: 'titolare' }
+    const vista = apri(2)
+    expect(screen.getByRole('button', { name: 'Trattamento dati' })).toBeInTheDocument()
+    vista.unmount()
+    m.account = { uid: 'c', email: 'c@b.it', salonId: 'u', role: 'collaboratore' }
+    apri(2)
+    expect(screen.queryByRole('button', { name: 'Trattamento dati' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Termini di servizio' })).toBeInTheDocument()
+  })
+
+  it('la prova silenziosa manda la versione già salvata', async () => {
+    m.account = { uid: 'u', email: 'a@b.it', salonId: 'u', termini: { accettati: true, at: 'x', versione: 1 } }
+    apri(2)
+    await vi.waitFor(() => { expect(m.chiama).toHaveBeenCalledWith(1) })
   })
 
   it('con la versione 2 copre l’app e offre documenti, Esci ed Elimina', () => {

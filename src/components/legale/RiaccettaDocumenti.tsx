@@ -8,7 +8,7 @@ import { accountNonEliminabile } from '../../lib/accountProtetto'
 import { linkLegale } from '../../lib/distribuzione'
 import { devoChiedere } from '../../lib/metriche'
 import { apriEsterno } from '../../lib/openDocument'
-import { VERSIONE_DOCUMENTI, deveRiaccettare, mancaSuServer } from '../../lib/versioneLegale'
+import { VERSIONE_DOCUMENTI, deveRiaccettare, documentiPerRuolo, mancaSuServer } from '../../lib/versioneLegale'
 import { SIZES } from '../../theme/sizes'
 import { Button } from '../ui/Button'
 import { DomandaStatistiche } from './DomandaStatistiche'
@@ -56,7 +56,7 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     if (!uid || provaSilenziosaPer === uid || !mancaSuServer(account?.termini)) return
     provaSilenziosaPer = uid
     void import('../../data/firebase/client')
-      .then((mod) => mod.callRegistraAccettazione())
+      .then((mod) => mod.callRegistraAccettazione(account?.termini?.versione))
       .catch(() => undefined)
   }, [uid, account?.termini])
 
@@ -104,11 +104,11 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
     }
   }
 
-  const documenti = [
+  const documenti: { titolo: string; voce: 'privacy' | 'termini' | 'dpa' }[] = [
     { titolo: frasi.legPrivacy, voce: 'privacy' },
     { titolo: frasi.legTermini, voce: 'termini' },
-    { titolo: frasi.legDpa, voce: 'dpa' },
-  ] as const
+    ...(documentiPerRuolo(account.role).dpa ? [{ titolo: frasi.legDpa, voce: 'dpa' as const }] : []),
+  ]
 
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--bg)', color: 'var(--tx)', padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: SIZES.sectionGap }}>
