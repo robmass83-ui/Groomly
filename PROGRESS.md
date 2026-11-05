@@ -453,3 +453,8 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - `adminLog`, riconferma password dopo 15 minuti, avvisi di sistema tramite functions con limite di 10 all'ora.
 - Spec `docs/superpowers/specs/2026-11-05-accessi-admin-design.md`, piano `docs/superpowers/plans/2026-11-05-accessi-admin.md`. Passi manuali in `docs/GUIDA-ADMIN-MANAGER.md`.
 - In produzione: claim sulla hotmail, functions, regole, APK. Restano `collega` (salone di prova «I coccoli»), le prove d'accesso, `stacca` e `storage.rules` a mano in Console.
+
+## Console Oggi (6 novembre, pubblicata con la 1.1.194)
+- Scelta fra 7 proposte di redesign: Oggi più la ricerca di Comando. La Panoramica diventa Oggi, con le cose da fare in card col pulsante pronto.
+- Barra in alto col logo Groomly, tasto + per le azioni rapide, ricerca di saloni e pagine (Ctrl+K su PC). Beta passa sotto Altro sul telefono.
+- Restano com'erano Saloni, Scheda salone, Assistenza, Comunicazioni e Piani. Non provata con dati veri: controllata su anteprima con dati finti.
