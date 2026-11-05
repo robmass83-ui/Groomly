@@ -15,6 +15,7 @@ import { useScegliFoto } from '../components/ScegliFoto'
 import { CloseVisitDialog } from '../components/appointment/CloseVisitDialog'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
+import { EmailCliente } from '../components/legale/EmailCliente'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { ExtraNoteList } from '../components/domain/ExtraNoteList'
@@ -1278,11 +1279,11 @@ export function DogPage() {
     navigate('/animali')
   }
 
-  function riattivaMail() {
-    if (!dog?.emailBloccata) return
+  function salvaMailLocale(bloccata: boolean): boolean {
+    if (!dog) return false
     const write = dogToWrite(dog, dog.servicePrices)
-    write.emailBloccata = false
-    if (!api.saveExisting(dog.id, write)) toast.show(frasi.authSalvataggio, 'plain')
+    write.emailBloccata = bloccata
+    return Boolean(api.saveExisting(dog.id, write))
   }
 
   if (id && !dog) {
@@ -1534,12 +1535,7 @@ export function DogPage() {
                   { label: labels.avgDuration, value: averageDuration(visits.appointments, dog.id) },
                 ]}
               />
-              {dog.emailBloccata ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 48 }}>
-                  <span style={{ fontWeight: 700, color: 'var(--tx2)' }}>{frasi.mailSpente}</span>
-                  <Button variant="secondary" onClick={riattivaMail} style={{ flexShrink: 0 }}>{frasi.mailRiattiva}</Button>
-                </div>
-              ) : null}
+              <EmailCliente key={dog.id} dog={dog} salvaLocale={salvaMailLocale} />
             </Card>
             {photoError ? <p style={{ margin: 0, color: 'var(--bad)' }}>{photoError}</p> : null}
             <StrumentiCane dogId={dog.id} appuntamenti={visits.appointments} />

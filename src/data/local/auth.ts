@@ -1,5 +1,6 @@
 import { PASSWORD_ITERATIONS, hashPassword, verifyPassword } from '../../lib/password'
 import type { AccountRole } from '../../lib/salonPath'
+import type { EmailPromo, TerminiAccount } from '../../lib/versioneLegale'
 import { erroreApp } from '../errors'
 import { findCorruptGroomlyKey, readJson, storageKeys, writeJson } from './storage'
 
@@ -17,6 +18,8 @@ export interface LocalAccount {
   /** Dal claim del token, mai salvato qui dal salone: l'admin non ha salone. */
   admin?: boolean
   legacy?: boolean
+  termini?: TerminiAccount
+  emailPromo?: EmailPromo
 }
 
 export type SessionGate =

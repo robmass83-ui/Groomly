@@ -9,7 +9,7 @@ import { usePiano } from '../../hooks/usePiano'
 import { useSession } from '../../hooks/useSession'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import type { Chiave } from '../../i18n/t'
-import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, offertaPiano } from '../../lib/abbonamento'
+import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, fineProva, offertaPiano } from '../../lib/abbonamento'
 import { PRO_SEAT_LIMIT } from '../../lib/salonAccess'
 import { useBeta } from '../beta/BetaProvider'
 import { Dialog } from '../layout/Dialog'
@@ -171,7 +171,7 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
         ) : (
           <>
             {provaDisponibile && prezzoVisibile ? (
-              <p style={{ margin: '0 0 8px', fontSize: 13, color: '#EDE4FF' }}>{frasi.abbProvaPoi.replace('{{prezzo}}', PREZZI.plus)}</p>
+              <p style={{ margin: '0 0 8px', fontSize: 13, color: '#EDE4FF' }}>{frasi.vetRiepilogoProva.replace('{{data}}', fineProva(new Date()).toLocaleDateString(lingua))}</p>
             ) : (
               <div style={{ height: 6 }} />
             )}
@@ -194,7 +194,7 @@ export function Vetrina({ piano }: { piano: PianoPagato }) {
               <button type="button" onClick={abbonati} disabled={acquisto.inCorso} style={principale}>{acquisto.inCorso ? frasi.b4Attendi : etichettaAcquisto}</button>
             )}
             {offerta.acquisto === 'abbonati' && offertaEarly ? <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 700 }}>{offertaEarly}</p> : null}
-            <p style={{ margin: provaDisponibile ? 0 : '8px 0 0', fontSize: 12, opacity: 0.85 }}>{avvisami ? frasi.vetNessunPagamento : frasi.abbDisdici}</p>
+            <p style={{ margin: provaDisponibile ? 0 : '8px 0 0', fontSize: 12, opacity: 0.85 }}>{avvisami ? frasi.vetNessunPagamento : frasi.vetRiepilogoRinnovo.replace('{{prezzo}}', PREZZI[piano])}</p>
             {offerta.acquisto === 'abbonati' ? (
               <button type="button" onClick={acquisto.ripristina} disabled={acquisto.inCorso} style={{ minHeight: 36, padding: '0 12px', border: 0, background: 'transparent', color: '#fff', font: 'inherit', fontSize: 13, textDecoration: 'underline', textUnderlineOffset: 3 }}>{frasi.b4Ripristina}</button>
             ) : null}

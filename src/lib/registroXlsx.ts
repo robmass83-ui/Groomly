@@ -1,4 +1,5 @@
 import { Workbook, type FillPattern, type WorkbookView, type Worksheet } from 'exceljs'
+import { righeFoglio, type AltriDati } from './altriDati'
 import type { GroomlyDati } from './backupBundle'
 import { costruisciRegistro, type RigaMese } from './registroModello'
 import { frase } from '../i18n/frase'
@@ -8,7 +9,7 @@ function testi(...chiavi: Chiave[]): string[] {
   return chiavi.map((chiave) => frase(chiave))
 }
 
-export type RegistroOpzioni = { now: Date; risolviLink?: (percorsoBackup: string) => string }
+export type RegistroOpzioni = { now: Date; risolviLink?: (percorsoBackup: string) => string; altri?: AltriDati }
 
 const HEADER: FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A5BA0' } }
 const STRIPE: FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6ECF8' } }
@@ -157,6 +158,20 @@ export async function registroXlsx(dati: GroomlyDati, opzioni: RegistroOpzioni):
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = HEADER
     })
+  }
+
+  if (opzioni.altri) {
+    const fogli: Array<[string, Record<string, unknown>]> = [
+      [frase('regRichieste'), opzioni.altri.richieste],
+      [frase('regAttesa'), opzioni.altri.attesa],
+      [frase('regEmail'), opzioni.altri.coda],
+    ]
+    for (const [titolo, voci] of fogli) {
+      const { colonne, righe } = righeFoglio(voci)
+      const foglio = book.addWorksheet(titolo)
+      foglio.addRow(colonne).font = { bold: true }
+      foglio.addRows(righe)
+    }
   }
 
   const info = book.addWorksheet(frase('regInfo'))

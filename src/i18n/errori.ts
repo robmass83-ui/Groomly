@@ -45,6 +45,7 @@ const ERRORI_SERVER = {
   telefono_non_valido: { it: 'Telefono non valido', en: 'Invalid phone number', es: 'Teléfono no válido', fr: 'Téléphone non valide', de: 'Ungültige Telefonnummer' },
   email_obbligatoria: { it: 'Email obbligatoria', en: 'Email is required', es: 'El correo es obligatorio', fr: 'L’e-mail est obligatoire', de: 'E-Mail ist erforderlich' },
   pagina_assente: { it: 'Pagina assente', en: 'Page not found', es: 'Página no encontrada', fr: 'Page introuvable', de: 'Seite nicht gefunden' },
+  email_disiscritta: { it: 'Il cliente ha chiesto di non ricevere email', en: 'The client asked not to receive emails', es: 'El cliente ha pedido no recibir correos', fr: 'Le client a demandé à ne pas recevoir d’e-mails', de: 'Der Kunde möchte keine E-Mails erhalten' },
   link_non_valido: { it: 'Link non valido', en: 'Invalid link', es: 'Enlace no válido', fr: 'Lien non valide', de: 'Ungültiger Link' },
   cane_assente: { it: 'Cane assente', en: 'Pet not found', es: 'Mascota no encontrada', fr: 'Animal introuvable', de: 'Tier nicht gefunden' },
 

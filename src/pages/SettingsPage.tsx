@@ -562,7 +562,7 @@ export function SettingsPage() {
     setCompletoBusy(true)
     try {
       const now = new Date()
-      const { raccogliBackup } = await import('../data/firebase/backupCollect')
+      const { raccogliAltriDati, raccogliBackup } = await import('../data/firebase/backupCollect')
       const { registroXlsx } = await import('../lib/registroXlsx')
       const { backupCompleto, cartellaFoto } = await import('../lib/backupCompleto')
       const scritti: string[] = []
@@ -575,8 +575,9 @@ export function SettingsPage() {
           file.push({ percorso, bytes })
         },
       })
-      const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti) })
-      const pronto = await backupCompleto(raccolto, registro, file, now)
+      const altri = await raccogliAltriDati()
+      const registro = await registroXlsx(raccolto.dati, { now, risolviLink: (percorso) => cartellaFoto(percorso, scritti), altri })
+      const pronto = await backupCompleto(raccolto, registro, file, now, altri)
       if (Capacitor.isNativePlatform()) await shareFiles([pronto], frasi.impBackupNome)
       else downloadAnchor(pronto.blob, pronto.name)
       update((c) => ({ ...c, backup: { ...c.backup, lastAt: now.toISOString() } }))

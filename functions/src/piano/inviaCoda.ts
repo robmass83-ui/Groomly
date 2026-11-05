@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto'
-import { emailMessaggio, escapaHtml, mailPostoLibero } from '../../../src/i18n/emailHtml'
+import { emailMessaggio, escapaHtml, fraseSilenzio, mailPostoLibero } from '../../../src/i18n/emailHtml'
 import { dataConOra } from '../../../src/i18n/format'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { dovute, emailValida, type RigaCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { oraAncoraDavanti, type BucoAttesa, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import { statoPiano, type ProMain } from '../../../src/lib/piano'
 import { TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
+import { normalizeEmail } from '../../../src/lib/salonPath'
 import {
   righeAuguri,
   righePromemoria,
@@ -48,6 +49,7 @@ export interface EsitoCoda {
   attese: string[]
   spedite: string[]
   token: { id: string; token: string }[]
+  fermate: string[]
 }
 
 export interface VisitaMinuto {
@@ -114,6 +116,11 @@ export function righeDelGiro(righe: readonly RigaInvio[], accesi: readonly TipoC
   })
 }
 
+// Il salone shared non si scrive mai: lì un link di disiscrizione finirebbe in errore.
+function haSilenzio(salonId: string | undefined): salonId is string {
+  return Boolean(salonId) && salonId !== 'shared'
+}
+
 function linkSilenzio(salonId: string, token: string, lingua: Lingua): string {
   const query = new URLSearchParams({ mode: 'silenzio', salon: salonId, token, lang: lingua })
   return `https://groomlyapp.it/azione?${query.toString()}`
@@ -144,19 +151,23 @@ export async function inviaCoda(input: {
   fetchImpl?: typeof fetch
   adesso?: Date
   subito?: boolean
+  /** Gli indirizzi che hanno chiesto di non ricevere più nulla da questo salone. */
+  bloccate?: ReadonlySet<string>
 }): Promise<EsitoCoda> {
   const scelte = input.subito
     ? input.righe.filter((riga) => riga.stato === 'in_coda' || riga.stato === 'non_inviata')
     : dovute(input.righe, input.adesso ?? new Date())
   const attese: string[] = []
+  const fermate: string[] = []
   const pronte: RigaInvio[] = []
   for (const riga of scelte) {
-    if (inAttesa(riga)) attese.push(riga.id)
+    if (input.bloccate?.has(normalizeEmail(riga.email))) fermate.push(riga.id)
+    else if (inAttesa(riga)) attese.push(riga.id)
     else pronte.push(riga)
   }
   const nelTetto = pronte.slice(0, Math.max(0, TETTO_EMAIL_GIORNO - input.emailOggi))
   if (!input.apiKey) {
-    return { inviate: 0, riprova: nelTetto.map((riga) => riga.id), attese, spedite: [], token: [] }
+    return { inviate: 0, riprova: nelTetto.map((riga) => riga.id), attese, spedite: [], token: [], fermate }
   }
 
   const lingua = input.lingua ?? 'it'
@@ -180,23 +191,25 @@ export async function inviaCoda(input: {
       quando,
       rispondi: Boolean(replyTo),
       url: riga.url,
-      silenzio: input.salonId ? linkSilenzio(input.salonId, assegnato, linguaRiga) : undefined,
+      silenzio: haSilenzio(input.salonId) ? linkSilenzio(input.salonId, assegnato, linguaRiga) : undefined,
     })
     try {
-      await postBrevoHtml(input.apiKey, riga.email, mail.oggetto, mail.html, input.fetchImpl ?? fetch, replyTo)
+      const uscita = haSilenzio(input.salonId) ? { 'List-Unsubscribe': `<${linkSilenzio(input.salonId, assegnato, linguaRiga)}>` } : undefined
+      await postBrevoHtml(input.apiKey, riga.email, mail.oggetto, mail.html, input.fetchImpl ?? fetch, replyTo, uscita)
       inviate += 1
       spedite.push(riga.id)
     } catch {
       riprova.push(riga.id)
     }
   }
-  return { inviate, riprova, attese, spedite, token }
+  return { inviate, riprova, attese, spedite, token, fermate }
 }
 
-function corpoHtmlPostoLibero(testo: string, url: string): string {
+function corpoHtmlPostoLibero(testo: string, url: string, silenzio?: { href: string; frase: string }): string {
   const html = escapaHtml(testo).replaceAll('\n', '<br>')
   const indirizzo = escapaHtml(url)
-  return html.replace(indirizzo, `<a href="${indirizzo}">${indirizzo}</a>`)
+  const corpo = html.replace(indirizzo, `<a href="${indirizzo}">${indirizzo}</a>`)
+  return silenzio ? `${corpo}<br><br><a href="${escapaHtml(silenzio.href)}">${escapaHtml(silenzio.frase)}</a>` : corpo
 }
 
 export async function inviaOfferteAttesa(input: {
@@ -210,6 +223,8 @@ export async function inviaOfferteAttesa(input: {
   fetchImpl?: typeof fetch
   adesso?: Date
   salva?: (offerta: OffertaAttesaDoc) => Promise<void>
+  salonId?: string
+  bloccate?: ReadonlySet<string>
 }): Promise<{ inviate: number; offerte: OffertaAttesaDoc[]; scritturaFallita: boolean }> {
   const adesso = input.adesso ?? new Date()
   const offerte = input.offerte.map((offerta) => ({ ...offerta }))
@@ -226,6 +241,7 @@ export async function inviaOfferteAttesa(input: {
     if (margine <= 0) break
     const iscritto = perId.get(offerta.iscrittoId)
     if (!iscritto || !emailValida(iscritto.email)) continue
+    if (input.bloccate?.has(normalizeEmail(iscritto.email))) continue
     const inizio = dataRoma(offerta.inizio)
     const linguaIscritto = linguaValida(iscritto.lingua) ?? lingua
     const url = conLingua(offerta.url, linguaIscritto)
@@ -236,14 +252,16 @@ export async function inviaOfferteAttesa(input: {
       url,
     })
     margine -= 1
+    const uscita = haSilenzio(input.salonId) && offerta.token ? linkSilenzio(input.salonId, offerta.token, linguaIscritto) : ''
     try {
       await postBrevoHtml(
         input.apiKey,
         iscritto.email.trim(),
         mail.oggetto,
-        corpoHtmlPostoLibero(mail.testo, url),
+        corpoHtmlPostoLibero(mail.testo, url, uscita ? { href: uscita, frase: fraseSilenzio(linguaIscritto) } : undefined),
         input.fetchImpl ?? fetch,
         replyTo,
+        uscita ? { 'List-Unsubscribe': `<${uscita}>` } : undefined,
       )
       offerta.inviataIl = adesso.toISOString()
       inviate += 1
@@ -266,11 +284,13 @@ export async function inviaOfferteAttesa(input: {
 export function applicaEsito(righe: readonly RigaInvio[], esito: EsitoCoda): RigaInvio[] {
   const spedite = new Set(esito.spedite)
   const riprova = new Set(esito.riprova)
+  const fermate = new Set(esito.fermate)
   const token = new Map(esito.token.map((voce) => [voce.id, voce.token]))
   return righe.map((riga) => {
     const nuovo = token.get(riga.id)
     const prossima: RigaInvio = nuovo ? { ...riga, token: nuovo } : { ...riga }
     if (spedite.has(riga.id)) return { ...prossima, stato: 'inviata', motivo: '' }
+    if (fermate.has(riga.id)) return { ...prossima, stato: 'fermata', motivo: 'fermata' }
     if (riprova.has(riga.id)) return { ...prossima, stato: 'non_inviata', motivo: prossima.motivo || 'posta' }
     return prossima
   })

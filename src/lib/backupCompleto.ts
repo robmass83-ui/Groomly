@@ -1,4 +1,5 @@
 import JSZip from 'jszip'
+import type { AltriDati } from './altriDati'
 import type { BackupManifest, GroomlyDati } from './backupBundle'
 import { nomeSicuro } from './nomeSicuro'
 import { romeDay } from './romeTime'
@@ -52,6 +53,7 @@ export async function backupCompleto(
   registro: Blob,
   file: ReadonlyArray<{ percorso: string; bytes: Uint8Array }>,
   now: Date,
+  altri?: AltriDati,
 ): Promise<{ blob: Blob; name: string }> {
   const zip = new JSZip()
   const mancanti = raccolto.dati.fotoMancanti
@@ -59,6 +61,11 @@ export async function backupCompleto(
   zip.file(`${frase('regTitolo')}.xlsx`, await registro.arrayBuffer(), { compression: 'STORE' })
   zip.file('dati/manifest.json', JSON.stringify(raccolto.manifest, null, 2))
   zip.file('dati/groomly-dati.json', raccolto.json)
+  if (altri) {
+    const { account, ...resto } = altri
+    zip.file('dati/altri-dati.json', JSON.stringify(resto, null, 2))
+    if (account) zip.file('dati/account.json', JSON.stringify(account, null, 2))
+  }
   if (mancanti.length > 0) zip.file('dati/foto-mancanti.txt', `${mancanti.map(rigaMancante).join('\n')}\n`)
   for (const item of file) zip.file(item.percorso, item.bytes, { compression: 'STORE' })
   const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip', compression: 'DEFLATE' })

@@ -41,7 +41,9 @@ import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
-import { archivioDaDb, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
+import { archivioPromo, disiscriviPromoPer, impostaEmailPromoPer } from './promo/consensoPromo'
 import { segnaMessaggioPer } from './piano/segnaMessaggio'
 export { rcWebhook } from './piano/rcWebhookHttp'
 export * from './abbonamenti'
@@ -881,10 +883,55 @@ export const scadiProposte = onSchedule({
   logger.info('Proposte scadute', { chiuse })
 })
 
+export const registraAccettazione = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const versione = field(request.data, 'versione')
+  return registraAccettazionePer({
+    uid,
+    versione: typeof versione === 'number' ? versione : 0,
+    appVersione: text(field(request.data, 'appVersione')).slice(0, 32),
+  }, archivioAccettazione(getFirestore()), new Date())
+})
+
+export const impostaEmailPromo = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  return impostaEmailPromoPer({
+    uid,
+    attivo: field(request.data, 'attivo') === true,
+    fonte: field(request.data, 'fonte') === 'tour' ? 'tour' : 'account',
+  }, archivioPromo(getFirestore()), new Date())
+})
+
+export const disiscriviPromo = onCall(pianoCall, async (request) => {
+  return disiscriviPromoPer({
+    uid: text(field(request.data, 'uid')),
+    token: text(field(request.data, 'token')),
+  }, archivioPromo(getFirestore()), new Date())
+})
+
 export const silenzioEmail = onCall(pianoCall, async (request) => {
   return silenzioEmailPer({
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
+  }, archivioDaDb(getFirestore()))
+})
+
+export const riattivaEmail = onCall(pianoCall, async (request) => {
+  return riattivaEmailPer({
+    salonId: text(field(request.data, 'salonId')),
+    token: text(field(request.data, 'token')),
+  }, archivioDaDb(getFirestore()))
+})
+
+export const impostaEmailCliente = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account) deny('accesso_negato')
+  return impostaEmailClientePer({
+    salonId: account.salonId,
+    ruolo: account.role,
+    dogId: text(field(request.data, 'dogId')),
+    bloccata: field(request.data, 'bloccata') === true,
   }, archivioDaDb(getFirestore()))
 })
 

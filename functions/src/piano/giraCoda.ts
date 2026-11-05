@@ -1,3 +1,5 @@
+import { normalizeEmail } from '../../../src/lib/salonPath'
+import { chiaveEmail } from './silenzioEmail'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
@@ -160,6 +162,13 @@ export function iscrittoDi(id: string, data: Record<string, unknown>): (Iscritto
     ...(settimana ? { settimana } : {}),
     ...(lingua ? { lingua } : {}),
   }
+}
+
+function indirizziBloccati(docs: readonly { get(field: string): unknown }[]): ReadonlySet<string> {
+  return new Set(docs.flatMap((doc) => {
+    const email = doc.get('email')
+    return typeof email === 'string' ? [normalizeEmail(email)] : []
+  }))
 }
 
 function offertaDi(id: string, data: Record<string, unknown>): OffertaAttesaDoc {
@@ -353,6 +362,8 @@ export async function inviaSubitoRiga(input: {
   const lingua: Lingua = linguaValida(settings.linguaClienti) ?? 'it'
   const linguaCane = linguaValida((await db.doc(`${radice}/dogs/${riga.dogId}`).get()).data()?.lingua)
   const posta = await postaOggi(db, adesso)
+  const blocco = await db.doc(`${radice}/emailBloccate/${chiaveEmail(riga.email)}`).get()
+  const bloccate = new Set(blocco.data() ? [normalizeEmail(riga.email)] : [])
   const esito = await inviaCoda({
     apiKey: input.apiKey,
     righe: [riga],
@@ -364,6 +375,7 @@ export async function inviaSubitoRiga(input: {
     replyTo,
     fetchImpl: input.fetchImpl,
     subito: true,
+    bloccate,
   })
   let aggiornata = applicaEsito([riga], esito)[0] ?? riga
   if (esito.attese.includes(riga.id) && aggiornata.motivo !== 'pagina_assente' && !emailValida(aggiornata.email)) {
@@ -410,7 +422,7 @@ export async function giraInvioCoda(input: {
     try {
       const radice = salonCollection(salonId).join('/')
 
-      const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap, tombeSnap] = await Promise.all([
+      const [dogsSnap, appointmentsSnap, codaSnap, pubbliciSnap, accountSnap, iscrittiSnap, offerteSnap, tombeSnap, bloccateSnap] = await Promise.all([
         db.collection(`${radice}/dogs`).select('name', 'contact', 'status', 'emailBloccata', 'birthMonth', 'birthDay', 'lingua').get(),
         db.collection(`${radice}/appointments`).select('kind', 'start', 'status', 'dogId', 'services', 'chiusoIl', 'end', 'updatedAt', 'extraNotes').get(),
         db.collection(`${radice}/coda`).get(),
@@ -419,7 +431,9 @@ export async function giraInvioCoda(input: {
         db.collection(`${radice}/attesa`).get(),
         db.collection(`${radice}/offerteAttesa`).get(),
         db.collection(`${radice}/buchiAttesa`).get(),
+        db.collection(`${radice}/emailBloccate`).get(),
       ])
+      const bloccate = indirizziBloccati(bloccateSnap.docs)
       const tombeSalvate = tombeSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() as Record<string, unknown> }))
       const iscritti = iscrittiSnap.docs.flatMap((doc) => {
         const iscritto = iscrittoDi(doc.id, doc.data())
@@ -477,6 +491,7 @@ export async function giraInvioCoda(input: {
         replyTo,
         fetchImpl: input.fetchImpl,
         adesso,
+        bloccate,
       })
       const dopo = applicaEsito(nate.righe, esito)
       await scriviRighe(db, radice, esistenti, dopo)
@@ -492,6 +507,8 @@ export async function giraInvioCoda(input: {
           apiKey: input.apiKey,
           offerte: nate.offerteAttesa,
           iscritti,
+          salonId,
+          bloccate,
           emailOggi: usateViste(posta, salonId),
           lingua,
           salone: nome,

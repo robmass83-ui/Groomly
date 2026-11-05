@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { silenzioEmailPer, type ArchivioSilenzio } from './silenzioEmail'
+import { chiaveEmail, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer, type ArchivioSilenzio } from './silenzioEmail'
 import type { RigaCoda } from '../../../src/lib/codaEmail'
 
 const base: RigaCoda = {
@@ -17,25 +17,58 @@ const base: RigaCoda = {
   inizio: null,
 }
 
-function memoria(input: { salonId: string; token: string; dogId: string; righe: RigaCoda[] }): ArchivioSilenzio & {
+function memoria(input: {
+  salonId: string
+  token: string
+  dogId: string
+  righe: RigaCoda[]
+  email?: string
+  cani?: Record<string, string>
+  offerta?: { token: string; email: string }
+}): ArchivioSilenzio & {
   bloccati: string[]
+  sbloccati: string[]
   scritte: RigaCoda[]
+  elenco: Map<string, string>
 } {
   const bloccati: string[] = []
+  const sbloccati: string[] = []
   const scritte: RigaCoda[] = []
+  const elenco = new Map<string, string>()
+  const cani = input.cani ?? { [input.dogId]: input.email ?? '' }
   return {
     bloccati,
+    sbloccati,
     scritte,
+    elenco,
     async leggiRiga(salonId, token) {
       if (salonId !== input.salonId || token !== input.token) return null
-      const riga = input.righe.find((item) => item.dogId === input.dogId)
-      return riga ? { dogId: riga.dogId } : null
+      return { dogId: input.dogId, email: input.email ?? '' }
     },
-    async caneEsiste(salonId, dogId) {
-      return salonId === input.salonId && dogId === input.dogId
+    async leggiOfferta(_salonId, token) {
+      return input.offerta?.token === token ? { email: input.offerta.email } : null
     },
-    async segnaBloccata(salonId, dogId) {
-      bloccati.push(`${salonId}/${dogId}`)
+    async caneEsiste(_salonId, dogId) {
+      return dogId in cani
+    },
+    async emailCane(_salonId, dogId) {
+      return cani[dogId] ?? null
+    },
+    async caniConEmail(_salonId, email) {
+      return Object.keys(cani).filter((id) => cani[id]?.trim().toLowerCase() === email.trim().toLowerCase())
+    },
+    async segnaBloccata(salonId, dogId, bloccata) {
+      (bloccata ? bloccati : sbloccati).push(`${salonId}/${dogId}`)
+    },
+    async leggiBlocco(_salonId, email) {
+      const fonte = elenco.get(chiaveEmail(email))
+      return fonte === 'link' || fonte === 'scheda' ? fonte : null
+    },
+    async scriviBlocco(_salonId, email, fonte) {
+      elenco.set(chiaveEmail(email), fonte)
+    },
+    async togliBlocco(_salonId, email) {
+      elenco.delete(chiaveEmail(email))
     },
     async leggiRighe(salonId, dogId) {
       return input.righe.filter((riga) => salonId === input.salonId && riga.dogId === dogId)
@@ -64,5 +97,123 @@ describe('silenzio email', () => {
     await expect(silenzioEmailPer({ salonId: 's', token: 'b'.repeat(32) }, store)).rejects.toThrow()
     expect(store.bloccati).toEqual([])
     expect(store.scritte).toEqual([])
+  })
+
+  it('la chiave ignora maiuscole e spazi', () => {
+    expect(chiaveEmail(' A@B.it ')).toBe(chiaveEmail('a@b.it'))
+  })
+
+  it('con due cani stessa email blocca l’indirizzo e tutti e due', async () => {
+    const secondo: RigaCoda = { ...base, id: 'b', dogId: 'e', evento: 'b' }
+    const store = memoria({
+      salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [base, secondo], email: 'a@b.it', cani: { d: 'a@b.it', e: ' A@B.it ', f: 'c@d.it' },
+    })
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    expect(store.bloccati.sort()).toEqual(['s/d', 's/e'])
+    expect(store.scritte.map((riga) => riga.id).sort()).toEqual(['1', 'b'])
+    expect(store.elenco.get(chiaveEmail('a@b.it'))).toBe('link')
+  })
+
+  it('una riga senza indirizzo vale per il solo cane', async () => {
+    const store = memoria({ salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [base] })
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    expect(store.bloccati).toEqual(['s/d'])
+    expect(store.elenco.size).toBe(0)
+  })
+
+  it('il token di un posto libero blocca l’iscritto anche senza cane', async () => {
+    const store = memoria({ salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [], offerta: { token: 'c'.repeat(32), email: 'i@s.it' } })
+    await silenzioEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
+    expect(store.elenco.get(chiaveEmail('i@s.it'))).toBe('link')
+    expect(store.bloccati).toEqual([])
+  })
+
+  it('il salone shared è rifiutato', async () => {
+    const store = memoria({ salonId: 'shared', token: 'a'.repeat(32), dogId: 'd', righe: [base], email: 'a@b.it' })
+    await expect(silenzioEmailPer({ salonId: 'shared', token: 'a'.repeat(32) }, store)).rejects.toThrow()
+    await expect(impostaEmailClientePer({ salonId: 'shared', ruolo: 'titolare', dogId: 'd', bloccata: true }, store)).rejects.toThrow()
+    expect(store.bloccati).toEqual([])
+    expect(store.elenco.size).toBe(0)
+  })
+})
+
+describe('riattivaEmailPer', () => {
+  const carta = { salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [base], email: 'a@b.it', cani: { d: 'a@b.it', e: ' A@B.it ' } }
+
+  it('il cliente che ha cambiato idea torna per tutti i suoi cani', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    expect(store.elenco.size).toBe(0)
+    expect(store.sbloccati.sort()).toEqual(['s/d', 's/e'])
+  })
+
+  it('dopo il ritorno il salone può di nuovo decidere dalla scheda', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store)).resolves.toEqual({ ok: true })
+  })
+
+  it('vale anche per il token del posto libero', async () => {
+    const store = memoria({ ...carta, offerta: { token: 'c'.repeat(32), email: 'i@s.it' } })
+    await silenzioEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
+    expect(store.elenco.size).toBe(0)
+  })
+
+  it('un token sbagliato o il salone shared non cambiano nulla', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(riattivaEmailPer({ salonId: 's', token: 'b'.repeat(32) }, store)).rejects.toThrow()
+    await expect(riattivaEmailPer({ salonId: 'shared', token: 'a'.repeat(32) }, store)).rejects.toThrow()
+    expect(store.elenco.size).toBe(1)
+  })
+})
+
+describe('impostaEmailClientePer', () => {
+  const carta = { salonId: 's', token: 'a'.repeat(32), dogId: 'd', righe: [base], email: 'a@b.it', cani: { d: 'a@b.it', e: 'a@b.it' } }
+
+  it('il collaboratore non può', async () => {
+    const store = memoria(carta)
+    await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'collaboratore', dogId: 'd', bloccata: true }, store))
+      .rejects.toMatchObject({ code: 'permission-denied' })
+    expect(store.elenco.size).toBe(0)
+  })
+
+  it('spegnere vale per tutti i cani dell’indirizzo', async () => {
+    const store = memoria(carta)
+    await impostaEmailClientePer({ salonId: 's', ruolo: 'socio', dogId: 'd', bloccata: true }, store)
+    expect(store.bloccati.sort()).toEqual(['s/d', 's/e'])
+    expect(store.elenco.get(chiaveEmail('a@b.it'))).toBe('scheda')
+  })
+
+  it('riaccendere toglie il blocco e allinea tutti i cani', async () => {
+    const store = memoria(carta)
+    await impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: true }, store)
+    await impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store)
+    expect(store.elenco.size).toBe(0)
+    expect(store.sbloccati.sort()).toEqual(['s/d', 's/e'])
+  })
+
+  it('dopo una disiscrizione dal link il salone non riaccende', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store))
+      .rejects.toMatchObject({ code: 'failed-precondition' })
+    expect(store.elenco.get(chiaveEmail('a@b.it'))).toBe('link')
+    expect(store.sbloccati).toEqual([])
+  })
+
+  it('spegnere dalla scheda non trasforma un no del cliente in una scelta del salone', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: true }, store)
+    expect(store.elenco.get(chiaveEmail('a@b.it'))).toBe('link')
+  })
+
+  it('un cane che non esiste dà errore', async () => {
+    await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'z', bloccata: true }, memoria(carta)))
+      .rejects.toMatchObject({ code: 'not-found' })
   })
 })

@@ -9,6 +9,8 @@
     "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:rules": "node scripts/test-rules-emulator.mjs",
+    "test:storage": "node scripts/test-storage-emulator.mjs",
+    "licenze": "node scripts/genera-licenze.mjs",
     "test:e2e": "node tests/e2e/tour.cjs",
     "test:360": "node --experimental-strip-types scripts/test360/seed.ts",
     "emu": "node scripts/avvia-emulatori.mjs",

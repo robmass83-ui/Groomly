@@ -22,7 +22,8 @@ import { nomeSicuro } from '../../lib/nomeSicuro'
 import { readTombstone } from '../../lib/tombstone'
 import type { Appointment, Dog } from '../../types/models'
 import { closuresToLocalMap } from '../local/closures'
-import { readSalonCollection, readSalonDoc, transactionSalon } from './client'
+import { leggiMioAccount, readSalonCollection, readSalonDoc, transactionSalon } from './client'
+import { senzaToken, type AltriDati } from '../../lib/altriDati'
 import { appointmentsToLocalMap, dogsToLocalMap, servicesToLocalMap } from './localSeed'
 import { currentSalonId, salonRootPath } from './salonRoot'
 
@@ -282,6 +283,23 @@ function fileRefsOf(input: {
     if (!cited.has(id)) refs.push({ fileId: id, ruolo: 'sciolto', path: `file-sciolti/${id}${estensione(id)}`, ordine: 'sciolto' })
   }
   return refs
+}
+
+// Non fanno fallire il backup: una raccolta illeggibile resta vuota e si segna in nonLette.
+export async function raccogliAltriDati(): Promise<AltriDati> {
+  const nonLette: string[] = []
+  const leggi = async (kind: string): Promise<Record<string, unknown>> => {
+    try {
+      const docs = await readSalonCollection(kind)
+      return Object.fromEntries(docs.map((item) => [item.id, senzaToken(item.data)]))
+    } catch {
+      nonLette.push(kind)
+      return {}
+    }
+  }
+  const [richieste, attesa, coda] = await Promise.all([leggi('richieste'), leggi('attesa'), leggi('coda')])
+  const account = await leggiMioAccount().catch(() => null)
+  return { richieste, attesa, coda, nonLette, account }
 }
 
 export async function raccogliBackup(

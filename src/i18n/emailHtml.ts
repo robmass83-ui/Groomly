@@ -654,6 +654,22 @@ const POSTO_LIBERO: Record<Lingua, { titolo: string; frase: string; fretta: stri
   },
 }
 
+const DISISCRIVITI: Record<Lingua, string> = {
+  it: 'Disiscriviti',
+  en: 'Unsubscribe',
+  es: 'Darse de baja',
+  fr: 'Se désabonner',
+  de: 'Abmelden',
+}
+
+export function fraseDisiscriviti(lingua: Lingua): string {
+  return DISISCRIVITI[lingua]
+}
+
+export function fraseSilenzio(lingua: Lingua): string {
+  return SILENZIO[lingua]
+}
+
 export function mailPostoLibero(input: {
   lingua: Lingua
   nomeSalone: string

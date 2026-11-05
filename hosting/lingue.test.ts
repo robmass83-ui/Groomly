@@ -55,6 +55,18 @@ describe('tabelle delle pagine', () => {
     chiaviUguali(tabellaDi(pagina, 'var t = {', '\n  }[lang]'))
   })
 
+  it('la disiscrizione dice che anche i promemoria si fermano', () => {
+    const pagina = readFileSync('hosting/azione/index.html', 'utf8')
+    expect(pagina).toContain('Non riceverai più promemoria né altre mail da questo salone')
+    expect(pagina).not.toContain('legate a una tua prenotazione')
+  })
+
+  it('chi si disiscrive può tornare dalla stessa pagina', () => {
+    const pagina = readFileSync('hosting/azione/index.html', 'utf8')
+    expect(pagina).toContain("'riattivaEmail'")
+    expect(pagina).toContain('Ho cambiato idea')
+  })
+
   it('azione ha le stesse chiavi in cinque lingue', () => {
     chiaviUguali(tabellaDi(readFileSync('hosting/azione/index.html', 'utf8'), 'const COPY = {', '\n    }[LANG]'))
   })

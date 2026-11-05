@@ -100,6 +100,19 @@ describe('cartellaFoto', () => {
 })
 
 describe('backupCompleto', () => {
+  it('con gli altri dati aggiunge i file nuovi, che il ripristino non legge', async () => {
+    const pronto = await raccolto('Pelosetti')
+    const registro = await registroXlsx(pronto.base, { now: NOW })
+    const altri = { richieste: { r: { nome: 'Ada' } }, attesa: {}, coda: {}, nonLette: ['attesa'], account: { email: 'a@b.it' } }
+    const file = await backupCompleto({ json: pronto.json, manifest: pronto.manifest, dati: pronto.base }, registro, [], NOW, altri)
+    const opened = await voci(file.blob)
+    expect(JSON.parse(await opened.zip.file('dati/altri-dati.json')!.async('string'))).toEqual({
+      richieste: { r: { nome: 'Ada' } }, attesa: {}, coda: {}, nonLette: ['attesa'],
+    })
+    expect(JSON.parse(await opened.zip.file('dati/account.json')!.async('string'))).toEqual({ email: 'a@b.it' })
+    expect(pronto.manifest.versioneFormato).toBe(1)
+  })
+
   it('mette i file letti, i mancanti e il Registro con la cartella', async () => {
     const pronto = await raccolto('Pelosetti')
     const percorsi = [PERCORSO, 'listino/logo.webp']

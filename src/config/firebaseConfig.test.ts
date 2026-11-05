@@ -5,10 +5,10 @@ import { describe, expect, it } from 'vitest'
 const root = resolve(__dirname, '../..')
 
 describe('configurazione Firebase', () => {
-  it('firebase.json non pubblica Storage e storage.rules non esiste', () => {
+  it('firebase.json non pubblica Storage: storage.rules è pronto per quando si attiverà', () => {
     const config = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as Record<string, unknown>
     expect(config.storage).toBeUndefined()
-    expect(existsSync(resolve(root, 'storage.rules'))).toBe(false)
+    expect(existsSync(resolve(root, 'storage.rules'))).toBe(true)
   })
 
   it('le regole mettono i tetti a files', () => {

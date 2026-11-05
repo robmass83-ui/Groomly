@@ -1,3 +1,5 @@
+import { EmailPromoRiga } from '../components/legale/EmailPromoRiga'
+import { ScaricaAccount } from '../components/legale/ScaricaAccount'
 import { ChevronRight, Info, Pencil, Scale } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -477,8 +479,9 @@ export function AccountPage() {
                 </span>
                 <Toggle checked={settings.consensoMetriche === true} label={frasi.metriche} disabled={collaboratore} onChange={(acceso) => save({ ...settings, consensoMetriche: acceso })} />
               </Row>
+              <EmailPromoRiga />
             </Card>
-            {collaboratore ? null : (
+            {collaboratore ? <ScaricaAccount /> : (
               <>
             <p style={{ margin: 0, fontWeight: 750, fontSize: 13 }}>{frasi.accTuoiDati}</p>
             <Card>

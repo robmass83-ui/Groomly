@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, offertaPiano, pianoAttivo, pianoInCorso, statoScheda } from './abbonamento'
+import { COLORE_PIANO, COLORE_PIANO_SCURO, PREZZI, avvisoPiano, ePianoVetrina, fineProva, linkGestionePlay, mostraGestionePlay, offertaPiano, pianoAttivo, pianoInCorso, statoScheda } from './abbonamento'
 import { livelloElenco } from './funzioniPiano'
 import { provaConcessa, statoPiano, type ProMain } from './piano'
 
@@ -140,5 +140,29 @@ describe('offertaPiano', () => {
   it('collaboratore e socio non vedono la prova', () => {
     expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: true, ruolo: 'collaboratore' }).prova).toBe(false)
     expect(offertaPiano({ provaConcessa: true, abbonamentiAttivi: false, ruolo: 'socio' }).prova).toBe(false)
+  })
+})
+
+describe('gestione su Google Play', () => {
+  const adesso = new Date(2026, 10, 2)
+  const scade = new Date(2026, 11, 20).toISOString()
+
+  it('il link porta all’app e, se c’è, all’abbonamento', () => {
+    expect(linkGestionePlay('groomly_plus')).toBe('https://play.google.com/store/account/subscriptions?sku=groomly_plus&package=it.groomly.app')
+    expect(linkGestionePlay()).toBe('https://play.google.com/store/account/subscriptions?package=it.groomly.app')
+  })
+
+  it('il pulsante è solo del titolare con un abbonamento Play', () => {
+    const play = statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'play', scadeIl: scade }, adesso)
+    expect(mostraGestionePlay(play, true)).toBe(true)
+    expect(mostraGestionePlay(play, false)).toBe(false)
+    expect(mostraGestionePlay(statoPiano({ piano: 'pro', stato: 'grazia', fonte: 'play', scadeIl: scade }, adesso), true)).toBe(true)
+    expect(mostraGestionePlay(statoPiano({ piano: 'pro', stato: 'attivo', fonte: 'beta', scadeIl: scade }, adesso), true)).toBe(false)
+    expect(mostraGestionePlay(statoPiano({ piano: 'pro', stato: 'prova', fonte: 'prova', scadeIl: scade }, adesso), true)).toBe(false)
+    expect(mostraGestionePlay(statoPiano(undefined, adesso), true)).toBe(false)
+  })
+
+  it('la prova finisce dopo 30 giorni', () => {
+    expect(fineProva(new Date(2026, 10, 5))).toEqual(new Date(2026, 11, 5))
   })
 })

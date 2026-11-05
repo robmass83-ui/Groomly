@@ -35,8 +35,11 @@ vi.mock('../hooks/useSettings', async () => {
 
 vi.mock('../data/firebase/client', async () => {
   const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
-  return { ...actual, callSuggerisciIndirizzi: vi.fn(async () => []), callDettaglioIndirizzo: vi.fn(async () => null) }
+  return { ...actual, callImpostaEmailPromo: promo.chiama, callSuggerisciIndirizzi: vi.fn(async () => []), callDettaglioIndirizzo: vi.fn(async () => null) }
 })
+
+const promo = vi.hoisted(() => ({ chiedi: false, chiama: vi.fn(async () => undefined) }))
+vi.mock('../lib/tourPromo', () => ({ chiediPromo: () => promo.chiedi }))
 
 async function nuovoSalone(nome = 'Il Cane Felice') {
   const account = await createAccount('maria@salone.it', 'segretissimo')
@@ -54,6 +57,8 @@ const tour = (uid: string) => getSettings(uid).tourBenvenuto
 describe('tour Prepariamo il salone', () => {
   beforeEach(() => {
     localStorage.clear()
+    promo.chiedi = false
+    promo.chiama.mockClear()
     vi.restoreAllMocks()
     caricamento.nonPronto = false
     caricamento.stantio = false
@@ -141,6 +146,66 @@ describe('tour Prepariamo il salone', () => {
     expect(await screen.findByRole('heading', { name: 'Ora i tuoi prezzi' })).toBeInTheDocument()
     expect(screen.getByText('Prepariamo il salone · 3 di 5')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Mettiamo al sicuro i tuoi dati' })).not.toBeInTheDocument()
+  })
+
+  async function finoAllaDomanda(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await screen.findByText('Prepariamo il salone · 1 di 5')
+    for (let passo = 2; passo <= 5; passo += 1) {
+      await user.click(screen.queryByRole('button', { name: 'Salta' }) ?? screen.getByRole('button', { name: 'Avanti' }))
+      await screen.findByText(`Prepariamo il salone · ${passo} di 5`)
+    }
+    await user.click(screen.getByRole('button', { name: 'Salta' }))
+    return screen.findByRole('heading', { name: 'Vuoi ricevere le nostre novità?' })
+  }
+
+  it('dopo l’ultimo passo chiede le email, e il Sì va al server', async () => {
+    promo.chiedi = true
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await finoAllaDomanda(user)
+    await user.click(screen.getByRole('button', { name: 'Sì' }))
+    expect(await screen.findByRole('heading', { name: 'Il salone è quasi pronto!' })).toBeInTheDocument()
+    await waitFor(() => expect(promo.chiama).toHaveBeenCalledWith(true, 'tour'))
+  })
+
+  it('il No si registra, Salta non scrive nulla', async () => {
+    promo.chiedi = true
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await finoAllaDomanda(user)
+    await user.click(screen.getByRole('button', { name: 'Salta' }))
+    expect(await screen.findByRole('heading', { name: 'Il salone è quasi pronto!' })).toBeInTheDocument()
+    expect(promo.chiama).not.toHaveBeenCalled()
+  })
+
+  it('se il server non risponde il tour finisce lo stesso', async () => {
+    promo.chiedi = true
+    promo.chiama.mockRejectedValueOnce(new Error('no'))
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await finoAllaDomanda(user)
+    await user.click(screen.getByRole('button', { name: 'No, grazie' }))
+    expect(await screen.findByRole('heading', { name: 'Il salone è quasi pronto!' })).toBeInTheDocument()
+    expect(promo.chiama).toHaveBeenCalledWith(false, 'tour')
+  })
+
+  it('chi ha già risposto non rivede la domanda', async () => {
+    await nuovoSalone()
+    const user = userEvent.setup()
+    apri()
+    await user.click(await screen.findByRole('button', { name: 'Iniziamo' }))
+    await screen.findByText('Prepariamo il salone · 1 di 5')
+    for (let passo = 2; passo <= 5; passo += 1) {
+      await user.click(screen.queryByRole('button', { name: 'Salta' }) ?? screen.getByRole('button', { name: 'Avanti' }))
+      await screen.findByText(`Prepariamo il salone · ${passo} di 5`)
+    }
+    await user.click(screen.getByRole('button', { name: 'Salta' }))
+    expect(await screen.findByRole('heading', { name: 'Il salone è quasi pronto!' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Vuoi ricevere le nostre novità?' })).not.toBeInTheDocument()
   })
 
   it('Iniziamo mostra 5 passi, con Prezzi anche se i servizi sono attivi; Salta non fa festa', async () => {

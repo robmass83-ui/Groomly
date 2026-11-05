@@ -500,6 +500,21 @@ const ETICHETTE_PASSO = {
   fiscale: 'hubPassoFiscale',
 } as const satisfies Record<PassoSalone, string>
 
+export function PassoPromo({ onRisposta, onSalta }: { onRisposta: (attivo: boolean) => void; onSalta: () => void }) {
+  const frasi = useFrasi()
+  return (
+    <>
+      <h1 {...cascata(0, titolo)}>{frasi.tourPromoTitolo}</h1>
+      <p {...cascata(1, sotto)}>{frasi.tourPromoSotto}</p>
+      <Piede i={2}>
+        <Button onClick={() => onRisposta(true)}>{frasi.tourPromoSi}</Button>
+        <Button variant="secondary" onClick={() => onRisposta(false)}>{frasi.tourPromoNo}</Button>
+        <Salta onClick={onSalta} />
+      </Piede>
+    </>
+  )
+}
+
 export function TourFine({ passi, onEntra }: { passi: readonly { id: PassoSalone; fatto: boolean }[]; onEntra: () => void }) {
   const frasi = useFrasi()
   const fatti = passi.filter((p) => p.fatto).length

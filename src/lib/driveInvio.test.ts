@@ -39,7 +39,7 @@ vi.mock('@capacitor/filesystem', () => ({
   },
 }))
 
-vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup: vi.fn() }))
+vi.mock('../data/firebase/backupCollect', () => ({ raccogliBackup: vi.fn(), raccogliAltriDati: vi.fn(async () => undefined) }))
 vi.mock('../lib/registroXlsx', () => ({ registroXlsx: vi.fn(async () => new Blob(['x'])) }))
 vi.mock('../lib/backupCompleto', () => ({
   backupCompleto: vi.fn(async () => ({ blob: new Blob(['zip']), name: 'Groomly Backup completo – Pelosetti – 2026-10-23.zip' })),
