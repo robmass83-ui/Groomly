@@ -728,10 +728,10 @@ describe('mensili', () => {
     expect(await screen.findByText('Si sovrappone a Rex 09:30–10:00')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Fissa anche il prossimo' })).toHaveAttribute('aria-pressed', 'false')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })).toBeInTheDocument()
     expect(screen.queryByRole('status')).toBeNull()
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '{}') as object)).toHaveLength(1)
-    await user.click(screen.getByRole('button', { name: 'Salva comunque' }))
+    await user.click(screen.getByRole('button', { name: 'Inserisci lo stesso' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Appuntamento salvato per sab 31 ott 09:30')
     const stored = JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '{}') as Record<string, unknown>
     expect(Object.keys(stored)).toHaveLength(2)

@@ -351,6 +351,43 @@ describe('agenda', () => {
     expect(stored.coveredDue).toBe(covered.toISOString())
   })
 
+  it('un orario occupato si sceglie, avvisa e salva due cani della stessa persona', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 3, 8, 0, 0, 0))
+    const account = await createAccount('maria@salone.it', 'segretissimo')
+    const contact = { name: 'Anna Rossi', phone: '333' }
+    createDog(account.uid, dog('Rex', { contact }))
+    const luna = createDog(account.uid, dog('Luna', { contact }))
+    createAppointment(account.uid, {
+      dogId: luna.id,
+      start: new Date(2026, 9, 3, 9, 0, 0, 0),
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 60, price: 20 }],
+    })
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/appuntamenti/nuovo?data=2026-10-03" />)
+    await user.type(await screen.findByRole('textbox', { name: 'Cerca cane' }), 'Rex')
+    await user.click(await screen.findByRole('button', { name: 'Rex' }))
+    await user.click(screen.getByRole('button', { name: /^Bagno · / }))
+    const hours = screen.getByRole('group', { name: 'Ora' })
+    await user.click(within(hours).getByRole('button', { name: '11:00' }))
+    expect(screen.queryByText('Si sovrappone a Luna 09:00–10:00')).not.toBeInTheDocument()
+    const busy = within(hours).getByRole('button', { name: '09:30' })
+    expect(busy).toHaveAttribute('data-busy', 'true')
+    expect(busy).toBeEnabled()
+    expect(busy.getAttribute('style')).not.toContain('line-through')
+    await user.click(busy)
+    expect(busy).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
+    await user.click(within(hours).getByRole('button', { name: '11:00' }))
+    expect(screen.queryByText('Si sovrappone a Luna 09:00–10:00')).not.toBeInTheDocument()
+    await user.click(busy)
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    const ask = screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })
+    await user.click(within(ask).getByRole('button', { name: 'Inserisci lo stesso' }))
+    expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
+    expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(2)
+  })
+
   it('si sovrappone: Salva chiede conferma, poi salva, e la cancellazione apre il giorno', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date(2026, 9, 3, 8, 0, 0, 0))
@@ -369,9 +406,9 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: /^Bagno · / }))
     expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(screen.getByRole('dialog', { name: 'Orario già occupato' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })).toBeInTheDocument()
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(1)
-    await user.click(screen.getByRole('button', { name: 'Salva comunque' }))
+    await user.click(screen.getByRole('button', { name: 'Inserisci lo stesso' }))
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'Apri Rex' }))
