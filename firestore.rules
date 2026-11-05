@@ -352,6 +352,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Console: stato delle richieste, risposte rapide e storico delle comunicazioni. Li scrivono solo le Cloud Functions.
+    match /assistenza/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
+    match /assistenzaModelli/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
+    match /comunicazioni/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
+    match /comunicazioni/{id}/invii/{uid} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
     match /suggerimenti/{id} {
       allow read: if isOperator();
       allow create: if signedIn()

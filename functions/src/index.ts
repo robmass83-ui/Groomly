@@ -35,6 +35,7 @@ import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer,
 import { inviaCampione } from './campioneEmail'
 import { conRegistro } from './adminLog'
 import { controllaAdminRecente } from './accessoRecente'
+import { avviaAssistenzaPer, eliminaModelloAssistenzaPer, impostaStatoAssistenzaPer, rispondiAssistenzaPer, salvaModelloAssistenzaPer } from './assistenza/assistenza'
 import { cancellaAvviso, eliminaAvvisoSistemaPer, pubblicaAvvisoSistemaPer, riservaAvviso, scriviAvviso } from './config/avvisiSistema'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
@@ -1004,6 +1005,47 @@ export const eliminaAvvisoSistema = onCall(pianoCall, async (request) => {
     admin: request.auth?.token.admin === true,
     id,
     cancella: (daCancellare) => cancellaAvviso(daCancellare),
+  }))
+})
+
+// Assistenza: nel registro vanno fonte e id, mai il testo.
+export const rispondiAssistenza = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('rispondiAssistenza', (esito) => ({ dettagli: { fonte: field(request.data, 'fonte'), id: field(request.data, 'id'), email: esito.email } }), () => rispondiAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    adminUid: uid,
+    dati: request.data,
+    apiKey: chiaveBrevo(),
+  }))
+})
+
+export const impostaStatoAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return conRegistro('impostaStatoAssistenza', () => ({ dettagli: { fonte: field(request.data, 'fonte'), id: field(request.data, 'id'), stato: field(request.data, 'stato') } }), () => impostaStatoAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    dati: request.data,
+  }))
+})
+
+export const avviaAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return avviaAssistenzaPer({ admin: request.auth?.token.admin === true })
+})
+
+export const salvaModelloAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return conRegistro('salvaModelloAssistenza', (esito) => ({ dettagli: { id: esito.id } }), () => salvaModelloAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    dati: request.data,
+  }))
+})
+
+export const eliminaModelloAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  const id = field(request.data, 'id')
+  return conRegistro('eliminaModelloAssistenza', () => ({ dettagli: { id } }), () => eliminaModelloAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    id,
   }))
 })
 

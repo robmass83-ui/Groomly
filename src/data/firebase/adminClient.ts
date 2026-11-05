@@ -1,3 +1,4 @@
+import { STATI_ASSISTENZA, type DocAssistenza, type EsitoEmailRisposta, type FonteAssistenza, type RispostaAssistenza, type StatoAssistenza } from '../../lib/assistenza'
 import { leggiConfigTour, type ConfigTour } from '../../lib/tourBenvenuto'
 import { invitoBetaDi } from '../../lib/betaInvito'
 import { leggiConfigPiani, type ConfigPiani } from '../../lib/configPiani'
@@ -60,6 +61,64 @@ export async function callImpostaMostraPiani(valore: boolean): Promise<void> {
 export async function callAnnunciaPagamenti(data: string): Promise<{ ok: true; email: number }> {
   const esito = oggetto(await callCallableData('annunciaPagamenti', { data }))
   return { ok: true, email: typeof esito.email === 'number' ? esito.email : 0 }
+}
+
+export type ModelloAssistenza = { id: string; titolo: string; testo: string }
+
+function rispostaDi(value: unknown): RispostaAssistenza | null {
+  const r = oggetto(value)
+  if (typeof r.testo !== 'string' || typeof r.quando !== 'string') return null
+  const email = r.email === 'inviata' || r.email === 'non_inviata' || r.email === 'limite' ? r.email : null
+  return { testo: r.testo, quando: r.quando, email }
+}
+
+/** I documenti di Assistenza, per chiave: una richiesta che non c'è non è ancora stata toccata. */
+export async function elencoAssistenza(): Promise<Record<string, DocAssistenza>> {
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
+  const db = await database()
+  const { collection, getDocs } = await loadFirestore()
+  const snap = await getDocs(collection(db, 'assistenza'))
+  return Object.fromEntries(snap.docs.flatMap((doc) => {
+    const d = doc.data()
+    const stato = STATI_ASSISTENZA.find((s) => s === d.stato)
+    if (!stato) return []
+    const risposte = (Array.isArray(d.risposte) ? d.risposte : []).flatMap((r) => rispostaDi(r) ?? [])
+    return [[doc.id, { stato, risposte }]]
+  }))
+}
+
+export async function elencoModelliAssistenza(): Promise<ModelloAssistenza[]> {
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
+  const db = await database()
+  const { collection, getDocs } = await loadFirestore()
+  const snap = await getDocs(collection(db, 'assistenzaModelli'))
+  return snap.docs.flatMap((doc) => {
+    const { titolo, testo } = doc.data()
+    return typeof titolo === 'string' && typeof testo === 'string' ? [{ id: doc.id, titolo, testo }] : []
+  })
+}
+
+export async function callAvviaAssistenza(): Promise<string> {
+  const { dal } = oggetto(await callCallableData('avviaAssistenza', {}))
+  return typeof dal === 'string' ? dal : ''
+}
+
+export async function callRispondiAssistenza(input: { fonte: FonteAssistenza; id: string; testo: string; anchEmail: boolean; idRichiesta: string }): Promise<EsitoEmailRisposta> {
+  const { email } = oggetto(await callCallableData('rispondiAssistenza', input))
+  return email === 'inviata' || email === 'non_inviata' || email === 'limite' ? email : null
+}
+
+export async function callImpostaStatoAssistenza(input: { fonte: FonteAssistenza; id: string; stato: StatoAssistenza }): Promise<void> {
+  await callCallableData('impostaStatoAssistenza', input)
+}
+
+export async function callSalvaModelloAssistenza(input: { id?: string; titolo: string; testo: string }): Promise<string> {
+  const { id } = oggetto(await callCallableData('salvaModelloAssistenza', input))
+  return typeof id === 'string' ? id : ''
+}
+
+export async function callEliminaModelloAssistenza(id: string): Promise<void> {
+  await callCallableData('eliminaModelloAssistenza', { id })
 }
 
 export const LIMITE_FEEDBACK_ADMIN = 400
