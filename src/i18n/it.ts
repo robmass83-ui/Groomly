@@ -2208,4 +2208,13 @@ export const it = {
   consEliminaTitolo: 'Eliminare la comunicazione?',
   consEliminaTesto: 'L’avviso sparisce dall’app. Le email già inviate restano.',
   consEliminata: 'Eliminata',
+  consAzione: 'Azione',
+  consSalone: 'Salone',
+  consAltri: 'Altri',
+  consRegistroVuoto: 'Nessuna azione registrata',
+  consRegistroKo: 'Registro non disponibile',
+  consPubblicata: 'Versione pubblicata',
+  consEmailOggi: 'Email oggi: {{n}} su {{tetto}}',
+  consFeedbackOrfani: 'Feedback di saloni eliminati: {{n}}',
+  consCollegamenti: 'Collegamenti',
 } as const

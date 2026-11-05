@@ -2210,4 +2210,13 @@ export const fr = {
   consEliminaTitolo: 'Supprimer la communication\u00a0?',
   consEliminaTesto: 'L’avis disparaît de l’app. Les e-mails déjà envoyés restent.',
   consEliminata: 'Supprimée',
+  consAzione: 'Action',
+  consSalone: 'Salon',
+  consAltri: 'Suite',
+  consRegistroVuoto: 'Aucune action enregistrée',
+  consRegistroKo: 'Journal indisponible',
+  consPubblicata: 'Version publiée',
+  consEmailOggi: 'E-mails aujourd’hui\u00a0: {{n}} sur {{tetto}}',
+  consFeedbackOrfani: 'Avis de salons supprimés\u00a0: {{n}}',
+  consCollegamenti: 'Liens',
 } as const satisfies Record<keyof typeof italiano, string>

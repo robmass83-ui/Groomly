@@ -1,6 +1,4 @@
-import { ChevronRight, Megaphone } from 'lucide-react'
 import { useState } from 'react'
-import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { Button } from '../ui/Button'
 import { Card, Row } from '../ui/Card'
@@ -9,20 +7,17 @@ import { Segmented } from '../ui/Segmented'
 import { Toggle } from '../ui/Toggle'
 import { AttesaRiga } from '../ui/Zampette'
 import { callImpostaConfigPiani } from '../../data/firebase/client'
-import { callAnnunciaPagamenti, callImpostaMostraPiani, type ConfigGlobale } from '../../data/firebase/adminClient'
-import { dataCorta } from '../../i18n/format'
-import { useFrasi, useLingua } from '../../i18n/LinguaContext'
+import { callImpostaMostraPiani, type ConfigGlobale } from '../../data/firebase/adminClient'
+import { useFrasi } from '../../i18n/LinguaContext'
 import { CHIAVE_SDK_MAX, LINGUE_OFFERTA, OFFERING_ID_MAX, OFFERTA_MAX, type ConfigPiani, type LinguaOfferta } from '../../lib/configPiani'
 import { USER_TEXT } from '../../theme/text'
-import { AIUTO, Nota, RIGA } from './comuni'
+import { AIUTO, Nota } from './comuni'
 import { PannelloAccensione } from './PannelloAccensione'
 
-const GIORNO = 86_400_000
 type Interruttore = 'mostraPiani' | 'provaSelfService' | 'showPrezziInBeta'
 
 export function PianiPagamenti({ config }: { config: ConfigGlobale | null }) {
   const frasi = useFrasi()
-  const { lingua } = useLingua()
   const toast = useToast()
   const [ottimisti, setOttimisti] = useState<Partial<Record<Interruttore, boolean>>>({})
   const [inVolo, setInVolo] = useState<Partial<Record<Interruttore, boolean>>>({})

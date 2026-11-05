@@ -213,6 +213,34 @@ export async function elencoComunicazioni(): Promise<VoceComunicazione[]> {
   })
 }
 
+export const LIMITE_REGISTRO = 50
+export type VoceRegistro = { id: string; quando: string; azione: string; salonId: string | null; dettagli: Record<string, unknown> }
+
+/** Il registro delle azioni, dal più recente: `dopo` è il `quando` dell'ultima voce già vista. */
+export async function elencoAdminLog(filtro: { dopo?: string; azione?: string; salonId?: string }): Promise<VoceRegistro[]> {
+  if (!firebaseEnabled()) throw erroreApp('auth_offline')
+  const db = await database()
+  const { collection, getDocs, limit, orderBy, query, startAfter, where } = await loadFirestore()
+  const snap = await getDocs(query(
+    collection(db, 'adminLog'),
+    ...(filtro.azione ? [where('azione', '==', filtro.azione)] : []),
+    ...(filtro.salonId ? [where('salonId', '==', filtro.salonId)] : []),
+    orderBy('quando', 'desc'),
+    ...(filtro.dopo ? [startAfter(filtro.dopo)] : []),
+    limit(LIMITE_REGISTRO),
+  ))
+  return snap.docs.map((doc) => {
+    const d = doc.data()
+    return {
+      id: doc.id,
+      quando: typeof d.quando === 'string' ? d.quando : '',
+      azione: typeof d.azione === 'string' ? d.azione : '',
+      salonId: typeof d.salonId === 'string' ? d.salonId : null,
+      dettagli: oggetto(d.dettagli),
+    }
+  })
+}
+
 export const LIMITE_FEEDBACK_ADMIN = 400
 
 function invitoAdminDi(salonId: string, data: Record<string, unknown>): InvitoAdmin | null {

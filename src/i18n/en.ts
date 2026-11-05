@@ -2210,4 +2210,13 @@ export const en = {
   consEliminaTitolo: 'Delete this announcement?',
   consEliminaTesto: 'The notice disappears from the app. Emails already sent stay sent.',
   consEliminata: 'Deleted',
+  consAzione: 'Action',
+  consSalone: 'Salon',
+  consAltri: 'More',
+  consRegistroVuoto: 'No actions logged',
+  consRegistroKo: 'Log not available',
+  consPubblicata: 'Published version',
+  consEmailOggi: 'Emails today: {{n}} of {{tetto}}',
+  consFeedbackOrfani: 'Feedback from deleted salons: {{n}}',
+  consCollegamenti: 'Links',
 } as const satisfies Record<keyof typeof italiano, string>

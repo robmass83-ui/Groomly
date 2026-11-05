@@ -2210,4 +2210,13 @@ export const de = {
   consEliminaTitolo: 'Mitteilung löschen?',
   consEliminaTesto: 'Die Mitteilung verschwindet aus der App. Bereits gesendete E-Mails bleiben.',
   consEliminata: 'Gelöscht',
+  consAzione: 'Aktion',
+  consSalone: 'Salon',
+  consAltri: 'Weitere',
+  consRegistroVuoto: 'Keine Aktionen protokolliert',
+  consRegistroKo: 'Protokoll nicht verfügbar',
+  consPubblicata: 'Veröffentlichte Version',
+  consEmailOggi: 'E-Mails heute: {{n}} von {{tetto}}',
+  consFeedbackOrfani: 'Feedback gelöschter Salons: {{n}}',
+  consCollegamenti: 'Links',
 } as const satisfies Record<keyof typeof italiano, string>

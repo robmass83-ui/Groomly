@@ -16,6 +16,7 @@ import { vociAvvisami, type ContatoriAdmin, type VoceDaFare } from '../../lib/ad
 import type { StatoInvitoBeta } from '../../lib/betaInvito'
 import type { FasciaPrezzo } from '../../lib/betaFeedback'
 import type { LivelloElenco } from '../../lib/funzioniPiano'
+import { TETTO_EMAIL_GIORNO } from '../../lib/promemoriaEmail'
 import { eFeature, type FeatureKey } from '../../lib/piano'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, COLORI_LIVELLO, NOME, RIGA, type Frasi } from './comuni'
@@ -168,6 +169,7 @@ export function PanoramicaAdmin({
       </Card>
 
       {contatori ? <BloccoSaloni contatori={contatori} riepilogoAccount={riepilogoAccount} /> : null}
+      {contatori ? <span style={AIUTO}>{frasi.consEmailOggi.replace('{{n}}', String(contatori.emailOggi)).replace('{{tetto}}', String(TETTO_EMAIL_GIORNO))}</span> : null}
       {contatori ? <BloccoAvvisami avvisami={contatori.avvisami} /> : null}
 
       {contatori ? (

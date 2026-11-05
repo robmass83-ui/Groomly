@@ -2210,4 +2210,13 @@ export const es = {
   consEliminaTitolo: '¿Eliminar la comunicación?',
   consEliminaTesto: 'El aviso desaparece de la app. Los correos ya enviados se quedan.',
   consEliminata: 'Eliminada',
+  consAzione: 'Acción',
+  consSalone: 'Salón',
+  consAltri: 'Más',
+  consRegistroVuoto: 'Ninguna acción registrada',
+  consRegistroKo: 'Registro no disponible',
+  consPubblicata: 'Versión publicada',
+  consEmailOggi: 'Correos hoy: {{n}} de {{tetto}}',
+  consFeedbackOrfani: 'Opiniones de salones eliminados: {{n}}',
+  consCollegamenti: 'Enlaces',
 } as const satisfies Record<keyof typeof italiano, string>

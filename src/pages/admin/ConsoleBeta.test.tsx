@@ -175,6 +175,20 @@ describe('Admin Manager: beta', () => {
     expect(await screen.findByRole('heading', { name: 'Bauci' })).toBeInTheDocument()
   })
 
+  it('Panoramica: dice quante email sono partite oggi e i saloni nuovi, senza il tour', async () => {
+    admin.contatori.mockResolvedValue({ emailOggi: 120, nuoviSaloni: ['ada'] })
+    await apri()
+    expect(await screen.findByText('Email oggi: 120 su 300')).toBeInTheDocument()
+    expect(await screen.findByText('Un salone nuovo questa settimana')).toBeInTheDocument()
+    expect(screen.queryByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })).not.toBeInTheDocument()
+  })
+
+  it('l’Annuncio pagamenti non sta più in Piani', async () => {
+    await apri('/admin/piani')
+    expect(await screen.findByRole('heading', { name: 'Abbonamenti spenti' })).toBeInTheDocument()
+    expect(screen.queryByText('Annuncio pagamenti')).not.toBeInTheDocument()
+  })
+
   it('se i numeri non arrivano lo dice e Riprova li richiede', async () => {
     admin.contatori.mockRejectedValueOnce(new Error('internal'))
     const user = userEvent.setup()
