@@ -8,3 +8,13 @@ export const USER_TEXT: CSSProperties = {
   overflowWrap: 'anywhere',
   hyphens: 'auto',
 }
+
+/** Riga della razza nelle visite: una sola riga, un nome lungo si taglia con i puntini. */
+export const RIGA_RAZZA: CSSProperties = {
+  display: 'block',
+  minWidth: 0,
+  maxWidth: '100%',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+}

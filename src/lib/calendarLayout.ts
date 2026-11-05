@@ -1,7 +1,10 @@
+const BREED_LINE_PX = 18
+
 export function contentMinHeightPx(input: {
   serviceCount: number
   hasNote: boolean
   hasMark: boolean
+  hasBreed?: boolean
   compact: boolean
 }): number {
   if (input.compact) {
@@ -14,6 +17,7 @@ export function contentMinHeightPx(input: {
   let height = 16 + name
   if (input.hasMark) height += 4 + line
   if (input.serviceCount > 0) height += 4 + service * input.serviceCount
+  if (input.hasBreed) height += 4 + BREED_LINE_PX
   if (input.hasNote) height += 4 + line
   return height
 }

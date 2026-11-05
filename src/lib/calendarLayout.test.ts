@@ -31,6 +31,12 @@ describe('calendarLayout', () => {
     expect(rich).toBe(56 + 40 + 92 + 40)
   })
 
+  it('contentMinHeightPx fa posto alla riga della razza', () => {
+    const senza = contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false })
+    const con = contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, hasBreed: true, compact: false })
+    expect(con).toBe(senza + 22)
+  })
+
   it('contentMinHeightPx riserva due righe da 44px per ogni servizio', () => {
     const one = contentMinHeightPx({ serviceCount: 1, hasNote: false, hasMark: false, compact: false })
     const three = contentMinHeightPx({ serviceCount: 3, hasNote: false, hasMark: false, compact: false })

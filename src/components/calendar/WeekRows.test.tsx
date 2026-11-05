@@ -625,6 +625,43 @@ describe('WeekRows', () => {
     expect(onOpenDay).toHaveBeenCalledWith(sunday)
   })
 
+  it('due cani alla stessa ora restano due card apribili', () => {
+    const { onOpen } = renderWeek({
+      appointments: [visit('a', 'dog-rex', 10), visit('b', 'dog-penny', 10)],
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Apri Rex' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Apri Penny' }))
+    expect(onOpen.mock.calls.map(([id]) => id)).toEqual(['a', 'b'])
+  })
+
+  it('la razza sta sulla riga del servizio, tagliata con i puntini', () => {
+    renderWeek({
+      appointments: [visit('a', 'dog-rex', 10)],
+      dogs: [{ ...rex, breed: 'Cavalier King Charles Spaniel' }],
+    })
+    const card = screen.getByRole('button', { name: 'Apri Rex' })
+    const razza = within(card).getByText('Cavalier King Charles Spaniel')
+    expect(razza.style.textOverflow).toBe('ellipsis')
+    expect(card.style.maxWidth).toBe('100%')
+  })
+
+  it('una visita da confermare mostra comunque la razza', () => {
+    renderWeek({
+      appointments: [{ ...visit('a', 'dog-rex', 10), provvisorio: true }],
+      dogs: [{ ...rex, breed: 'Maltese' }],
+    })
+    expect(within(screen.getByRole('button', { name: 'Apri Rex' })).getByText('Maltese')).toBeInTheDocument()
+  })
+
+  it('senza razza o senza scheda non resta una riga vuota', () => {
+    renderWeek({
+      appointments: [visit('a', 'dog-rex', 10), { ...visit('b', '', 11), ospiteNome: 'Fido' }],
+      dogs: [{ ...rex, breed: ' ' }],
+    })
+    expect(screen.getByRole('button', { name: 'Apri Rex' }).querySelector('[data-razza]')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Apri Fido' }).querySelector('[data-razza]')).toBeNull()
+  })
+
   it('con tre cani tiene le card', () => {
     renderWeek()
     expect(screen.getAllByRole('button', { name: /^Apri / }).length).toBeGreaterThan(0)

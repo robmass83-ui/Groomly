@@ -62,6 +62,13 @@ export function dogMark(dog: Dog, peers: Dog[]): string | null {
   return line
 }
 
+/** La razza da scrivere sulla visita: vuota per chi non ha scheda o razza, e quando la riga degli omonimi la dice già. */
+export function razzaDaMostrare(dog: Dog | undefined, mark: string | null): string {
+  const razza = dog?.breed?.trim() ?? ''
+  if (razza === '' || (mark && normalizeSearch(mark).includes(normalizeSearch(razza)))) return ''
+  return razza
+}
+
 function birthYearOf(dog: Dog): number | undefined {
   const value = (dog as { birthYear?: unknown }).birthYear
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined

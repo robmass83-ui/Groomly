@@ -46,7 +46,7 @@ import {
   type CalendarVista,
 } from '../lib/calendarView'
 import { contentMinHeightPx, daySegments, EMPTY_HOUR_PX, topEtichettaChiusura, yAtMinute, type DayLayoutItem, type DaySegment } from '../lib/calendarLayout'
-import { dogMark, normalizeSearch } from '../lib/dogList'
+import { dogMark, normalizeSearch, razzaDaMostrare } from '../lib/dogList'
 import { hasExtraNotes } from '../lib/dogNotes'
 import { oraRoma } from '../lib/disponibilita'
 import { formatCompactDuration, splitCritical } from '../lib/display'
@@ -59,7 +59,7 @@ import { formatHomeDate, opzioniDate } from '../lib/format'
 import { nomeCaneVisita } from '../lib/nomeCaneVisita'
 import { eventLayout, serviceTone } from '../lib/uiStyle'
 import { SIZES } from '../theme/sizes'
-import { USER_TEXT } from '../theme/text'
+import { RIGA_RAZZA, USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
 import type { FlagKey } from '../assets/icons/icons'
 import type { Appointment, Dog, Service, ServiceIconKey } from '../types/models'
@@ -253,6 +253,7 @@ function dayScaleItems(rows: DayPiece[], dogs: Dog[], activeDogs: Dog[], mode: M
       serviceCount: appointment.services.length,
       hasNote: Boolean(note) || hasExtraNotes(appointment.extraNotes),
       hasMark: Boolean(mark) && mode === 'giorno',
+      hasBreed: mode === 'giorno' && razzaDaMostrare(dog, mark) !== '',
       compact: false,
     })
     return { durationMin, contentMinPx }
@@ -565,6 +566,7 @@ function AppointmentBlock({
     )
   } else if (mode === 'giorno') {
     const roomy = height >= DAY_CHIP_MIN_SLOT
+    const razza = razzaDaMostrare(dog, mark)
     content = (
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, minWidth: 0, width: '100%' }}>
         <span style={{ display: 'flex', alignItems: 'flex-start', flexWrap: 'nowrap', gap: 6, minWidth: 0, width: '100%' }}>
@@ -580,6 +582,7 @@ function AppointmentBlock({
             {t(lingua, 'agendaDaConfermare', { ora: oraEntro(appointment.scadeIl) })}
           </span>
         ) : roomy && appointment.services.length > 0 ? <DayChipLine lines={appointment.services} services={services} /> : null}
+        {roomy && razza ? <span data-razza="" style={{ ...RIGA_RAZZA, width: '100%', color: 'var(--tx2)', fontSize: TYPE.meta }}>{razza}</span> : null}
         {roomy && (note || hasExtra) ? (
           <span style={{ display: 'block', fontSize: TYPE.meta, minWidth: 0, maxWidth: '100%' }}>
             <NoteAltro note={note} altro={hasExtra} muted={gray} />
