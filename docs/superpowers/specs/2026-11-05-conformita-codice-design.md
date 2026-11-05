@@ -115,7 +115,8 @@ Lo stesso codice serve anche la riparazione del salone, dove la casella non si v
 
 **Classificazione.**
 - Di servizio, senza link: verifica, reset, eliminazione, fine beta, revoca beta, annuncio pagamenti.
-- Promozionali: inviti a Plus e Salon, novità, Comunicazioni della Console.
+- Dirette, senza controllo del consenso (decisione dell'utente): inviti alla beta, mandati dall'operatore a un salone scelto. Nel blocco 4 il professionista conferma questa scelta.
+- Promozionali: novità, offerte su Plus e Salon, Comunicazioni della Console.
 
 ## Voce 2 — Esportazione
 
@@ -167,4 +168,3 @@ Scelte mie, non dell'utente:
 - Numero unico di versione per tutti i documenti.
 - `List-Unsubscribe` semplice, senza disiscrizione a un clic: serve un endpoint in più ed è richiesta solo per grandi volumi.
 - Fine beta e revoca beta restano di servizio.
-- **Gli inviti alla beta seguono il consenso promozionale.** Con tutti gli account spenti l'email non partirebbe e resterebbe solo la scheda dentro l'app. Da confermare.
