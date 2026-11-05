@@ -2,6 +2,7 @@ node_modules
 functions/lib
 functions/.env
 dist
+dist-admin
 .tmp-kit
 .env.local
 android/keystore.properties

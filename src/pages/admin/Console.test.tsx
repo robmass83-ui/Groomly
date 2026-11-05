@@ -2,22 +2,21 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { App } from '../app/App'
-import { AppError } from '../data/errors'
-import { createAccount, getAccount } from '../data/local/auth'
-import { storageKeys, writeJson } from '../data/local/storage'
-import type { SuggerimentoArrivato } from '../data/firebase/client'
+import { App } from '../../app/App'
+import { AppError } from '../../data/errors'
+import { createAccount, getAccount } from '../../data/local/auth'
+import { storageKeys, writeJson } from '../../data/local/storage'
 
 const tourMock = vi.hoisted(() => ({ acceso: false, imposta: vi.fn(async (_acceso: boolean) => undefined) }))
 
 const admin = vi.hoisted(() => ({
   contatori: vi.fn(async (): Promise<unknown> => ({})),
 }))
-vi.mock('../data/firebase/adminClient', async () => {
-  const actual = await vi.importActual<typeof import('../data/firebase/adminClient')>('../data/firebase/adminClient')
+vi.mock('../../data/firebase/adminClient', async () => {
+  const actual = await vi.importActual<typeof import('../../data/firebase/adminClient')>('../../data/firebase/adminClient')
   return {
     ...actual,
-    callContatoriAdmin: async () => (await import('../lib/adminManager')).contatoriDi(await admin.contatori()),
+    callContatoriAdmin: async () => (await import('../../lib/adminManager')).contatoriDi(await admin.contatori()),
     elencoInvitiBeta: async () => [],
     elencoFeedbackBeta: async () => [],
     storicoInvitoBeta: async () => [],
@@ -32,11 +31,11 @@ const directory = vi.hoisted(() => ({
   load: vi.fn(),
   setPro: vi.fn(async (_salonId?: string, _enabled?: boolean) => undefined),
   imposta: vi.fn(async (_salonId?: string, _azione?: string, _testo?: string) => ({ ok: true as const, emailStato: null as 'inviata' | 'non_inviata' | null })),
-  elenco: vi.fn(async () => [] as SuggerimentoArrivato[]),
+  elenco: vi.fn(async () => [] as unknown[]),
   elimina: vi.fn(async (_salonId: string) => undefined),
 }))
-vi.mock('../data/firebase/client', async () => {
-  const actual = await vi.importActual<typeof import('../data/firebase/client')>('../data/firebase/client')
+vi.mock('../../data/firebase/client', async () => {
+  const actual = await vi.importActual<typeof import('../../data/firebase/client')>('../../data/firebase/client')
   return {
     ...actual,
     listSalonDirectory: (...args: unknown[]) => directory.load(...args),
@@ -50,11 +49,6 @@ vi.mock('../data/firebase/client', async () => {
   }
 })
 
-const NOTE: SuggerimentoArrivato[] = [
-  { id: '1', email: 'a@a.it', categoria: 'agenda', testo: 'Orari più tardi', salonId: 'ada', creato: Date.parse('2026-10-27T10:00:00') },
-  { id: '2', email: 'b@b.it', categoria: 'agenda', testo: '  orari   più   tardi ', salonId: 'leo', creato: Date.parse('2026-10-26T10:00:00') },
-  { id: '3', email: 'c@c.it', categoria: 'bug', testo: 'Si blocca', salonId: 'ada', creato: Date.parse('2026-10-25T10:00:00') },
-]
 
 // Testo della scheda del piano attivo.
 function pianoAttivo(): string {
@@ -111,7 +105,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
   it('mostra l’Admin Manager all’admin senza il campione delle email', async () => {
     await accountAdmin()
     render(<App memory isDev={false} initialPath="/admin" />)
-    expect(await screen.findByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Panoramica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Spedisci il campione delle email' })).not.toBeInTheDocument()
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
   })
@@ -122,8 +116,8 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     expect(screen.queryByText('Spedisci il campione delle email')).not.toBeInTheDocument()
-    expect(await screen.findByRole('heading', { name: 'Admin Manager' })).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    expect(await screen.findByRole('heading', { name: 'Panoramica' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     expect(await screen.findByText('Elenco non disponibile')).toBeInTheDocument()
     expect(screen.queryByText('Connessione assente')).not.toBeInTheDocument()
   })
@@ -139,7 +133,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     expect(await screen.findByText('2 account creati · 1 toelettatura creata')).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     expect(screen.getByText('Ada Neri')).toBeInTheDocument()
     expect(screen.getByText('Pelo Lungo Quattro Parole')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Ada Neri/ })).not.toBeInTheDocument()
@@ -169,7 +163,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     expect(screen.queryByText('Shared')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Attiva Salon per Laura Masala' })).not.toBeInTheDocument()
 
@@ -235,7 +229,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     await user.click(await screen.findByRole('button', { name: 'Attiva Plus per Ada Neri' }))
     await user.click(screen.getByRole('button', { name: 'Conferma' }))
@@ -261,7 +255,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     await screen.findByRole('button', { name: 'Attiva Salon per Ada Neri' })
     expect(screen.queryByRole('button', { name: 'Attiva Salon per Leo Verdi' })).not.toBeInTheDocument()
@@ -303,7 +297,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     expect(await screen.findByText('4 account creati · 2 toelettature create')).toBeInTheDocument()
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     expect(screen.getByText('Laura')).toBeInTheDocument()
 
     expect(screen.queryByRole('heading', { name: 'Servizio Plus' })).not.toBeInTheDocument()
@@ -346,7 +340,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     expect(screen.queryByText('Senza nome')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'I Pelosetti, Laura' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Troddioni, Troddioni' })).toBeInTheDocument()
@@ -372,7 +366,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: 'Bauci, Ada Neri' }))
     expect(pianoAttivo()).toContain('Salon · VIP')
     await user.click(screen.getByRole('button', { name: 'Torna a Go per Ada Neri' }))
@@ -401,7 +395,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     })
     render(<App memory isDev={false} initialPath="/admin" />)
     await screen.findByText(/account creat/)
-    await user.click(screen.getByRole('tab', { name: /Saloni/ }))
+    await user.click(screen.getByRole('link', { name: /Saloni/ }))
     await user.click(screen.getByRole('button', { name: pulsante }))
   }
 
@@ -578,77 +572,11 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     })
   })
 
-  it('raggruppa i suggerimenti, li segna e li tiene tra i visti', async () => {
-    await accountAdmin()
-    directory.load.mockResolvedValue({
-      accountCount: 2,
-      salonCount: 2,
-      entries: [
-        { uid: 'ada', ownerName: 'Ada Neri', salonName: 'Bauci' },
-        { uid: 'leo', ownerName: 'Leo Verdi', salonName: 'Pelo' },
-      ],
-      pro: [
-        { uid: 'ada', salonId: 'ada', enabled: false },
-        { uid: 'leo', salonId: 'leo', enabled: false },
-      ],
-    })
-    directory.elenco.mockResolvedValue(NOTE)
-    const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/admin" />)
-    await user.click(await screen.findByRole('tab', { name: /Suggerimenti/ }))
-    expect(await screen.findByText('3 arrivati')).toBeInTheDocument()
-    const agenda = screen.getByRole('button', { name: 'Agenda, orari o appuntamenti, 2' })
-    expect(agenda).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '2' })).not.toBeInTheDocument()
-    expect(agenda.compareDocumentPosition(screen.getByRole('button', { name: 'Qualcosa non funziona, 1' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    const etichetta = within(agenda).getByText('Agenda, orari o appuntamenti')
-    expect(etichetta.getAttribute('style') ?? '').toContain('overflow-wrap: anywhere')
-
-    await user.click(agenda)
-    expect(screen.getAllByRole('button', { name: /Orari più tardi/ })).toHaveLength(1)
-    expect(await screen.findByText(/2 toelettature/)).toBeInTheDocument()
-    expect(screen.getByText(/Bauci e altri 1/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /Orari più tardi/ }))
-    expect(screen.getByText(/a@a.it · Bauci/)).toBeInTheDocument()
-    expect(screen.getByText(/b@b.it · Pelo/)).toBeInTheDocument()
-
-    const dialogo = screen.getByRole('button', { name: 'Esporta' })
-    await user.click(dialogo)
-    const finestra = screen.getByRole('dialog', { name: 'Esporta' })
-    expect(within(finestra).getByRole('radio', { name: 'Tutti, anche i visti' })).toBeInTheDocument()
-    expect(within(finestra).getByRole('radio', { name: 'Excel' })).toBeInTheDocument()
-    expect(within(finestra).getByText('2 persone')).toBeInTheDocument()
-    expect(within(finestra).getByText(/Excel ha una riga per ogni persona/)).toBeInTheDocument()
-    await user.click(within(finestra).getByRole('button', { name: 'Annulla' }))
-
-    await user.click(screen.getByRole('button', { name: 'Segna come interessante' }))
-    expect(screen.getByText('Niente da vedere')).toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: /Interessanti/ }))
-    expect(screen.getByText('Orari più tardi')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Togli il segno' }))
-    await user.click(screen.getByRole('radio', { name: /Da vedere/ }))
-    expect(screen.getByText('Orari più tardi')).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Indietro' }))
-    await user.click(screen.getByRole('button', { name: 'Qualcosa non funziona, 1' }))
-    await user.click(screen.getByRole('button', { name: 'Visto' }))
-    expect(screen.getByText('Niente da vedere')).toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: /Visti/ }))
-    expect(screen.getByText('Si blocca')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Segna come interessante' }))
-    await user.click(screen.getByRole('radio', { name: /Interessanti/ }))
-    expect(screen.getByText('Si blocca')).toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: /Visti/ }))
-    expect(screen.queryByText('Si blocca')).not.toBeInTheDocument()
-    expect(screen.getByText('Nessuno visto')).toBeInTheDocument()
-  })
-
   it('mostra l’interruttore del tour e lo accende con callImpostaTour(true)', async () => {
     await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
-    expect(await screen.findByText('Impostazioni utenti')).toBeInTheDocument()
+    render(<App memory isDev={false} initialPath="/admin/sistema" />)
     const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
     expect(interruttore).toHaveAttribute('aria-checked', 'false')
     await user.click(interruttore)
@@ -662,7 +590,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
+    render(<App memory isDev={false} initialPath="/admin/sistema" />)
     const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
     expect(interruttore).toHaveAttribute('aria-checked', 'true')
     await user.click(interruttore)
@@ -677,7 +605,7 @@ describe('Admin Manager: funzioni di Utenti Groomly', () => {
     await accountAdmin()
     directory.load.mockRejectedValue(new AppError('Connessione assente', 'auth_offline'))
     const user = userEvent.setup()
-    render(<App memory isDev={false} initialPath="/impostazioni/utenti" />)
+    render(<App memory isDev={false} initialPath="/admin/sistema" />)
     const interruttore = await screen.findByRole('switch', { name: 'Tour di benvenuto per i nuovi iscritti' })
     await user.click(interruttore)
     await user.click(interruttore)

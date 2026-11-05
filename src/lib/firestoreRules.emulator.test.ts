@@ -485,6 +485,43 @@ describe('regole Firestore sull’emulatore', () => {
     const titolare = env.authenticatedContext(ALTRO).firestore()
     await assertSucceeds(deleteDoc(doc(titolare, 'salons', SALON, 'coda', 'riga-1')))
   })
+  it.each(['assistenza', 'assistenzaModelli', 'comunicazioni'])('%s: legge solo l’admin, nessun client scrive', async (raccolta) => {
+    const admin = env.authenticatedContext('uid-admin', { admin: true }).firestore()
+    const salone = env.authenticatedContext(ALTRO).firestore()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), raccolta, 'v1'), { stato: 'nuovo' })
+    })
+    await assertSucceeds(getDoc(doc(admin, raccolta, 'v1')))
+    await assertFails(getDoc(doc(salone, raccolta, 'v1')))
+    await assertFails(setDoc(doc(admin, raccolta, 'v2'), { stato: 'nuovo' }))
+    await assertFails(deleteDoc(doc(admin, raccolta, 'v1')))
+  })
+
+  it('invii delle comunicazioni: legge solo l’admin', async () => {
+    const admin = env.authenticatedContext('uid-admin', { admin: true }).firestore()
+    const salone = env.authenticatedContext(ALTRO).firestore()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'comunicazioni', 'c1', 'invii', ALTRO), { esito: 'inviata' })
+    })
+    await assertSucceeds(getDoc(doc(admin, 'comunicazioni', 'c1', 'invii', ALTRO)))
+    await assertFails(getDoc(doc(salone, 'comunicazioni', 'c1', 'invii', ALTRO)))
+    await assertFails(setDoc(doc(admin, 'comunicazioni', 'c1', 'invii', 'altro'), { esito: 'inviata' }))
+  })
+
+  it('avvisi per account: li legge solo l’account, nessun client li scrive', async () => {
+    const proprio = env.authenticatedContext(ALTRO).firestore()
+    const estraneo = env.authenticatedContext(COLLAB).firestore()
+    const admin = env.authenticatedContext('uid-admin', { admin: true }).firestore()
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'accounts', ALTRO, 'avvisi', 'p1'), { tipo: 'novita', titolo: 'Risposta', testo: 'Ciao', creato: new Date() })
+    })
+    await assertSucceeds(getDocs(collection(proprio, 'accounts', ALTRO, 'avvisi')))
+    await assertFails(getDocs(collection(estraneo, 'accounts', ALTRO, 'avvisi')))
+    await assertFails(getDocs(collection(admin, 'accounts', ALTRO, 'avvisi')))
+    await assertFails(setDoc(doc(proprio, 'accounts', ALTRO, 'avvisi', 'p2'), { titolo: 'Finto' }))
+    await assertFails(deleteDoc(doc(proprio, 'accounts', ALTRO, 'avvisi', 'p1')))
+  })
+
   it('avvisi di sistema: tutti leggono, nessun client scrive, il segno di lettura sta sull’account', async () => {
     const roberto = env.authenticatedContext(ROBERTO, { email: 'masala.roberto@hotmail.it', email_verified: true, admin: true }).firestore()
     const salone = env.authenticatedContext(ALTRO).firestore()

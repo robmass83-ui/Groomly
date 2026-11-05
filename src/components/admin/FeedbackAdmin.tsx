@@ -75,13 +75,11 @@ export function FeedbackAdmin({
   pronti,
   errore,
   nomeDi,
-  onApri,
 }: {
   feedback: readonly FeedbackLetto[]
   pronti: boolean
   errore: boolean
   nomeDi: (salonId: string) => string
-  onApri: (salonId: string) => void
 }) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
@@ -208,10 +206,6 @@ export function FeedbackAdmin({
           </Card>
 
           <Button variant="secondary" style={{ width: '100%' }} onClick={() => { setEsportaKo(false); setEsporta(true) }}>{frasi.amEsporta}</Button>
-
-          <Card>
-            {visibili.map((f, i) => <RigaFeedback key={f.id} feedback={f} nome={nomeDi(f.salonId)} primo={i === 0} onApri={() => onApri(f.salonId)} />)}
-          </Card>
         </>
       )}
       <Dialog open={esporta} title={frasi.amEsporta} onClose={() => setEsporta(false)}>

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:admin": "tsc --noEmit && vite build --mode admin && node scripts/controlla-bundle-admin.mjs",
+    "deploy:admin": "npm run build:admin && firebase deploy --only hosting:admin",
     "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:rules": "node scripts/test-rules-emulator.mjs",

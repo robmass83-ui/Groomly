@@ -105,6 +105,12 @@ service cloud.firestore {
       allow create, update: if signedIn() && request.auth.uid == uid && pushDeviceOk();
     }
 
+    // Risposte di Assistenza e comunicazioni mirate: le scrivono solo le Cloud Functions.
+    match /accounts/{uid}/avvisi/{id} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     match /pushDeliveries/{id} {
       allow read, write: if false;
     }
@@ -343,6 +349,27 @@ service cloud.firestore {
     // Comunicazioni di Groomly a tutti i saloni: le legge ogni account, le scrivono solo le Cloud Functions.
     match /avvisiSistema/{id} {
       allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Console: stato delle richieste, risposte rapide e storico delle comunicazioni. Li scrivono solo le Cloud Functions.
+    match /assistenza/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
+    match /assistenzaModelli/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
+    match /comunicazioni/{id} {
+      allow read: if isOperator();
+      allow write: if false;
+    }
+
+    match /comunicazioni/{id}/invii/{uid} {
+      allow read: if isOperator();
       allow write: if false;
     }
 

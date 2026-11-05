@@ -16,11 +16,12 @@ import { vociAvvisami, type ContatoriAdmin, type VoceDaFare } from '../../lib/ad
 import type { StatoInvitoBeta } from '../../lib/betaInvito'
 import type { FasciaPrezzo } from '../../lib/betaFeedback'
 import type { LivelloElenco } from '../../lib/funzioniPiano'
+import { TETTO_EMAIL_GIORNO } from '../../lib/promemoriaEmail'
 import { eFeature, type FeatureKey } from '../../lib/piano'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, COLORI_LIVELLO, NOME, RIGA, type Frasi } from './comuni'
 
-export type ApriTab = (tab: 'beta' | 'feedback' | 'suggerimenti' | 'saloni', stato?: string) => void
+export type ApriTab = (tab: 'beta' | 'feedback' | 'assistenza' | 'saloni', stato?: string) => void
 
 const TITOLO_FUNZIONE: Record<FeatureKey, Chiave> = {
   export: 'pwExportTitolo',
@@ -74,7 +75,6 @@ function Numero({ valore, etichetta, colore, onClick }: { valore: number; etiche
 }
 
 export function PanoramicaAdmin({
-  tour,
   contatori,
   errore,
   onRiprova,
@@ -85,8 +85,6 @@ export function PanoramicaAdmin({
   onEstendi30,
   riepilogoAccount,
 }: {
-  /** Da config/globale: l'admin non ha il salone da cui `usePiano` la legge. Finché manca, niente interruttore. */
-  tour?: ConfigTour
   contatori: ContatoriAdmin | null
   errore: boolean
   onRiprova: () => void
@@ -119,15 +117,10 @@ export function PanoramicaAdmin({
         ),
       }
     }
-    if (voce.tipo === 'feedback') {
-      const paga = voce.pagheresti === 'no' ? frasi.amNonPagherebbe : frasi.amPagherebbeBreve.replace('{{fascia}}', voce.quanto ? nomeFascia(frasi, voce.quanto) : (voce.pagheresti === 'si' ? frasi.amSi : frasi.amForse).toLowerCase())
-      return {
-        titolo: frasi.amNuovoFeedback.replace('{{salone}}', nomeDi(voce.salonId)),
-        aiuto: `${voce.voto} ★ · ${paga}`,
-        azione: () => apri('feedback'),
-      }
+    if (voce.tipo === 'assistenza') {
+      return { titolo: voce.n === 1 ? frasi.consRichiestaNuova : frasi.consRichiesteNuove.replace('{{n}}', String(voce.n)), azione: () => apri('assistenza') }
     }
-    return { titolo: voce.n === 1 ? frasi.amSuggerimentoDaVedere : frasi.amSuggerimentiDaVedere.replace('{{n}}', String(voce.n)), azione: () => apri('suggerimenti') }
+    return { titolo: voce.n === 1 ? frasi.consSaloneNuovo : frasi.consSaloniNuovi.replace('{{n}}', String(voce.n)), azione: () => apri('saloni') }
   }
 
   return (
@@ -176,6 +169,7 @@ export function PanoramicaAdmin({
       </Card>
 
       {contatori ? <BloccoSaloni contatori={contatori} riepilogoAccount={riepilogoAccount} /> : null}
+      {contatori ? <span style={AIUTO}>{frasi.consEmailOggi.replace('{{n}}', String(contatori.emailOggi)).replace('{{tetto}}', String(TETTO_EMAIL_GIORNO))}</span> : null}
       {contatori ? <BloccoAvvisami avvisami={contatori.avvisami} /> : null}
 
       {contatori ? (
@@ -196,8 +190,6 @@ export function PanoramicaAdmin({
         </>
       ) : null}
 
-      <SectionTitle>{frasi.uteImpostazioniUtenti}</SectionTitle>
-      {tour ? <CardTour tour={tour} /> : null}
     </>
   )
 }
@@ -277,7 +269,7 @@ function BloccoAvvisami({ avvisami }: { avvisami: Record<string, number> }) {
 }
 
 // Tour di benvenuto: la logica ottimistica di «Utenti Groomly», invariata.
-function CardTour({ tour }: { tour: ConfigTour }) {
+export function CardTour({ tour }: { tour: ConfigTour }) {
   const frasi = useFrasi()
   const toast = useToast()
   const [tourOttimistico, setTourOttimistico] = useState<boolean | null>(null)

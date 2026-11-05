@@ -31,9 +31,9 @@ describe('configurazione Firebase', () => {
 
   it('la pagina azione sta su groomlyapp.it e non cita firebaseapp.com', () => {
     const hosting = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as {
-      hosting?: { rewrites?: { source: string; destination?: string; function?: { functionId: string; region: string } }[] }
+      hosting: { target: string; rewrites?: { source: string; destination?: string; function?: { functionId: string; region: string } }[] }[]
     }
-    expect(hosting.hosting?.rewrites).toEqual([
+    expect(hosting.hosting.find((sito) => sito.target === 'pubblico')?.rewrites).toEqual([
       { source: '/azione', destination: '/azione/index.html' },
       { source: '/s/pagina.js', destination: '/s/pagina.js' },
       { source: '/s/**', function: { functionId: 'paginaPubblica', region: 'europe-west1' } },
@@ -67,8 +67,8 @@ describe('configurazione Firebase', () => {
   })
 
   it('il sito non offre mai l’APK: l’aggiornamento arriva dalla release GitHub', () => {
-    const config = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as { hosting: { ignore: string[] } }
-    expect(config.hosting.ignore).toContain('**/*.apk')
+    const config = JSON.parse(readFileSync(resolve(root, 'firebase.json'), 'utf8')) as { hosting: { target: string; ignore: string[] }[] }
+    expect(config.hosting.find((sito) => sito.target === 'pubblico')?.ignore).toContain('**/*.apk')
     const release = JSON.parse(readFileSync(resolve(root, 'hosting/release.json'), 'utf8')) as { version: string; url: string }
     expect(release.url).toBe(`https://github.com/robmass83-ui/Groomly/releases/download/v${release.version}/groomly.apk`)
     for (const pagina of ['index.html', 'privacy.html', 'privacy/index.html', 'termini/index.html', 'dpa/index.html', 'elimina-account/index.html', 'azione/index.html', 'c/index.html', 'salone/index.html', 'lingua-pagina.js']) {

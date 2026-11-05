@@ -178,17 +178,16 @@ export function filtraSaloni(righe: readonly RigaLista[], filtri: Filtri, adesso
 export type VoceDaFare =
   | { tipo: 'invito-scade'; salonId: string; giorni: number }
   | { tipo: 'beta-finisce'; salonId: string; data: string; giorni: number }
-  | { tipo: 'feedback'; salonId: string; feedbackId: string; voto: number; pagheresti: Pagheresti; quanto: FasciaPrezzo | null }
-  | { tipo: 'suggerimenti'; n: number }
+  | { tipo: 'assistenza'; n: number }
+  | { tipo: 'nuovi-saloni'; n: number }
 
 export const MAX_DA_FARE = 5
 
 export function daFareOggi(input: {
   inviti: readonly InvitoBeta[]
   fineBeta: Readonly<Record<string, string>>
-  feedback: readonly FeedbackLetto[]
-  feedbackVisti: ReadonlySet<string>
-  suggerimentiDaVedere: number
+  richiesteNuove: number
+  nuoviSaloni: number
 }, adesso: Date): VoceDaFare[] {
   const scadenze: VoceDaFare[] = []
   for (const invito of input.inviti) {
@@ -205,11 +204,9 @@ export function daFareOggi(input: {
     }
   }
   scadenze.sort((a, b) => ('giorni' in a ? a.giorni : 0) - ('giorni' in b ? b.giorni : 0))
-  const nuovi: VoceDaFare[] = input.feedback
-    .filter((f) => !input.feedbackVisti.has(f.id) && adesso.getTime() - Date.parse(f.creatoIl) < 3 * GIORNO)
-    .map((f) => ({ tipo: 'feedback', salonId: f.salonId, feedbackId: f.id, voto: f.voto, pagheresti: f.pagheresti, quanto: f.quanto }))
-  const voci = [...scadenze, ...nuovi]
-  if (input.suggerimentiDaVedere > 0) voci.push({ tipo: 'suggerimenti', n: input.suggerimentiDaVedere })
+  const voci = [...scadenze]
+  if (input.richiesteNuove > 0) voci.push({ tipo: 'assistenza', n: input.richiesteNuove })
+  if (input.nuoviSaloni > 0) voci.push({ tipo: 'nuovi-saloni', n: input.nuoviSaloni })
   return voci.slice(0, MAX_DA_FARE)
 }
 
@@ -335,6 +332,9 @@ export type ContatoriAdmin = {
   inBeta: number | null
   /** Attività (e città, se arriva) per salone: da `ultimoAccesso` di B1 o da `perSalone`. Null se il server non manda nessuno dei due. */
   perSalone: Record<string, InfoSalone> | null
+  emailOggi: number
+  nuoviSaloni: string[]
+  feedbackOrfani: number
 }
 
 function numero(value: unknown): number {
@@ -391,6 +391,9 @@ export function contatoriDi(data: unknown): ContatoriAdmin {
     feedback: { totali: numero(feedback.totali), pagheresti: conteggi(PAGHERESTI, feedback.pagheresti) },
     inBeta: typeof d.inBeta === 'number' && Number.isFinite(d.inBeta) && d.inBeta >= 0 ? d.inBeta : null,
     perSalone,
+    emailOggi: numero(d.emailOggi),
+    nuoviSaloni: Array.isArray(d.nuoviSaloni) ? d.nuoviSaloni.filter((id): id is string => typeof id === 'string') : [],
+    feedbackOrfani: numero(d.feedbackOrfani),
   }
 }
 

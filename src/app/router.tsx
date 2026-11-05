@@ -63,8 +63,8 @@ import { AperturaFineBeta } from '../components/beta/AperturaFineBeta'
 import { PaywallPiano, usePiano } from '../hooks/usePiano'
 import { haAccesso } from '../lib/piano'
 import { useFrasi } from '../i18n/LinguaContext'
-import { AdminManagerPage } from '../pages/AdminManagerPage'
-import { PERCORSO_ADMIN, PERCORSO_AVVISI_ADMIN, percorsoAdminDaUtenti } from '../lib/percorsoAdmin'
+import { adminRoutes } from './adminRoutes'
+import { PERCORSO_ADMIN, percorsoAdminDaVecchio } from '../lib/percorsoAdmin'
 import { TourPage } from '../pages/TourPage'
 
 function Guard({ children }: { children: ReactElement }) {
@@ -169,14 +169,9 @@ function SheetLayer({ pageRoutes, sheetRoutes }: { pageRoutes: RouteObject[]; sh
 }
 
 // «Utenti Groomly» è diventato l'Admin Manager: i link vecchi restano validi.
-function VecchiUtenti() {
+function VecchiLinkAdmin() {
   const { search } = useLocation()
-  return <Navigate to={percorsoAdminDaUtenti(search)} replace />
-}
-
-function VecchioAdminManager() {
-  const { search } = useLocation()
-  return <Navigate to={`${PERCORSO_ADMIN}${search}`} replace />
+  return <Navigate to={percorsoAdminDaVecchio(search)} replace />
 }
 
 function StoricoAggiornamenti() {
@@ -224,10 +219,9 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/impostazioni/notifiche', element: <Guard><NotificationsPage /></Guard> },
     { path: '/impostazioni/avvisi', element: <Guard><AvvisiSistemaPage /></Guard> },
     { path: '/impostazioni/aggiornamenti', element: <Guard><StoricoAggiornamenti /></Guard> },
-    { path: '/impostazioni/admin-manager', element: <VecchioAdminManager /> },
-    { path: PERCORSO_ADMIN, element: <AdminGuard><AdminManagerPage /></AdminGuard> },
-    { path: PERCORSO_AVVISI_ADMIN, element: <AdminGuard><AvvisiSistemaPage /></AdminGuard> },
-    { path: '/impostazioni/utenti', element: <VecchiUtenti /> },
+    { path: '/impostazioni/admin-manager', element: <VecchiLinkAdmin /> },
+    ...adminRoutes((pagina) => <AdminGuard>{pagina}</AdminGuard>),
+    { path: '/impostazioni/utenti', element: <VecchiLinkAdmin /> },
     { path: '/impostazioni/privacy', element: <Guard><PrivacyPage /></Guard> },
     { path: '/benvenuto', element: <Guard><StaffSettings><TourPage /></StaffSettings></Guard> },
     { path: '/impostazioni/account/elimina', element: <Guard><EliminaAccountPage /></Guard> },

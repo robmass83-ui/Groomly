@@ -14,8 +14,14 @@ vi.mock('../hooks/useSession', async (importOriginal) => ({
   ...await importOriginal<typeof import('../hooks/useSession')>(),
   useSession: () => sessione.valore,
 }))
-vi.mock('../pages/AdminManagerPage', () => ({ AdminManagerPage: () => <p>manager</p> }))
-vi.mock('../pages/AvvisiSistemaPage', () => ({ AvvisiSistemaPage: () => <p>avvisi</p> }))
+vi.mock('../pages/admin/PanoramicaPage', () => ({ PanoramicaPage: () => <p>manager</p> }))
+vi.mock('../pages/admin/ComunicazioniPage', () => ({ ComunicazioniPage: () => <p>comunicazioni</p> }))
+vi.mock('../pages/admin/SaloniPage', () => ({ SaloniPage: () => <p>saloni</p> }))
+vi.mock('../components/admin/AdminDati', () => ({ AdminDatiProvider: ({ children }: { children: ReactElement }) => children }))
+vi.mock('../components/admin/AdminLayout', async () => {
+  const { Outlet } = await import('react-router-dom')
+  return { AdminLayout: () => <Outlet /> }
+})
 vi.mock('../pages/HomePage', () => ({
   HomePage: () => {
     sessione.salone()
@@ -70,16 +76,20 @@ describe('rotte admin', () => {
   })
 
   it('dal login l’admin torna alla pagina admin ricordata', () => {
-    ricordaDestinazione('/admin?tab=feedback')
-    expect(apri('/login', ADMIN)).toBe('/admin?tab=feedback')
+    ricordaDestinazione('/admin/saloni')
+    expect(apri('/login', ADMIN)).toBe('/admin/saloni')
   })
 
-  it('gli avvisi si aprono dentro /admin', () => {
-    expect(apri('/admin/avvisi', ADMIN)).toBe('/admin/avvisi')
-    expect(screen.getByText('avvisi')).toBeInTheDocument()
+  it('i vecchi avvisi admin portano a Comunicazioni', () => {
+    expect(apri('/admin/avvisi', ADMIN)).toBe('/admin/comunicazioni')
+    expect(screen.getByText('comunicazioni')).toBeInTheDocument()
   })
 
-  it.each(['/admin', '/admin/avvisi'])('chi ha un salone su %s torna alla Home', (indirizzo) => {
+  it('un indirizzo admin sconosciuto porta alla Panoramica', () => {
+    expect(apri('/admin/metriche', ADMIN)).toBe('/admin')
+  })
+
+  it.each(['/admin', '/admin/avvisi', '/admin/saloni'])('chi ha un salone su %s torna alla Home', (indirizzo) => {
     expect(apri(indirizzo, SALONE)).toBe('/')
     expect(screen.getByText('home del salone')).toBeInTheDocument()
   })
@@ -89,9 +99,9 @@ describe('rotte admin', () => {
   })
 
   it('i vecchi link conservano i parametri', () => {
-    expect(apri('/impostazioni/admin-manager?tab=saloni&id=x', ADMIN)).toBe('/admin?tab=saloni&id=x')
+    expect(apri('/impostazioni/admin-manager?tab=saloni', ADMIN)).toBe('/admin/saloni')
     cleanup()
-    expect(apri('/impostazioni/utenti?zona=note', ADMIN)).toBe('/admin?tab=suggerimenti')
+    expect(apri('/admin?tab=saloni', ADMIN)).toBe('/admin/saloni')
   })
 
   it('un vecchio link aperto da un salone torna alla Home', () => {

@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { firebaseEnabled } from '../data/firebase/enabled'
-import type { AvvisoSistema } from '../lib/avvisiSistema'
+import { unisciAvvisi, type AvvisoSistema } from '../lib/avvisiSistema'
 
-/** Avvisi di Groomly e segno di lettura dell'account. Senza cloud non ci sono avvisi. */
+/** Avvisi di Groomly, a tutti e del solo account, e segno di lettura dell'account. Senza cloud non ci sono avvisi. */
 export function useAvvisiSistema(uid: string): { avvisi: AvvisoSistema[]; lettiFino: number; pronti: boolean; segnaLetti: (fino: number) => void } {
-  const [avvisi, setAvvisi] = useState<AvvisoSistema[]>([])
+  const [globali, setGlobali] = useState<AvvisoSistema[]>([])
+  const [propri, setPropri] = useState<AvvisoSistema[]>([])
   const [lettiFino, setLettiFino] = useState(0)
   const [avvisiPronti, setAvvisiPronti] = useState(false)
   const [lettiPronti, setLettiPronti] = useState(false)
 
   useEffect(() => {
     if (!uid || !firebaseEnabled()) {
-      setAvvisi([])
+      setGlobali([])
+      setPropri([])
       setLettiFino(0)
       setAvvisiPronti(true)
       setLettiPronti(true)
@@ -27,8 +29,11 @@ export function useAvvisiSistema(uid: string): { avvisi: AvvisoSistema[]; lettiF
       .then(async (client) => {
         tieni(await client.listenAvvisiSistema((lista) => {
           if (!vivo) return
-          setAvvisi(lista)
+          setGlobali(lista)
           setAvvisiPronti(true)
+        }))
+        tieni(await client.listenAvvisiAccount(uid, (lista) => {
+          if (vivo) setPropri(lista)
         }))
         tieni(await client.listenAvvisiLetti(uid, (fino) => {
           if (!vivo) return
@@ -54,6 +59,8 @@ export function useAvvisiSistema(uid: string): { avvisi: AvvisoSistema[]; lettiF
       .then((client) => client.segnaAvvisiLetti(uid, fino))
       .catch(() => {})
   }, [uid])
+
+  const avvisi = useMemo(() => unisciAvvisi(globali, propri), [globali, propri])
 
   return { avvisi, lettiFino, pronti: avvisiPronti && lettiPronti, segnaLetti }
 }

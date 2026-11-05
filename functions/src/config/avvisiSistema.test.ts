@@ -23,6 +23,20 @@ describe('pubblicaAvvisoSistemaPer', () => {
     expect(scrivi).toHaveBeenCalledWith({ tipo: 'novita', titolo: 'Grazie', testo: 'Ciao' })
   })
 
+  it('conserva l’italiano in titolo e testo e le traduzioni a parte', async () => {
+    const dati = { ...AVVISO, traduzioni: { de: { titolo: ' Hallo ', testo: ' Text ' } } }
+    const { esito, scrivi } = pubblica({ dati })
+    await esito
+    expect(scrivi).toHaveBeenCalledWith({ tipo: 'novita', titolo: 'Grazie', testo: 'Ciao', traduzioni: { de: { titolo: 'Hallo', testo: 'Text' } } })
+  })
+
+  it('rifiuta una traduzione troppo lunga', async () => {
+    const dati = { ...AVVISO, traduzioni: { de: { titolo: 'x'.repeat(121), testo: 'y' } } }
+    const { esito, scrivi } = pubblica({ dati })
+    await expect(esito).rejects.toThrow('Richiesta non valida')
+    expect(scrivi).not.toHaveBeenCalled()
+  })
+
   it('senza claim nega, senza consumare il limite', async () => {
     const { esito, consentito, scrivi } = pubblica({ admin: false })
     await expect(esito).rejects.toThrow('Accesso negato')

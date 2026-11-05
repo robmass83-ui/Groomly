@@ -38,6 +38,22 @@ describe('contatoriAdminPer', () => {
     archivio.set('betaFeedback/f3', { salonId: 'b', pagheresti: 'si' })
   })
 
+  it('dice quante email sono partite oggi e quali saloni sono nuovi', async () => {
+    archivio.set('sistema/postaGiorno', { giorno: '2026-11-04', n: 120 })
+    archivio.set('accounts/a', { salonId: 'a', role: 'titolare', createdAt: giorniFa(2) })
+    archivio.set('accounts/b', { salonId: 'b', role: 'titolare', createdAt: giorniFa(30) })
+    archivio.set('accounts/a2', { salonId: 'b', role: 'collaboratore', createdAt: giorniFa(1) })
+    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, ultimiAccessi: async () => new Map() })
+    expect(esito.emailOggi).toBe(120)
+    expect(esito.nuoviSaloni).toEqual(['a'])
+  })
+
+  it('conta i feedback rimasti di saloni che non ci sono più', async () => {
+    archivio.set('betaFeedback/vecchio', { salonId: 'sparito', pagheresti: 'si' })
+    const esito = await contatoriAdminPer({ token: ROBERTO, adesso: ADESSO, ultimiAccessi: async () => new Map() })
+    expect(esito.feedbackOrfani).toBe(1)
+  })
+
   it('conta saloni, piani, fonti, attività, inviti, Avvisami e feedback, senza shared', async () => {
     const accessi = new Map<string, string | null>([['a', giorniFa(20)], ['a2', giorniFa(1)], ['b', giorniFa(10)], ['c', null], ['laura', giorniFa(0)]])
     const ultimiAccessi = vi.fn(async (uids: string[]) => new Map(uids.map((uid) => [uid, accessi.get(uid) ?? null])))
@@ -53,6 +69,9 @@ describe('contatoriAdminPer', () => {
       feedback: { totali: 3, pagheresti: { si: 2, forse: 1, no: 0 } },
       inBeta: 1,
       ultimoAccesso: { a: giorniFa(1), b: giorniFa(10), c: null, d: null },
+      emailOggi: 0,
+      nuoviSaloni: [],
+      feedbackOrfani: 0,
     })
   })
 

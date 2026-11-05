@@ -18,7 +18,7 @@ export const FRASI_UGUALI: Record<'fr' | 'de', ReadonlySet<string>> = {
     'Format', 'Description', 'Admin Manager', 'Sections', 'Salons', 'Sources', 'Play',
     '{{plus}} Plus · {{salone}} Salon', '{{n}} salons', '1 salon', '{{n}}/{{max}}', 'Actions', 'Early adopter',
     'Plus {{n}}', 'Salon {{n}}', '{{n}} utile', 'RevenueCat', 'Utile', 'ACCENDI',
-    'Code', 'Photos', 'Clients', 'Total {{anno}}',
+    'Code', 'Photos', 'Clients', 'Total {{anno}}', 'Source', 'Action',
   ]),
   de: new Set([
     '{{mese}}', 'Team', 'OK', 'Salon', 'Status', 'Adult', 'Senior', 'Foto', 'Name', 'Extra', 'Filter', 'Auto',
@@ -27,7 +27,7 @@ export const FRASI_UGUALI: Record<'fr' | 'de', ReadonlySet<string>> = {
     'Groomly Salon', 'Groomly VIP', 'Partita IVA', 'NIF / CIF', 'Numéro de TVA', 'Format', 'Admin Manager',
     'Beta', 'Feedback', 'Play', '{{plus}} Plus · {{salone}} Salon', 'Beta Plus', 'Beta Salon', '{{n}}/{{max}}',
     'Feedback: {{n}}', 'Feedback {{n}}', 'Plus {{n}}', 'Salon {{n}}', '5–10 €', '10–20 €', 'RevenueCat',
-    'Optional', 'ACCENDI',
+    'Optional', 'ACCENDI', 'Support', 'System', 'Links',
     'Shampoo', 'Code', 'Salon: {{nome}}',
   ]),
 }

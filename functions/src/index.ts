@@ -35,6 +35,8 @@ import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer,
 import { inviaCampione } from './campioneEmail'
 import { conRegistro } from './adminLog'
 import { controllaAdminRecente } from './accessoRecente'
+import { avviaAssistenzaPer, eliminaModelloAssistenzaPer, impostaStatoAssistenzaPer, rispondiAssistenzaPer, salvaModelloAssistenzaPer } from './assistenza/assistenza'
+import { anteprimaComunicazionePer, eliminaComunicazionePer, inviaComunicazionePer, riprendiComunicazionePer } from './comunicazioni/comunicazioni'
 import { cancellaAvviso, eliminaAvvisoSistemaPer, pubblicaAvvisoSistemaPer, riservaAvviso, scriviAvviso } from './config/avvisiSistema'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
@@ -60,6 +62,7 @@ import { estendiBetaPer } from './beta/estendiBeta'
 import { segnaEarlyAdopterPer } from './beta/segnaEarlyAdopter'
 import { inviaFeedbackBetaPer } from './beta/inviaFeedbackBeta'
 import { contatoriAdminPer } from './beta/contatoriAdmin'
+import { schedaSaloneAdminPer } from './beta/schedaSaloneAdmin'
 import { segnaAvvisoBetaPer } from './beta/segnaAvvisoBeta'
 import { scadiInvitiBetaScaduti } from './beta/scadiInvitiBeta'
 import { mandaAvvisiFineBeta } from './beta/avvisiFineBeta'
@@ -1007,6 +1010,80 @@ export const eliminaAvvisoSistema = onCall(pianoCall, async (request) => {
   }))
 })
 
+// Comunicazioni: nel registro vanno tipo e conteggi, mai il testo.
+export const anteprimaComunicazione = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return anteprimaComunicazionePer({ admin: request.auth?.token.admin === true, dati: request.data })
+})
+
+export const inviaComunicazione = onCall({ ...pianoCall, timeoutSeconds: 300, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('inviaComunicazione', (esito) => ({ dettagli: { id: esito.id, tipo: field(request.data, 'tipo'), email: field(request.data, 'email'), inviate: esito.inviate, nonInviate: esito.nonInviate } }), () => inviaComunicazionePer({
+    admin: request.auth?.token.admin === true,
+    adminUid: uid,
+    authTime: request.auth?.token.auth_time,
+    dati: request.data,
+    apiKey: chiaveBrevo(),
+  }))
+})
+
+export const riprendiComunicazione = onCall({ ...pianoCall, timeoutSeconds: 300, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('riprendiComunicazione', (esito) => ({ dettagli: { id: esito.id, inviate: esito.inviate, nonInviate: esito.nonInviate } }), () => riprendiComunicazionePer({
+    admin: request.auth?.token.admin === true,
+    adminUid: uid,
+    id: field(request.data, 'id'),
+    apiKey: chiaveBrevo(),
+  }))
+})
+
+export const eliminaComunicazione = onCall({ ...pianoCall, timeoutSeconds: 300 }, async (request) => {
+  requireUid(request.auth)
+  const id = field(request.data, 'id')
+  return conRegistro('eliminaComunicazione', () => ({ dettagli: { id } }), () => eliminaComunicazionePer({ admin: request.auth?.token.admin === true, id }))
+})
+
+// Assistenza: nel registro vanno fonte e id, mai il testo.
+export const rispondiAssistenza = onCall({ ...pianoCall, secrets: [brevoApiKey] }, async (request) => {
+  const uid = requireUid(request.auth)
+  return conRegistro('rispondiAssistenza', (esito) => ({ dettagli: { fonte: field(request.data, 'fonte'), id: field(request.data, 'id'), email: esito.email } }), () => rispondiAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    adminUid: uid,
+    dati: request.data,
+    apiKey: chiaveBrevo(),
+  }))
+})
+
+export const impostaStatoAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return conRegistro('impostaStatoAssistenza', () => ({ dettagli: { fonte: field(request.data, 'fonte'), id: field(request.data, 'id'), stato: field(request.data, 'stato') } }), () => impostaStatoAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    dati: request.data,
+  }))
+})
+
+export const avviaAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return avviaAssistenzaPer({ admin: request.auth?.token.admin === true })
+})
+
+export const salvaModelloAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  return conRegistro('salvaModelloAssistenza', (esito) => ({ dettagli: { id: esito.id } }), () => salvaModelloAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    dati: request.data,
+  }))
+})
+
+export const eliminaModelloAssistenza = onCall(pianoCall, async (request) => {
+  requireUid(request.auth)
+  const id = field(request.data, 'id')
+  return conRegistro('eliminaModelloAssistenza', () => ({ dettagli: { id } }), () => eliminaModelloAssistenzaPer({
+    admin: request.auth?.token.admin === true,
+    id,
+  }))
+})
+
 // Beta su invito (B1): firme nei Contratti di docs/superpowers/specs/2026-11-04-beta-fondamenta-design.md.
 export const invitaBeta = onCall({ ...pianoCall, secrets: [brevoApiKey], timeoutSeconds: 120 }, async (request) => {
   requireUid(request.auth)
@@ -1077,6 +1154,11 @@ async function ultimiAccessiAuth(uids: string[]): Promise<Map<string, string | n
 export const contatoriAdmin = onCall({ ...pianoCall, timeoutSeconds: 120 }, async (request) => {
   requireUid(request.auth)
   return contatoriAdminPer({ token: tokenOperatore(request.auth), ultimiAccessi: ultimiAccessiAuth })
+})
+
+export const schedaSaloneAdmin = onCall({ ...pianoCall, timeoutSeconds: 60 }, async (request) => {
+  requireUid(request.auth)
+  return schedaSaloneAdminPer({ token: tokenOperatore(request.auth), salonId: field(request.data, 'salonId') })
 })
 
 export const scadiInvitiBeta = onSchedule({

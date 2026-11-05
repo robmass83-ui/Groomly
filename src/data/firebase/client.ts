@@ -36,6 +36,7 @@ import { SERVICE_SEED } from '../seed/services'
 import { normalizeVat } from '../../lib/profile'
 import { titolareDaRegistrazione } from '../../lib/validazioni'
 import { APP_VERSION } from '../../lib/appVersion'
+import { solaAdmin } from '../../lib/solaAdmin'
 import { DOCUMENTI_IN_VIGORE, VERSIONE_DOCUMENTI, leggiEmailPromo, leggiTermini } from '../../lib/versioneLegale'
 import type { Lingua } from '../../i18n/lingua'
 import { leggiLinguaAttiva } from '../../i18n/linguaLocale'
@@ -45,7 +46,7 @@ import { livelloElenco } from '../../lib/funzioniPiano'
 import { fonteDi, tracciaBetaDi } from '../../lib/piano'
 import { leggiConfigPiani, type ConfigPiani, type ModificheConfigPiani } from '../../lib/configPiani'
 import type { RichiestaDoc } from '../../lib/pianoRichiesta'
-import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
+import { tipoAvviso, traduzioniDi, type AvvisoSistema } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
 import { readSignInHint } from '../local/signInHint'
@@ -191,13 +192,8 @@ function mapMailError(error: unknown): AppError {
   return mapAuthError(error)
 }
 
-async function attachEmulators(kind: 'auth' | 'firestore' | 'functions', target: unknown): Promise<void> {
+async function attachEmulators(kind: 'firestore' | 'functions', target: unknown): Promise<void> {
   if (import.meta.env.VITE_EMULATORS !== '1') return
-  if (kind === 'auth') {
-    const { connectAuthEmulator } = await import('firebase/auth')
-    connectAuthEmulator(target as Auth, 'http://127.0.0.1:9099', { disableWarnings: true })
-    return
-  }
   if (kind === 'firestore') {
     const { connectFirestoreEmulator } = await import('firebase/firestore')
     try {
@@ -481,27 +477,31 @@ export async function elencoSuggerimenti(): Promise<SuggerimentoArrivato[]> {
 
 const LIMITE_AVVISI_SISTEMA = 50
 
+function avvisoDaDocSistema(id: string, data: Record<string, unknown>): AvvisoSistema[] {
+  const creato = millisecondi(data.creato)
+  const titolo = typeof data.titolo === 'string' ? data.titolo : ''
+  if (creato === null || titolo === '') return []
+  const traduzioni = traduzioniDi(data.traduzioni)
+  return [{ id, tipo: tipoAvviso(data.tipo), titolo, testo: typeof data.testo === 'string' ? data.testo : '', creato, ...(traduzioni ? { traduzioni } : {}) }]
+}
+
 export async function listenAvvisiSistema(onData: (avvisi: AvvisoSistema[]) => void): Promise<() => void> {
   const db = await database()
   const { collection, limit, onSnapshot, orderBy, query } = await loadFirestore()
   const q = query(collection(db, 'avvisiSistema'), orderBy('creato', 'desc'), limit(LIMITE_AVVISI_SISTEMA))
   return onSnapshot(q, (snap) => {
-    onData(snap.docs.flatMap((doc) => {
-      const data = doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>
-      const creato = millisecondi(data.creato)
-      const titolo = typeof data.titolo === 'string' ? data.titolo : ''
-      if (creato === null || titolo === '') return []
-      return [{ id: doc.id, tipo: tipoAvviso(data.tipo), titolo, testo: typeof data.testo === 'string' ? data.testo : '', creato }]
-    }))
+    onData(snap.docs.flatMap((doc) => avvisoDaDocSistema(doc.id, doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>)))
   }, () => onData([]))
 }
 
-export async function pubblicaAvvisoSistema(input: { tipo: TipoAvviso; titolo: string; testo: string }): Promise<void> {
-  await callCallable('pubblicaAvvisoSistema', input)
-}
-
-export async function eliminaAvvisoSistema(id: string): Promise<void> {
-  await callCallable('eliminaAvvisoSistema', { id })
+/** Risposte di Assistenza e comunicazioni mirate: le vede solo questo account. */
+export async function listenAvvisiAccount(uid: string, onData: (avvisi: AvvisoSistema[]) => void): Promise<() => void> {
+  const db = await database()
+  const { collection, limit, onSnapshot, orderBy, query } = await loadFirestore()
+  const q = query(collection(db, 'accounts', uid, 'avvisi'), orderBy('creato', 'desc'), limit(LIMITE_AVVISI_SISTEMA))
+  return onSnapshot(q, (snap) => {
+    onData(snap.docs.flatMap((doc) => avvisoDaDocSistema(doc.id, doc.data({ serverTimestamps: 'estimate' }) as Record<string, unknown>)))
+  }, () => onData([]))
 }
 
 /** Fin dove l'account ha letto gli avvisi di sistema (millisecondi dell'avviso più nuovo visto). */
@@ -758,7 +758,7 @@ async function firebaseApp(): Promise<FirebaseApp> {
       const { getApps, initializeApp } = await import('firebase/app')
       const { preparaAppCheck } = await import('../../lib/appCheck')
       const app = getApps()[0] ?? initializeApp(firebaseConfig())
-      await preparaAppCheck(app, 'app')
+      await preparaAppCheck(app, solaAdmin() ? 'pagina' : 'app')
       return app
     })().catch((error: unknown) => {
       appPromise = null
@@ -771,9 +771,11 @@ async function firebaseApp(): Promise<FirebaseApp> {
 async function auth(): Promise<Auth> {
   if (!authPromise) {
     authPromise = (async () => {
-      const { getAuth } = await import('firebase/auth')
-      const session = getAuth(await firebaseApp())
-      await attachEmulators('auth', session)
+      const modulo = await import('firebase/auth')
+      const app = await firebaseApp()
+      const session = solaAdmin() ? modulo.initializeAuth(app, { persistence: modulo.browserSessionPersistence }) : modulo.getAuth(app)
+      // Nello stesso giro: la sessione in memoria si controlla subito, e deve già parlare con l'emulatore.
+      if (import.meta.env.VITE_EMULATORS === '1') modulo.connectAuthEmulator(session, 'http://127.0.0.1:9099', { disableWarnings: true })
       return session
     })().catch((error: unknown) => {
       authPromise = null
@@ -782,6 +784,9 @@ async function auth(): Promise<Auth> {
   }
   return authPromise
 }
+
+/** Per le prove: `auth()` resta interna. */
+export const sessioneAuth = auth
 
 let firestoreNs: Promise<typeof import('firebase/firestore')> | null = null
 
@@ -865,11 +870,12 @@ export async function database(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const app = await firebaseApp()
-      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await loadFirestore()
+      const modulo = await loadFirestore()
+      const { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = modulo
       let db: Firestore
       try {
         db = initializeFirestore(app, {
-          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+          localCache: solaAdmin() ? modulo.memoryLocalCache() : persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
         })
         await svuotaCacheRimasta(db)
       } catch {

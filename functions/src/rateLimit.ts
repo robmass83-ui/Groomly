@@ -6,6 +6,8 @@ export const MITTENTE_RATE_MAX = 6
 export const MITTENTE_RATE_WINDOW_MS = 60 * 60 * 1000
 export const AVVISI_RATE_MAX = 10
 export const AVVISI_RATE_WINDOW_MS = 60 * 60 * 1000
+export const RISPOSTE_RATE_MAX = 30
+export const RISPOSTE_RATE_WINDOW_MS = 60 * 60 * 1000
 
 export function rateDecisionWindow(hits: unknown, now: number, max: number, windowMs: number): { ok: boolean; next: number[] } {
   const recent = Array.isArray(hits)
@@ -27,6 +29,10 @@ export function pushRateDecision(hits: unknown, now: number): { ok: boolean; nex
 
 export function avvisiRateDecision(hits: unknown, now: number): { ok: boolean; next: number[] } {
   return rateDecisionWindow(hits, now, AVVISI_RATE_MAX, AVVISI_RATE_WINDOW_MS)
+}
+
+export function risposteRateDecision(hits: unknown, now: number): { ok: boolean; next: number[] } {
+  return rateDecisionWindow(hits, now, RISPOSTE_RATE_MAX, RISPOSTE_RATE_WINDOW_MS)
 }
 
 export function mittenteRateDecision(hits: unknown, now: number): { ok: boolean; next: number[] } {
