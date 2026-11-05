@@ -1,3 +1,4 @@
+import { leggiConfigTour, type ConfigTour } from '../../lib/tourBenvenuto'
 import { invitoBetaDi } from '../../lib/betaInvito'
 import { leggiConfigPiani, type ConfigPiani } from '../../lib/configPiani'
 import { contatoriDi, estensioniDi, feedbackBetaDi, type ContatoriAdmin, type FeedbackLetto, type InvitoAdmin } from '../../lib/adminManager'
@@ -104,11 +105,11 @@ export async function elencoFeedbackBeta(): Promise<FeedbackLetto[]> {
   })
 }
 
-export type ConfigGlobale = { mostraPiani: boolean; abbonamentiAttivi: boolean; piani: ConfigPiani }
+export type ConfigGlobale = { mostraPiani: boolean; abbonamentiAttivi: boolean; piani: ConfigPiani; tour: ConfigTour }
 
 export function configGlobaleDi(data: unknown): ConfigGlobale {
   const d = oggetto(data)
-  return { mostraPiani: d.mostraPiani === true, abbonamentiAttivi: d.abbonamentiAttivi === true, piani: leggiConfigPiani(d) }
+  return { mostraPiani: d.mostraPiani === true, abbonamentiAttivi: d.abbonamentiAttivi === true, piani: leggiConfigPiani(d), tour: leggiConfigTour(d) }
 }
 
 export async function listenConfigGlobale(onData: (config: ConfigGlobale) => void): Promise<() => void> {

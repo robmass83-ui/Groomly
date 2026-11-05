@@ -7,16 +7,8 @@ import { AppError } from '../data/errors'
 import { createAccount, getAccount } from '../data/local/auth'
 import { storageKeys, writeJson } from '../data/local/storage'
 import type { SuggerimentoArrivato } from '../data/firebase/client'
-import type { PianoValore } from '../hooks/usePiano'
 
 const tourMock = vi.hoisted(() => ({ acceso: false, imposta: vi.fn(async (_acceso: boolean) => undefined) }))
-vi.mock('../hooks/usePiano', async () => {
-  const actual = await vi.importActual<typeof import('../hooks/usePiano')>('../hooks/usePiano')
-  return {
-    ...actual,
-    usePiano: (): PianoValore => ({ ...actual.usePiano(), tour: { acceso: tourMock.acceso, dal: null } }),
-  }
-})
 
 const admin = vi.hoisted(() => ({
   contatori: vi.fn(async (): Promise<unknown> => ({})),
@@ -30,7 +22,7 @@ vi.mock('../data/firebase/adminClient', async () => {
     elencoFeedbackBeta: async () => [],
     storicoInvitoBeta: async () => [],
     listenConfigGlobale: async (onData: (c: ReturnType<typeof actual.configGlobaleDi>) => void) => {
-      onData(actual.configGlobaleDi(null))
+      onData(actual.configGlobaleDi({ tourBenvenuto: { acceso: tourMock.acceso, dal: null } }))
       return () => undefined
     },
   }

@@ -370,6 +370,7 @@ export function AdminManagerPage() {
           ) : directory || erroreDirectory ? <p style={{ margin: 0 }}>{frasi.uteNessuna}</p> : <AttesaRiga testo={frasi.uteCarica} />
         ) : tab === 'panoramica' ? (
           <PanoramicaAdmin
+            tour={config?.tour}
             contatori={contatori}
             errore={erroreContatori}
             onRiprova={caricaContatori}

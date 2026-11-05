@@ -9,19 +9,20 @@
 import { applicationDefault, initializeApp } from 'firebase-admin/app'
 import { getAuth, type UserRecord } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
-import { bersaglioSaloneProva, decidiCollega, decidiStacca, type Decisione } from '../src/lib/passaggioAdmin.ts'
+import { ambienteValido, bersaglioSaloneProva, decidiCollega, decidiStacca, type Decisione } from '../src/lib/passaggioAdmin.ts'
 
 const LAURA = 'laura.masala@tiscali.it'
 const HOTMAIL = 'masala.roberto@hotmail.it'
 const ROBMASS = 'robmass83@gmail.com'
 const RACCOLTE_DEL_SALONE = ['invites', 'pubblici', 'schede', 'suggerimenti']
 
-const emulatori = Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST)
 const progetto = process.env.GCLOUD_PROJECT ?? 'groomly-3128b'
-if (emulatori !== progetto.startsWith('demo-')) {
+if (!ambienteValido({ progetto, firestore: process.env.FIRESTORE_EMULATOR_HOST, auth: process.env.FIREBASE_AUTH_EMULATOR_HOST })) {
   console.error('Emulatori e progetto non coincidono. Mi fermo.')
   process.exit(1)
 }
+const emulatori = progetto.startsWith('demo-')
+console.log(`Progetto: ${progetto}${emulatori ? ' (emulatori)' : ' (PRODUZIONE)'}`)
 initializeApp(emulatori ? { projectId: progetto } : { credential: applicationDefault(), projectId: progetto })
 const auth = getAuth()
 const db = getFirestore()

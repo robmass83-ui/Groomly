@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bersaglioSaloneProva, decidiCollega, decidiStacca, type StatoRobmass, type StatoStacco } from './passaggioAdmin'
+import { ambienteValido, bersaglioSaloneProva, decidiCollega, decidiStacca, type StatoRobmass, type StatoStacco } from './passaggioAdmin'
 
 const BASE: StatoRobmass = { uid: 'rob', salonId: 'rob', altrePersone: 0, membroAttivo: false, lauraUid: 'laura', lauraSalonId: 'laura' }
 const STACCO: StatoStacco = { hotmailUid: 'hot', claimAdmin: true, robmassSalonId: 'laura', lauraUid: 'laura', robmassEntratoDopoCollegamento: true }
@@ -79,5 +79,26 @@ describe('stacca', () => {
 
   it('si ferma se la hotmail non esiste', () => {
     expect(decidiStacca({ ...STACCO, hotmailUid: null }).ok).toBe(false)
+  })
+})
+
+describe('ambiente dello script', () => {
+  const FS = '127.0.0.1:8080'
+  const AUTH = '127.0.0.1:9099'
+
+  it('produzione senza emulatori, demo con entrambi', () => {
+    expect(ambienteValido({ progetto: 'groomly-3128b' })).toBe(true)
+    expect(ambienteValido({ progetto: 'demo-groomly', firestore: FS, auth: AUTH })).toBe(true)
+  })
+
+  it('mai un solo emulatore: un servizio finirebbe in produzione', () => {
+    expect(ambienteValido({ progetto: 'groomly-3128b', auth: AUTH })).toBe(false)
+    expect(ambienteValido({ progetto: 'groomly-3128b', firestore: FS })).toBe(false)
+    expect(ambienteValido({ progetto: 'demo-groomly', auth: AUTH })).toBe(false)
+  })
+
+  it('emulatori e progetto devono coincidere', () => {
+    expect(ambienteValido({ progetto: 'groomly-3128b', firestore: FS, auth: AUTH })).toBe(false)
+    expect(ambienteValido({ progetto: 'demo-groomly' })).toBe(false)
   })
 })

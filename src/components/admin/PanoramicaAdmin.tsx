@@ -8,7 +8,7 @@ import { StatusPill } from '../ui/StatusPill'
 import { Toggle } from '../ui/Toggle'
 import { AttesaRiga } from '../ui/Zampette'
 import { callImpostaTour } from '../../data/firebase/client'
-import { usePiano } from '../../hooks/usePiano'
+import type { ConfigTour } from '../../lib/tourBenvenuto'
 import { dataCorta } from '../../i18n/format'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import type { Chiave } from '../../i18n/t'
@@ -74,6 +74,7 @@ function Numero({ valore, etichetta, colore, onClick }: { valore: number; etiche
 }
 
 export function PanoramicaAdmin({
+  tour,
   contatori,
   errore,
   onRiprova,
@@ -84,6 +85,8 @@ export function PanoramicaAdmin({
   onEstendi30,
   riepilogoAccount,
 }: {
+  /** Da config/globale: l'admin non ha il salone da cui `usePiano` la legge. Finché manca, niente interruttore. */
+  tour?: ConfigTour
   contatori: ContatoriAdmin | null
   errore: boolean
   onRiprova: () => void
@@ -194,7 +197,7 @@ export function PanoramicaAdmin({
       ) : null}
 
       <SectionTitle>{frasi.uteImpostazioniUtenti}</SectionTitle>
-      <CardTour />
+      {tour ? <CardTour tour={tour} /> : null}
     </>
   )
 }
@@ -274,10 +277,9 @@ function BloccoAvvisami({ avvisami }: { avvisami: Record<string, number> }) {
 }
 
 // Tour di benvenuto: la logica ottimistica di «Utenti Groomly», invariata.
-function CardTour() {
+function CardTour({ tour }: { tour: ConfigTour }) {
   const frasi = useFrasi()
   const toast = useToast()
-  const { tour } = usePiano()
   const [tourOttimistico, setTourOttimistico] = useState<boolean | null>(null)
   const tourAcceso = tourOttimistico ?? tour.acceso
   // Mentre la callable è in volo il tocco si ignora (ogni accensione riscrive `dal`)

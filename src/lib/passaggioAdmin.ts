@@ -46,6 +46,13 @@ export function decidiStacca(stato: StatoStacco): Decisione<PassoStacca> {
   return { ok: true, passi: ['elimina-account-hotmail', 'elimina-membro-hotmail'] }
 }
 
+/** Un solo emulatore manderebbe l'altro servizio in produzione: o tutti e due col progetto demo, o nessuno. */
+export function ambienteValido(input: { progetto: string; firestore?: string; auth?: string }): boolean {
+  const emulatori = [input.firestore, input.auth].filter(Boolean).length
+  if (emulatori === 1) return false
+  return (emulatori === 2) === input.progetto.startsWith('demo-')
+}
+
 /** Il solo percorso che lo script può cancellare per intero: mai `shared`, mai il salone di Laura. */
 export function bersaglioSaloneProva(uid: string, lauraUid: string): string {
   if (uid === '' || lauraUid === '' || uid === lauraUid || uid === 'shared' || uid.includes('/')) {

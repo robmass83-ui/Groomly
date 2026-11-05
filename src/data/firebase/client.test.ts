@@ -1,5 +1,6 @@
 ﻿// @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { writeSignInHint } from '../local/signInHint'
 import { createAppointment, listAppointments } from '../local/appointments'
 import { createDog, listDogs } from '../local/dogs'
 import { blankSettings } from '../local/settings'
@@ -1715,6 +1716,28 @@ describe('client Firebase', () => {
       next(utenteAdmin({ cache: true, server: new Error('offline') }))
       await vi.waitFor(() => expect(accounts).toHaveLength(1))
       expect(accounts[0]).toMatchObject({ admin: true })
+    })
+
+    it('offline col token scaduto vale il segno dell’ultimo accesso: niente salone', async () => {
+      fs.store.set('accounts', new Map([['uid-admin', { email: 'masala.roberto@hotmail.it', salonId: 'uid-laura', role: 'socio', legacy: false }]]))
+      writeSignInHint({ uid: 'uid-admin', email: 'masala.roberto@hotmail.it', admin: true })
+      const { accounts, avvia } = ascolta()
+      const next = await avvia()
+      next({ ...firebaseUser('uid-admin', 'masala.roberto@hotmail.it'), getIdTokenResult: vi.fn(async () => { throw new Error('offline') }) } as ReturnType<typeof firebaseUser>)
+      await vi.waitFor(() => expect(accounts).toHaveLength(1))
+      expect(accounts[0]).toMatchObject({ admin: true, salonId: '' })
+      expect(client.currentSalonId()).toBeNull()
+    })
+
+    it('il segno di un altro utente non vale', async () => {
+      fs.store.set('accounts', new Map([['uid-admin', { email: 'ada@salone.it', salonId: 'uid-admin', role: 'titolare', legacy: false }]]))
+      writeSignInHint({ uid: 'altro', email: 'x@y.it', admin: true })
+      const { accounts, avvia } = ascolta()
+      const next = await avvia()
+      next({ ...firebaseUser('uid-admin', 'ada@salone.it'), getIdTokenResult: vi.fn(async () => { throw new Error('offline') }) } as ReturnType<typeof firebaseUser>)
+      await vi.waitFor(() => expect(accounts.length).toBeGreaterThan(0))
+      expect(accounts.at(-1)).not.toHaveProperty('admin')
+      expect(client.currentSalonId()).toBe('uid-admin')
     })
 
     it('un token vecchio senza claim passa ad admin appena si aggiorna', async () => {

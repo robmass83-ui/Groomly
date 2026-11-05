@@ -46,6 +46,7 @@ import type { RichiestaDoc } from '../../lib/pianoRichiesta'
 import { tipoAvviso, type AvvisoSistema, type TipoAvviso } from '../../lib/avvisiSistema'
 import { businessName, summarizeDirectory, type DirectoryAccount, type SalonDirectory } from '../../lib/salonDirectory'
 import { discardPendingPhotos, haFotoInAttesa } from '../../lib/pendingPhoto'
+import { readSignInHint } from '../local/signInHint'
 import { isLauraEmail, isSharedEmail, normalizeEmail, isSharedNonLauraEmail, newOwnerAccount, salonCollection, sharedMemberAccount, SHARED_SALON_ID, type AccountRole, type CloudAccount } from '../../lib/salonPath'
 import type { SalonAccess, SalonMember } from '../../lib/salonRoster'
 import type { StatoInvito } from '../../lib/salonAccess'
@@ -2281,11 +2282,13 @@ async function readAccount(uid: string): Promise<LetturaAccount> {
 }
 
 // Senza aggiornare si legge il token sul telefono: l'ingresso non aspetta la rete.
+// Un token scaduto senza rete non si legge: vale il segno dell'ultimo accesso, che sceglie solo la schermata.
 async function leggiClaimAdmin(user: User, aggiorna = false): Promise<boolean> {
   try {
     return (await user.getIdTokenResult(aggiorna)).claims.admin === true
   } catch {
-    return false
+    const segno = aggiorna ? null : readSignInHint()
+    return segno?.uid === user.uid && segno.admin === true
   }
 }
 
