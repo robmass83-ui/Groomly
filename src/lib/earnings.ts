@@ -7,6 +7,7 @@ import { appointmentKind } from './personal'
 import { meseAnno } from '../i18n/format'
 import { formatEuro, maiuscolaIniziale, opzioniDate } from './format'
 import { leggiLinguaAttiva } from '../i18n/linguaLocale'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 
 export type EarningsPeriod = 'giorno' | 'settimana' | 'mese'
 export type EarningsClass = 'incassato' | 'previsto' | 'perso' | 'da_chiudere' | 'escluso'
@@ -302,7 +303,7 @@ function rowState(a: Appointment, now: Date): RowState {
   return a.status === 'non_venuto' ? 'non venuto' : 'disdetto'
 }
 
-function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssente: string): EarningsRow[] {
+function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssente: string, lingua: Lingua = 'it'): EarningsRow[] {
   return items
     .filter((item) => classify(item, now) !== 'escluso')
     .sort(byStart)
@@ -313,7 +314,7 @@ function appointmentRows(items: Appointment[], dogs: Dog[], now: Date, nomeAssen
       appointmentId: item.id,
       time: format(item.start, 'HH:mm'),
       dogName: visitName(dogs, item, nomeAssente),
-      services: item.services.map((line) => line.name).join(', '),
+      services: item.services.map((line) => nomeServizioVisibile(lingua, line.name)).join(', '),
       state: rowState(item, now),
       amount: appointmentAmount(item),
     }))
@@ -373,11 +374,11 @@ export function serviceBreakdown(items: Appointment[], services: Service[]): Ser
     .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, 'it'))
 }
 
-function serviceRows(items: Appointment[], services: Service[]): EarningsRow[] {
+function serviceRows(items: Appointment[], services: Service[], lingua: Lingua = 'it'): EarningsRow[] {
   return serviceBreakdown(items, services).map((group) => ({
     kind: 'servizio',
     key: group.key,
-    name: group.name,
+    name: nomeServizioVisibile(lingua, group.name),
     iconKey: group.iconKey,
     count: group.count,
     amount: group.amount,
@@ -445,7 +446,7 @@ export function summarize(appointments: Appointment[], dogs: Dog[], services: Se
   const drawn = buckets(appointments, dogs, periodo, ref, now, nomeAssente, lingua)
   const list = drawn.some((item) => item.incassato + item.previsto > 0) ? drawn : []
   const earning = list.filter((item) => item.incassato > 0)
-  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now, nomeAssente) : periodo === 'settimana' ? dayRows(inside, range.from, now, lingua) : serviceRows(done, services)
+  const righe = periodo === 'giorno' ? appointmentRows(inside, dogs, now, nomeAssente, lingua) : periodo === 'settimana' ? dayRows(inside, range.from, now, lingua) : serviceRows(done, services, lingua)
   return {
     periodo,
     from: range.from,

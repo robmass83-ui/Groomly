@@ -342,20 +342,20 @@ export function PriceSheetExportPage() {
           borderTop: '1px solid var(--line)',
           boxShadow: 'var(--sh-foot)',
           padding: `${SIZES.sheet.footer.padTop}px ${SIZES.sheet.footer.padX}px ${SIZES.sheet.footer.padBottom}px`,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1.3fr',
+          display: 'flex',
+          flexWrap: 'wrap',
           gap: SIZES.sheet.footer.gap,
         }}
       >
-        <Button variant="secondary" disabled={busy} onClick={() => void run('print')} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+        <Button variant="secondary" disabled={busy} onClick={() => void run('print')} style={{ flex: '1 1 auto', width: 'auto', display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
           <Printer size={14} strokeWidth={2} aria-hidden />
           {frasi.lisStampaBtn}
         </Button>
-        <Button variant="secondary" disabled={busy} onClick={() => void run('download')} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+        <Button variant="secondary" disabled={busy} onClick={() => void run('download')} style={{ flex: '1 1 auto', width: 'auto', display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
           <Download size={14} strokeWidth={2} aria-hidden />
           {frasi.lisScarica}
         </Button>
-        <Button disabled={busy} onClick={() => void run('share')} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+        <Button disabled={busy} onClick={() => void run('share')} style={{ flex: '1 1 auto', width: 'auto', display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
           <Share2 size={14} strokeWidth={2} aria-hidden />
           {frasi.lisCondividi}
         </Button>

@@ -10,7 +10,8 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { useSettings } from '../hooks/useSettings'
-import { useFrasi } from '../i18n/LinguaContext'
+import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeVoceListino } from '../i18n/listino'
 import { TAGLIA_GRANDE, TAGLIA_MEDIA, TAGLIA_PICCOLA } from '../lib/dogList'
 import { applyBulk, breedsBySize, commitDraft, getPriceSheet, iconForName, PRICE_SHEET_UNREADABLE, savePriceSheet, type BulkOp } from '../lib/priceSheet'
 import { SIZES } from '../theme/sizes'
@@ -94,6 +95,7 @@ function PriceField({
   da: string
   valutazione: string
 }) {
+  const { lingua } = useLingua()
   if (item.tipo === 'valutazione') {
     return (
       <span
@@ -118,7 +120,8 @@ function PriceField({
   const key = draftKey(parentId, item.id)
   const changed = key in draft
   const current = draft[key] ?? item.prezzo ?? 0
-  const label = extra ? prezzoDi.replace('{{nome}}', item.nome) : prezzoDiTaglia.replace('{{nome}}', item.nome).replace('{{taglia}}', parentNome)
+  const nome = nomeVoceListino(lingua, item.nome)
+  const label = extra ? prezzoDi.replace('{{nome}}', nome) : prezzoDiTaglia.replace('{{nome}}', nome).replace('{{taglia}}', nomeVoceListino(lingua, parentNome))
 
   return (
     <>
@@ -168,6 +171,7 @@ function PriceField({
 
 export function PriceSheetPricesPage() {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const navigate = useNavigate()
   const toast = useToast()
   const { settings, save } = useSettings()
@@ -238,7 +242,7 @@ export function PriceSheetPricesPage() {
           )}
         />
         <div style={{ padding: '4px 12px 8px', display: 'flex', flexDirection: 'column', gap: 7, borderBottom: '1px solid var(--line)' }}>
-          <div style={{ display: 'flex', gap: 5 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {([
               { id: TAGLIA_PICCOLA, label: frasi.lisPiccola },
               { id: TAGLIA_MEDIA, label: frasi.lisMedia },
@@ -281,7 +285,7 @@ export function PriceSheetPricesPage() {
               <div key={group.id}>
                 <div style={{ padding: '7px 9px 2px', fontWeight: 700, background: 'var(--surf)', borderTop: '1px solid var(--line)', ...USER_TEXT }}>
                   {group.tipoPrefix}
-                  {group.nome}
+                  {nomeVoceListino(lingua, group.nome)}
                 </div>
                 {group.voci.map((voce) => (
                   <div
@@ -297,7 +301,7 @@ export function PriceSheetPricesPage() {
                     <IconTile tone={voce.iconKey ?? group.iconKey ?? iconForName(voce.nome)} size="sm">
                       <PriceIcon iconKey={voce.iconKey ?? group.iconKey ?? iconForName(voce.nome)} size={14} />
                     </IconTile>
-                    <span style={{ flex: 1, ...USER_TEXT }}>{voce.nome}</span>
+                    <span style={{ flex: 1, ...USER_TEXT }}>{nomeVoceListino(lingua, voce.nome)}</span>
                     <PriceField
                       parentId={group.id}
                       parentNome={group.nome}

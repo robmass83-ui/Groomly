@@ -7,6 +7,7 @@ import { ServiceIcon } from '../components/domain/ServiceIcon'
 import { TemperamentIcon } from '../components/domain/TemperamentIcon'
 import { dataCorta } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { t, type Chiave } from '../i18n/t'
 import { Sheet } from '../components/layout/Sheet'
 import { Button } from '../components/ui/Button'
@@ -738,7 +739,7 @@ export function AppointmentForm({
                   const stored = selected ? storedLine(existing, selected.id, service.id) : undefined
                   const quote = stored ?? (selected ? quotedPrice(selected, service, { sheet: listino, servizi: services }) : { price: service.price.piccola, durationMin: service.durationMin.piccola })
                   const dalListino = 'daListino' in quote && quote.daListino ? t(lingua, 'appDalListino', { razza: quote.daListino }) : ''
-                  const caption = `${service.name} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}${dalListino ? ` · ${dalListino}` : ''}`
+                  const caption = `${nomeServizioVisibile(lingua, service.name)} · ${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}${dalListino ? ` · ${dalListino}` : ''}`
                   return (
                     <button
                       key={service.id}
@@ -770,7 +771,7 @@ export function AppointmentForm({
                         <ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} />
                       </IconTile>
                       <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                        <span style={USER_TEXT}>{service.name}</span>
+                        <span style={USER_TEXT}>{nomeServizioVisibile(lingua, service.name)}</span>
                         <span style={{ color: 'var(--tx3)', fontWeight: 600 }}>{`${formatCompactDuration(quote.durationMin)} · ${euro(quote.price)}`}</span>
                         {dalListino ? <span style={{ color: 'var(--tx3)', fontSize: TYPE.meta, overflowWrap: 'anywhere' }}>{dalListino}</span> : null}
                       </span>

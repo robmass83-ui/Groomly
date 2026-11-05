@@ -665,7 +665,7 @@ export function mailPostoLibero(input: {
   const testo = [
     intestazione.join('\n'),
     `${voci.frase}\n${voci.fretta}`,
-    `${voci.link}: ${input.url}`,
+    `${voci.link}${input.lingua === 'fr' ? ' :' : ':'} ${input.url}`,
   ].join('\n\n')
   return { oggetto: voci.titolo, testo }
 }
@@ -706,7 +706,7 @@ const CORPO_INVITO: Record<Lingua, (nome: string, come: string) => string> = {
 
 function corpoInvito(lingua: Lingua, salone: string, ruolo: string): string {
   const nome = saloneNellaFrase(lingua, salone, 'soggetto')
-  return CORPO_INVITO[lingua](nome, ruolo ? ` ${COME_RUOLO[lingua]} ${ruolo}` : '')
+  return CORPO_INVITO[lingua](nome, ruolo ? ` ${COME_RUOLO[lingua]} ${lingua === 'fr' ? ruolo.toLowerCase() : ruolo}` : '')
 }
 
 function emailAccount(lingua: Lingua, tipo: 'verifica' | 'reset' | 'invito', dati: DatiEmail): { oggetto: string; html: string } {

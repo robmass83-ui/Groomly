@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { getFirestore } from 'firebase-admin/firestore'
 import { riepilogoRicevuta } from '../../../src/i18n/emailHtml'
+import { nomeServizioVisibile } from '../../../src/i18n/servizioVisibile'
 import { linguaValida } from '../../../src/i18n/lingua'
 import { scegliCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { fotoRichiesta, razzaRichiesta } from '../../../src/lib/fotoRichiesta'
@@ -138,7 +139,7 @@ export async function inviaRichiestaPer(input: {
         razza,
         specie: input.specie,
         taglia,
-        servizi: scelta.voci.map((voce) => voce.nome),
+        servizi: scelta.voci.map((voce) => nomeServizioVisibile(lingua, voce.nome)),
         inizio: quando.inizio,
         fine,
         durataMin: scelta.durataMin,

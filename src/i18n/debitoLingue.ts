@@ -1,6 +1,6 @@
 // Il lavoro che l'ondata 2 deve ancora fare. Quando è finito, questi elenchi sono vuoti.
 
-/** Da mettere a false a fine ondata 2: nessun `// LINGUE: da tradurre` potrà più restare. */
+/** Da mettere a false a fine ondata 2: nessun segnaposto di traduzione potrà più restare. */
 export const SEGNAPOSTO_AMMESSI = false
 
 /** File con catene di confronti sulla lingua in cui francese e tedesco cadono sull'italiano. */

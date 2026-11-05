@@ -12,19 +12,20 @@ const TONE: Record<Tone, { color: string; background: string }> = {
   neutral: { color: 'var(--tx2)', background: 'var(--surf)' },
 }
 
-export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode }) {
+export function StatusPill({ tone, children, aCapo = false }: { tone: Tone; children: ReactNode; aCapo?: boolean }) {
   return (
     <span
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        height: SIZES.pill.h,
-        padding: `0 ${SIZES.pill.padX}px`,
+        height: aCapo ? 'auto' : SIZES.pill.h,
+        minHeight: SIZES.pill.h,
+        padding: `${aCapo ? 2 : 0}px ${SIZES.pill.padX}px`,
         gap: SIZES.serviceChip.gap,
-        borderRadius: 999,
+        borderRadius: aCapo ? 12 : 999,
         fontSize: TYPE.chip,
         fontWeight: 700,
-        whiteSpace: 'nowrap',
+        whiteSpace: aCapo ? 'normal' : 'nowrap',
         ...TONE[tone],
       }}
     >

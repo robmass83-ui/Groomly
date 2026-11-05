@@ -7,6 +7,8 @@ import { romeIso } from './romeTime'
 import { frase } from '../i18n/frase'
 import { LOCALE_INTL } from '../i18n/lingua'
 import { leggiLinguaAttiva } from '../i18n/linguaLocale'
+import { nomeVoceListino } from '../i18n/listino'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import type { Chiave } from '../i18n/t'
 
 const TAGLIE: Record<DogSize, Chiave> = { piccola: 'regPiccola', media: 'regMediaTaglia', grande: 'regGrande' }
@@ -307,7 +309,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
       primo: done[0] ? giornoExcel(done[0].start) : null,
       ultimo: last ? giornoExcel(last.start) : null,
       prossimo: next ? giornoExcel(next.start) : null,
-      ultimoServizio: last ? last.services.map((item) => item.name).filter(Boolean).join(', ') : '',
+      ultimoServizio: last ? last.services.map((item) => nomeServizioVisibile(leggiLinguaAttiva(), item.name)).filter(Boolean).join(', ') : '',
       ultimoPrezzo: last ? appointmentAmount(last) : null,
       totaleSpeso: done.reduce((sum, item) => sum + appointmentAmount(item), 0),
       tempoMedio: minutes.length ? Math.round((minutes.reduce((sum, item) => sum + item, 0) / minutes.length) * 10) / 10 : null,
@@ -333,7 +335,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
         razza: dog?.razza ?? '',
         padrone: dog?.padrone ?? '',
         telefono: dog?.telefono ?? '',
-        servizio: visit.services.map((item) => item.name).filter(Boolean).join(', '),
+        servizio: visit.services.map((item) => nomeServizioVisibile(leggiLinguaAttiva(), item.name)).filter(Boolean).join(', '),
         prezzo: appointmentAmount(visit),
         durata: typeof visit.actualDurationMin === 'number' ? visit.actualDurationMin : sumDuration(visit.services),
         stato: frase(visit.status === 'completato' ? 'regCompletato' : visit.status === 'disdetto' ? 'regDisdetto' : visit.status === 'non_venuto' ? 'regNonVenuto' : 'regProgrammato'),
@@ -415,7 +417,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
       order: typeof row.order === 'number' ? row.order : 0,
     }]
   }).sort((a, b) => a.order - b.order || (a.nome < b.nome ? -1 : 1)).map((row) => ({
-    nome: row.nome,
+    nome: nomeServizioVisibile(leggiLinguaAttiva(), row.nome),
     tipo: row.tipo,
     prezzoPiccola: row.prezzoPiccola,
     prezzoMedia: row.prezzoMedia,
@@ -438,7 +440,7 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
       const voce = record(item)
       if (!voce) return []
       const tipo = voce.tipo === 'da' ? frase('regTipoDa') : voce.tipo === 'fisso' ? frase('regTipoFisso') : voce.tipo === 'valutazione' ? frase('regTipoValutazione') : text(voce.tipo)
-      return [{ razza: text(breed.nome), taglia, voce: text(voce.nome), tipo, prezzo: voce.tipo === 'valutazione' ? null : numero(voce.prezzo) }]
+      return [{ razza: nomeVoceListino(leggiLinguaAttiva(), text(breed.nome)), taglia, voce: nomeVoceListino(leggiLinguaAttiva(), text(voce.nome)), tipo, prezzo: voce.tipo === 'valutazione' ? null : numero(voce.prezzo) }]
     })
   })
 

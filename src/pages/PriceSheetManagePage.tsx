@@ -86,11 +86,11 @@ function sectionBlurb(sheet: PriceSheet, id: SheetSectionId, frasi: { manRazze: 
     return modello.replace('{{n}}', String(n))
   }
   if (id === 'bagnoTosatura') return t(lingua, 'manBlurbPrezzi', { n: sheet.bagnoTosatura.voci.length })
-  if (id === 'extra') return sheet.extra.voci.map((item) => item.nome.split(' ')[0]).join(' · ')
+  if (id === 'extra') return sheet.extra.voci.map((item) => nomeVoceListino(lingua, item.nome).split(' ')[0]).join(' · ')
   if (id === 'info') return t(lingua, 'manBlurbInfo', { n: sheet.info.punti.length })
   if (id === 'avviso') return t(lingua, 'manBlurbAvviso', { n: sheet.avviso.punti.length })
-  if (id === 'compresi') return sheet.compresi.voci.map((item) => item.testo).join(' · ')
-  return sheet.saluto
+  if (id === 'compresi') return sheet.compresi.voci.map((item) => nomeVoceListino(lingua, item.testo)).join(' · ')
+  return nomeVoceListino(lingua, sheet.saluto)
 }
 
 function FieldArea({ label, value, rows = 2, onChange, onBlur }: { label: string; value: string; rows?: number; onChange: (value: string) => void; onBlur?: (value: string) => void }) {
@@ -293,7 +293,7 @@ export function PriceSheetManagePage() {
             <span>{identita.indirizzo}</span>
             <span>{identita.telefono}</span>
           </div>
-          <Input label={frasi.manDescrizione} value={descrizione} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
+          <Input label={frasi.manDescrizione} value={nomeVoceListino(lingua, descrizione)} onChange={(event) => patchHeader({ descrizione: event.target.value })} style={USER_TEXT} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.manColore}</span>
             <div style={{ display: 'flex', gap: 16 }}>
@@ -360,18 +360,18 @@ export function PriceSheetManagePage() {
                       onClick={() => openEdit(breed)}
                       style={{ flex: 1, minHeight: 40, border: 0, background: 'transparent', textAlign: 'left', padding: 0, color: 'inherit', ...USER_TEXT }}
                     >
-                      <b style={{ fontSize: TYPE.rowTitle, ...USER_TEXT }}>{breed.nome}</b>
-                      <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)', ...USER_TEXT }}>{breed.voci.map((voce) => voce.nome).join(' · ')}</span>
+                      <b style={{ fontSize: TYPE.rowTitle, ...USER_TEXT }}>{nomeVoceListino(lingua, breed.nome)}</b>
+                      <span style={{ display: 'block', fontSize: TYPE.meta, color: 'var(--tx3)', ...USER_TEXT }}>{breed.voci.map((voce) => nomeVoceListino(lingua, voce.nome)).join(' · ')}</span>
                     </button>
                     <span style={{ display: 'flex', gap: 2, flex: 'none' }}>
                       {breed.voci.slice(0, 4).map((voce) => (
                         <PriceIcon key={voce.id} iconKey={voce.iconKey} size={16} />
                       ))}
                     </span>
-                    <IconButton label={frasi.manSpostaSu.replace('{{nome}}', breed.nome)} disabled={index === 0} onClick={() => persist(moveBreed(sheet, breed.id, -1))} style={{ background: 'transparent' }}>
+                    <IconButton label={frasi.manSpostaSu.replace('{{nome}}', nomeVoceListino(lingua, breed.nome))} disabled={index === 0} onClick={() => persist(moveBreed(sheet, breed.id, -1))} style={{ background: 'transparent' }}>
                       <ChevronUp size={16} strokeWidth={2} aria-hidden />
                     </IconButton>
-                    <IconButton label={frasi.manSpostaGiu.replace('{{nome}}', breed.nome)} disabled={index === razze.length - 1} onClick={() => persist(moveBreed(sheet, breed.id, 1))} style={{ background: 'transparent' }}>
+                    <IconButton label={frasi.manSpostaGiu.replace('{{nome}}', nomeVoceListino(lingua, breed.nome))} disabled={index === razze.length - 1} onClick={() => persist(moveBreed(sheet, breed.id, 1))} style={{ background: 'transparent' }}>
                       <ChevronDown size={16} strokeWidth={2} aria-hidden />
                     </IconButton>
                   </div>
@@ -380,7 +380,7 @@ export function PriceSheetManagePage() {
                   <FieldArea
                     label={frasi.manNotaTaglia}
                     rows={2}
-                    value={sheet.noteTaglia[size]}
+                    value={nomeVoceListino(lingua, sheet.noteTaglia[size])}
                     onChange={(value) => persist({ ...sheet, noteTaglia: { ...sheet.noteTaglia, [size]: value } })}
                   />
                 </div>
@@ -416,24 +416,24 @@ export function PriceSheetManagePage() {
 
         <SectionTitle>{frasi.manTesti}</SectionTitle>
         <Card style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <FieldArea label={frasi.manInfoIntro} value={sheet.info.intro} onChange={(intro) => persist({ ...sheet, info: { ...sheet.info, intro } })} />
+          <FieldArea label={frasi.manInfoIntro} value={nomeVoceListino(lingua, sheet.info.intro)} onChange={(intro) => persist({ ...sheet, info: { ...sheet.info, intro } })} />
           <FieldArea
             label={frasi.manPunti}
             rows={4}
-            value={sheet.info.punti.join('\n')}
+            value={sheet.info.punti.map((punto) => nomeVoceListino(lingua, punto)).join('\n')}
             onChange={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n') } })}
             onBlur={(value) => persist({ ...sheet, info: { ...sheet.info, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })}
           />
-          <FieldArea label={frasi.manFraseFinale} value={sheet.info.chiusura} onChange={(chiusura) => persist({ ...sheet, info: { ...sheet.info, chiusura } })} />
-          <Input label={frasi.manAvvisoTitolo} value={sheet.avviso.titolo} onChange={(event) => persist({ ...sheet, avviso: { ...sheet.avviso, titolo: event.target.value } })} />
+          <FieldArea label={frasi.manFraseFinale} value={nomeVoceListino(lingua, sheet.info.chiusura)} onChange={(chiusura) => persist({ ...sheet, info: { ...sheet.info, chiusura } })} />
+          <Input label={frasi.manAvvisoTitolo} value={nomeVoceListino(lingua, sheet.avviso.titolo)} onChange={(event) => persist({ ...sheet, avviso: { ...sheet.avviso, titolo: event.target.value } })} />
           <FieldArea
             label={frasi.manAvvisoPunti}
             rows={3}
-            value={sheet.avviso.punti.join('\n')}
+            value={sheet.avviso.punti.map((punto) => nomeVoceListino(lingua, punto)).join('\n')}
             onChange={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n') } })}
             onBlur={(value) => persist({ ...sheet, avviso: { ...sheet.avviso, punti: value.split('\n').map((line) => line.trim()).filter(Boolean) } })}
           />
-          <Input label={frasi.manSezSaluto} value={sheet.saluto} onChange={(event) => persist({ ...sheet, saluto: event.target.value })} />
+          <Input label={frasi.manSezSaluto} value={nomeVoceListino(lingua, sheet.saluto)} onChange={(event) => persist({ ...sheet, saluto: event.target.value })} />
         </Card>
       </div>
 
@@ -462,7 +462,7 @@ export function PriceSheetManagePage() {
             <Input
               id="breed-name"
               label={frasi.manNomeListino}
-              value={edit.nome}
+              value={nomeVoceListino(lingua, edit.nome)}
               placeholder={frasi.manEsRazza}
               onChange={(event) => setEdit({ ...edit, nome: event.target.value })}
             />
@@ -487,7 +487,7 @@ export function PriceSheetManagePage() {
                       </IconTile>
                     </button>
                     <input
-                      value={voce.nome}
+                      value={nomeVoceListino(lingua, voce.nome)}
                       aria-label={t(lingua, 'manNomeServizio', { n: index + 1 })}
                       onChange={(event) => setVoce(index, { nome: event.target.value })}
                       style={{
@@ -504,7 +504,7 @@ export function PriceSheetManagePage() {
                     />
                     <select
                       value={voce.tipo}
-                      aria-label={t(lingua, 'lisTipo', { nome: voce.nome })}
+                      aria-label={t(lingua, 'lisTipo', { nome: nomeVoceListino(lingua, voce.nome) })}
                       onChange={(event) => setVoce(index, { tipo: event.target.value as PriceKind })}
                       style={{ width: 74, height: 44, borderRadius: 7, border: '1px solid var(--line2)', background: 'var(--card)', fontSize: 12, padding: '0 2px', color: 'var(--tx)' }}
                     >
@@ -515,7 +515,7 @@ export function PriceSheetManagePage() {
                     {voce.tipo === 'valutazione' ? null : (
                       <label style={{ display: 'flex', alignItems: 'center', height: 44, padding: '0 6px', borderRadius: 7, border: '1px solid var(--line2)' }}>
                         <PriceAmountInput
-                          aria-label={t(lingua, 'lisPrezzoDi', { nome: voce.nome })}
+                          aria-label={t(lingua, 'lisPrezzoDi', { nome: nomeVoceListino(lingua, voce.nome) })}
                           value={voce.prezzo ?? 0}
                           onCommit={(prezzo) => setVoce(index, { prezzo })}
                           style={{ width: 52, height: 44, border: 0, background: 'transparent', color: 'var(--tx)', font: 'inherit', padding: 0 }}
@@ -534,13 +534,13 @@ export function PriceSheetManagePage() {
                         style={{ flexBasis: '100%', minHeight: 44, textAlign: 'left', border: 0, background: 'transparent', padding: '0 7px', color: 'var(--tx3)', font: 'inherit', fontSize: TYPE.meta, ...USER_TEXT }}
                       >
                         {servizioDellaRiga(voce, services) !== null
-                          ? t(lingua, 'listinoServizioAbbinato', { servizio: services.find((servizio) => servizio.id === servizioDellaRiga(voce, services))?.name ?? '' })
+                          ? t(lingua, 'listinoServizioAbbinato', { servizio: nomeVoceListino(lingua, services.find((servizio) => servizio.id === servizioDellaRiga(voce, services))?.name ?? '') })
                           : frasi.listinoNessunServizio}
                       </button>
                     )}
                     {servizioPick === index ? (
                       <div role="group" aria-label={frasi.listinoScegliServizio} style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 5, padding: '2px 0 4px' }}>
-                        {[...principali.map((servizio) => ({ id: servizio.id, nome: servizio.name })), { id: '', nome: frasi.listinoNessunServizioScelta }].map((scelta) => (
+                        {[...principali.map((servizio) => ({ id: servizio.id, nome: nomeVoceListino(lingua, servizio.name) })), { id: '', nome: frasi.listinoNessunServizioScelta }].map((scelta) => (
                           <button
                             key={scelta.id || 'nessuno'}
                             type="button"

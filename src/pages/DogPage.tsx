@@ -45,6 +45,7 @@ import { dogFormSeed, dogScreenSeed, shouldReseedDog } from '../lib/dogFormSeed'
 import { rendiPrincipale } from '../lib/contattoPrincipale'
 import { RUOLI_BASE, etichettaRuolo, ruoloDelProprietario } from '../lib/ruoloProprietario'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
 import { t } from '../i18n/t'
 import { finishDogRemoval } from '../lib/dogRemoval'
@@ -553,6 +554,7 @@ function PriceEditor({ services, dog, size, sheet, hidden, edits, onEdit, onTogg
   onToggleHidden: (serviceId: string) => void
 }) {
   const frasi = useFrasi()
+  const { lingua } = useLingua()
   const active = services
     .filter((service) => service.active)
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
@@ -570,20 +572,20 @@ function PriceEditor({ services, dog, size, sheet, hidden, edits, onEdit, onTogg
         const priceId = `prezzo-${service.id}`
         const durationId = `durata-${service.id}`
         return (
-          <div key={service.id} role="group" aria-label={service.name} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px 76px', gap: 6, alignItems: 'center', minHeight: SIZES.row.minH }}>
+          <div key={service.id} role="group" aria-label={nomeServizioVisibile(lingua, service.name)} style={{ display: 'grid', gridTemplateColumns: '36px 1fr 76px 76px', gap: 6, alignItems: 'center', minHeight: SIZES.row.minH }}>
             <Toggle checked={hidden.includes(service.id)} onChange={() => onToggleHidden(service.id)} label={frasi.schedaMostraProfilo} />
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <span style={{ display: 'inline-flex', flex: 'none' }}>
                 <ServiceIcon iconKey={service.iconKey} size={SIZES.serviceIcon.row} />
               </span>
-              <span style={{ fontWeight: 600, fontSize: TYPE.base, flex: 1, ...USER_TEXT }}>{service.name}</span>
+              <span style={{ fontWeight: 600, fontSize: TYPE.base, flex: 1, ...USER_TEXT }}>{nomeServizioVisibile(lingua, service.name)}</span>
             </span>
             <span>
-              <HiddenLabel htmlFor={priceId}>{frasi.schedaPrezzoNome.replace('{{nome}}', service.name)}</HiddenLabel>
+              <HiddenLabel htmlFor={priceId}>{frasi.schedaPrezzoNome.replace('{{nome}}', nomeServizioVisibile(lingua, service.name))}</HiddenLabel>
               <input id={priceId} inputMode="decimal" autoComplete="off" placeholder={list.price} value={shown.price} onChange={(event) => onEdit(service.id, { price: event.target.value, duration: shown.duration })} style={smallInput} />
             </span>
             <span>
-              <HiddenLabel htmlFor={durationId}>{frasi.schedaDurataNome.replace('{{nome}}', service.name)}</HiddenLabel>
+              <HiddenLabel htmlFor={durationId}>{frasi.schedaDurataNome.replace('{{nome}}', nomeServizioVisibile(lingua, service.name))}</HiddenLabel>
               <input id={durationId} inputMode="numeric" autoComplete="off" placeholder={list.duration} value={shown.duration} onChange={(event) => onEdit(service.id, { price: shown.price, duration: event.target.value })} style={smallInput} />
             </span>
           </div>
@@ -848,7 +850,7 @@ function HistoryVisit({ item, before, actions, onCorrect }: {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: 'var(--pri)', fontWeight: 700, fontSize: TYPE.meta }}>{when}</div>
-            <div style={{ fontWeight: 700, color: absent ? 'var(--bad)' : undefined, textDecoration: absent ? 'line-through' : undefined }}>{item.services.map((line) => line.name).join(', ')}</div>
+            <div style={{ fontWeight: 700, color: absent ? 'var(--bad)' : undefined, textDecoration: absent ? 'line-through' : undefined }}>{item.services.map((line) => nomeServizioVisibile(lingua, line.name)).join(', ')}</div>
             {absent ? <div style={{ color: 'var(--bad)' }}>{frasi.homeNonVenuto}</div> : <div style={{ color: 'var(--tx2)' }}>{historyDetail(item)}</div>}
             {!absent && actions && item.adjustmentNote ? <div style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{notaVisibile(item.adjustmentNote, frasi.fedPremioNota)}</div> : null}
           </div>
@@ -1491,7 +1493,7 @@ export function DogPage() {
                     valori={{
                       nome: owner,
                       cane: dog.name,
-                      servizio: prossimaVisita?.services.map((service) => service.name).join(', ') ?? '',
+                      servizio: prossimaVisita?.services.map((service) => nomeServizioVisibile(lingua, service.name)).join(', ') ?? '',
                     }}
                   />
                 </div>

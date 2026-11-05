@@ -23,6 +23,7 @@ import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { meseCorto } from '../i18n/format'
 import { t } from '../i18n/t'
 import { LOCALE_INTL, type Lingua } from '../i18n/lingua'
@@ -330,7 +331,7 @@ export function EarningsReportPage() {
               {report.servizi.map((share) => (
                 <div key={share.key}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${share.name} · ${plural(share.count, frasi.incVolta, frasi.incVolte)}`}</span>
+                    <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{`${nomeServizioVisibile(lingua, share.name)} · ${plural(share.count, frasi.incVolta, frasi.incVolte)}`}</span>
                     <b style={{ fontVariantNumeric: 'tabular-nums' }}>{maskEuro(share.amount, hidden)}</b>
                   </div>
                   <div style={{ height: 7, borderRadius: 4, background: 'var(--surf)', overflow: 'hidden', marginTop: 4 }}>

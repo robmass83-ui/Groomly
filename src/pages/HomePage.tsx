@@ -229,7 +229,7 @@ const closeAction: CSSProperties = {
   justifyContent: 'center',
   gap: 4,
   textAlign: 'center',
-  whiteSpace: 'nowrap',
+  whiteSpace: 'normal',
   overflowWrap: 'normal',
 }
 

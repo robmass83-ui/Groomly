@@ -936,7 +936,7 @@ export function SettingsPage() {
                   <small style={{ color: 'var(--tx3)' }}>{autoAttivo ? frasi.impAutoAcceso : frasi.impAutoSpento}</small>
                   {driveEmail ? <span style={{ color: 'var(--tx2)', fontSize: TYPE.meta, ...USER_TEXT }}>{driveEmail}</span> : null}
                 </span>
-                <StatusPill tone={backupTone}>{backupLabel}</StatusPill>
+                <span style={{ flex: '0 1 auto', minWidth: 0, maxWidth: '42%', display: 'inline-flex' }}><StatusPill tone={backupTone} aCapo>{backupLabel}</StatusPill></span>
                 <ChevronRight size={16} strokeWidth={2} aria-hidden color="var(--tx3)" />
               </button>
             </SRow>

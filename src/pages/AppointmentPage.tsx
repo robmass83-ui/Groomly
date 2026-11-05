@@ -14,6 +14,7 @@ import { useScegliFoto } from '../components/ScegliFoto'
 import { useToast } from '../components/layout/Toast'
 import { dataBreve, dataCorta, euro } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { Button } from '../components/ui/Button'
@@ -559,7 +560,7 @@ function AppointmentRead({
             valori={{
               nome: dog?.contact.name ?? '',
               cane: dog?.name ?? '',
-              servizio: appointment.services.map((service) => service.name).join(', '),
+              servizio: appointment.services.map((service) => nomeServizioVisibile(lingua, service.name)).join(', '),
             }}
           />
         </div>
@@ -580,7 +581,7 @@ function AppointmentRead({
                 <IconTile tone={catalog?.iconKey ?? 'prim'} size="sm">
                   <ServiceIcon iconKey={catalog?.iconKey} size={SIZES.chip.serviceIconInChip} />
                 </IconTile>
-                <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{service.name}</span>
+                <span style={{ flex: 1, minWidth: 0, ...USER_TEXT }}>{nomeServizioVisibile(lingua, service.name)}</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>{euro(lingua, service.price)}</span>
               </span>
             )
@@ -593,7 +594,7 @@ function AppointmentRead({
               return (
                 <button key={service.id} type="button" aria-pressed={pressed} onClick={() => toggleService(service)} style={{ display: 'flex', alignItems: 'center', gap: 4, maxWidth: '100%', minHeight: 44, height: 'auto', border: '1px solid var(--line)', borderRadius: 999, background: pressed ? 'var(--surf)' : 'transparent', color: 'var(--tx)', fontWeight: 600, padding: '8px 12px', ...USER_TEXT }}>
                   <span aria-hidden="true" style={{ flex: 'none', display: 'inline-flex' }}><ServiceIcon iconKey={service.iconKey} size={SIZES.chip.serviceIconInChip} /></span>
-                  {service.name}
+                  {nomeServizioVisibile(lingua, service.name)}
                 </button>
               )
             })}

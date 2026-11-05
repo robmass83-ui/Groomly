@@ -52,7 +52,7 @@ const navButton: CSSProperties = {
 }
 
 const kpi: CSSProperties = { padding: '7px 9px', display: 'flex', flexDirection: 'column', gap: 1, textAlign: 'left' }
-const kpiLabel: CSSProperties = { fontSize: TYPE.meta, fontWeight: 600, color: 'var(--tx3)' }
+const kpiLabel: CSSProperties = { fontSize: TYPE.meta, fontWeight: 600, color: 'var(--tx3)', hyphens: 'auto', overflowWrap: 'anywhere' }
 const kpiValue: CSSProperties = { fontSize: 16, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }
 
 const rowButton: CSSProperties = {
