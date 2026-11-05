@@ -9,20 +9,16 @@ const NOMI_ERRORE = new Set(['Error', 'TypeError', 'RangeError', 'ReferenceError
 
 let attiva = false
 
-async function analytics() {
-  return (await import('@capacitor-firebase/analytics')).FirebaseAnalytics
-}
-
-async function crashlytics() {
-  return (await import('@capacitor-firebase/crashlytics')).FirebaseCrashlytics
-}
+// Si passano i moduli, non i plugin: un plugin di Capacitor risponde a `then`, e una promise lo scambierebbe per un'altra promise.
+const moduloAnalytics = () => import('@capacitor-firebase/analytics')
+const moduloCrashlytics = () => import('@capacitor-firebase/crashlytics')
 
 /** Il sì e il no restano salvati nel telefono: va ripetuto a ogni avvio. I crash nativi cambiano dal prossimo avvio. */
 export async function impostaRaccolta(valore: boolean, proprieta?: { piano: string; lingua: string }): Promise<void> {
   attiva = valore && Capacitor.isNativePlatform()
   if (!Capacitor.isNativePlatform()) return
   try {
-    const [google, crash] = await Promise.all([analytics(), crashlytics()])
+    const [{ FirebaseAnalytics: google }, { FirebaseCrashlytics: crash }] = await Promise.all([moduloAnalytics(), moduloCrashlytics()])
     await Promise.all([google.setEnabled({ enabled: valore }), crash.setEnabled({ enabled: valore })])
     if (!valore) {
       await crash.deleteUnsentReports()
@@ -39,8 +35,8 @@ export async function impostaRaccolta(valore: boolean, proprieta?: { piano: stri
 
 export function traccia(evento: EventoMetrica): void {
   registra(attiva, evento, ({ nome, ...params }) => {
-    void analytics()
-      .then((google) => google.logEvent({ name: nome, params }))
+    void moduloAnalytics()
+      .then(({ FirebaseAnalytics }) => FirebaseAnalytics.logEvent({ name: nome, params }))
       .catch(() => undefined)
   })
 }
@@ -64,7 +60,7 @@ export function segnalaErrore(errore: unknown): void {
   if (!attiva) return
   const tipo = errore instanceof Error && NOMI_ERRORE.has(errore.name) ? errore.name : 'Error'
   const stacktrace = errore instanceof Error ? righeStack(errore.stack) : []
-  void crashlytics()
-    .then((crash) => crash.recordException({ message: tipo, stacktrace }))
+  void moduloCrashlytics()
+    .then(({ FirebaseCrashlytics }) => FirebaseCrashlytics.recordException({ message: tipo, stacktrace }))
     .catch(() => undefined)
 }

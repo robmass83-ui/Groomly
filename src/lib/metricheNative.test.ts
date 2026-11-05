@@ -12,11 +12,13 @@ const m = vi.hoisted(() => ({
 }))
 
 vi.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => m.nativo } }))
+// Come i veri plugin di Capacitor: ogni proprietà è un metodo nativo, anche `then`. Uscire da una funzione async li rompe.
+const comePlugin = (metodi: object) => ({ ...metodi, then: (_ok: unknown, ko: (errore: Error) => void) => { ko(new Error('"then()" is not implemented')) } })
 vi.mock('@capacitor-firebase/analytics', () => ({
-  FirebaseAnalytics: { logEvent: m.logEvent, setEnabled: m.analyticsEnabled, setUserProperty: m.setUserProperty },
+  FirebaseAnalytics: comePlugin({ logEvent: m.logEvent, setEnabled: m.analyticsEnabled, setUserProperty: m.setUserProperty }),
 }))
 vi.mock('@capacitor-firebase/crashlytics', () => ({
-  FirebaseCrashlytics: { setEnabled: m.crashEnabled, recordException: m.recordException, deleteUnsentReports: m.deleteUnsentReports },
+  FirebaseCrashlytics: comePlugin({ setEnabled: m.crashEnabled, recordException: m.recordException, deleteUnsentReports: m.deleteUnsentReports }),
 }))
 
 async function attesa(): Promise<void> {
