@@ -87,8 +87,4 @@ Facoltativo, per ordine: i template 1-5 sono ancora attivi, solo in italiano, e 
 
 ## Logo con «TOELETTATURA» (5 novembre)
 
-Il logo orizzontale ha la parola «TOELETTATURA» disegnata dentro. Si vede in italiano sulle pagine pubbliche, sulla pagina di prenotazione e in testa a ogni email, anche per un cliente tedesco. Scegli tu:
-
-a) logo senza scritta per chi non legge italiano, *(consigliata)*;
-b) logo senza scritta per tutti;
-c) resta com'è.
+Deciso: la parola è tolta per tutti da sito, email, logo di avvio e logo VIP. Resta solo nei file originali di `Icon and logo`.

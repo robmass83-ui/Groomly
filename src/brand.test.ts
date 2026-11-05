@@ -44,4 +44,19 @@ describe('marchio', () => {
       expect(testata).not.toContain(`fill="${subtitle}"`)
     }
   })
+
+  it('nessun logo in uso porta la parola TOELETTATURA, che non si traduce', () => {
+    const inUso = [
+      'hosting/groomly-logo-orizzontale.svg',
+      'src/assets/brand/groomly-logo-animato.svg',
+      'src/assets/brand/groomly-logo-animato-scuro.svg',
+      'src/assets/brand/groomly-vip-logo-orizzontale.svg',
+      'src/assets/brand/groomly-vip-logo-scuro.svg',
+    ]
+    for (const file of inUso) {
+      const svg = readFileSync(path.join(root, file), 'utf8')
+      expect(svg).not.toMatch(/fill="#(6B7A8C|B8C4D2|9AABBD)"/)
+      expect(svg).not.toContain('TOELETTATURA')
+    }
+  })
 })
