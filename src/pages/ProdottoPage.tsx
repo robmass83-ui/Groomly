@@ -1,164 +1,135 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, Minus, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
-import { PhoneShell } from '../components/layout/PhoneShell'
 import { useToast } from '../components/layout/Toast'
+import { DatiProdotto } from '../components/magazzino/DatiProdotto'
+import { MovimentoSheet, type ModoMovimento } from '../components/magazzino/MovimentoSheet'
+import { Tacche } from '../components/magazzino/Tacche'
+import { conIcona } from '../components/magazzino/categorie'
 import { Button } from '../components/ui/Button'
-import { Input } from '../components/ui/Input'
-import { Segmented } from '../components/ui/Segmented'
+import { Card } from '../components/ui/Card'
+import { IconButton } from '../components/ui/IconButton'
 import { useProdotti } from '../hooks/useProdotti'
 import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
-import { CATEGORIE_PRODOTTO, ditteProposte, leggiQuantita, type CategoriaProdotto, type Prodotto, type UnitaProdotto } from '../lib/prodotti'
+import { t } from '../i18n/t'
+import { misuraProdotto, muoviProdotto, statoProdotto, totaleProdotto } from '../lib/prodotti'
 import { SIZES } from '../theme/sizes'
-import { ETICHETTA_CATEGORIA } from './MagazzinoPage'
+import { TYPE } from '../theme/theme'
+import { COLORE_STATO, ETICHETTA_STATO } from './MagazzinoPage'
+import { ShellFrame } from './ShellFrame'
 
 const ELENCO = '/altro/magazzino'
 
-function chip(attivo: boolean): CSSProperties {
-  return {
-    minHeight: 44,
-    padding: '0 16px',
-    borderRadius: 22,
-    border: `1px solid ${attivo ? 'var(--pri-solid)' : 'var(--line)'}`,
-    background: attivo ? 'var(--pri-solid)' : 'var(--card)',
-    color: attivo ? 'var(--on-pri)' : 'var(--tx)',
-    font: 'inherit',
-    fontWeight: 600,
-    cursor: 'pointer',
-  }
-}
-
-const proposta: CSSProperties = {
-  minHeight: 36,
-  padding: '0 12px',
-  borderRadius: 18,
-  border: '1px solid var(--line)',
-  background: 'var(--surf)',
-  color: 'var(--tx)',
-  font: 'inherit',
-  fontSize: 13,
-  cursor: 'pointer',
-}
-
 export function ProdottoPage() {
   const { id } = useParams()
-  const { gate } = useSession()
-  const uid = gate.kind === 'in' ? gate.account.uid : ''
-  const { prodotti, save, remove } = useProdotti(uid)
-  const esistente = prodotti.find((item) => item.id === id)
-  if (id && !esistente) return <Navigate to={ELENCO} replace />
-  return (
-    <SchedaProdotto
-      key={id ?? 'nuovo'}
-      esistente={esistente}
-      prodotti={prodotti}
-      save={save}
-      remove={remove}
-      elimina={!(gate.kind === 'in' && gate.account.role === 'collaboratore')}
-    />
-  )
-}
-
-function SchedaProdotto({ esistente, prodotti, save, remove, elimina }: {
-  esistente: Prodotto | undefined
-  prodotti: Prodotto[]
-  save: (prodotto: Prodotto) => Promise<void>
-  remove: (id: string) => Promise<void>
-  elimina: boolean
-}) {
   const frasi = useFrasi()
   const { lingua } = useLingua()
+  const { gate } = useSession()
   const navigate = useNavigate()
   const toast = useToast()
-  const [nome, setNome] = useState(esistente?.nome ?? '')
-  const [categoria, setCategoria] = useState<CategoriaProdotto>(esistente?.categoria ?? 'shampoo')
-  const [quantita, setQuantita] = useState(esistente?.quantita === null || !esistente ? '' : new Intl.NumberFormat(lingua, { useGrouping: false }).format(esistente.quantita))
-  const [unita, setUnita] = useState<UnitaProdotto>(esistente?.unita ?? 'l')
-  const [ditta, setDitta] = useState(esistente?.ditta ?? '')
-  const [codice, setCodice] = useState(esistente?.codice ?? '')
-  const [erroreNome, setErroreNome] = useState<string>()
-  const [erroreQuantita, setErroreQuantita] = useState<string>()
+  const { prodotti, save, remove } = useProdotti(gate.kind === 'in' ? gate.account.uid : '')
+  const [movimento, setMovimento] = useState<ModoMovimento | null>(null)
+  const [modifica, setModifica] = useState(false)
   const [conferma, setConferma] = useState(false)
+  const prodotto = prodotti.find((item) => item.id === id)
+  if (!prodotto) return <Navigate to={ELENCO} replace />
+  const elimina = !(gate.kind === 'in' && gate.account.role === 'collaboratore')
+  const stato = statoProdotto(prodotto)
+  const Icona = stato === 'ok' ? Check : AlertTriangle
+  const totale = totaleProdotto(prodotto, lingua)
+  const data = new Intl.DateTimeFormat(lingua, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
   // Senza aspettare il cloud: offline la scrittura parte quando torna la rete.
   function nonRiuscito() {
     toast.show(frasi.authSalvataggio, 'plain')
   }
 
-  function onSalva(event: FormEvent) {
-    event.preventDefault()
-    const letta = leggiQuantita(quantita)
-    const nomeOk = nome.trim().length > 0
-    setErroreNome(nomeOk ? undefined : frasi.magNomeManca)
-    setErroreQuantita(letta === 'errore' ? frasi.magQuantitaErrore : undefined)
-    if (!nomeOk || letta === 'errore') return
-    const adesso = new Date()
-    void save({
-      id: esistente?.id ?? crypto.randomUUID(),
-      nome: nome.trim(),
-      categoria,
-      quantita: letta,
-      unita,
-      ditta: ditta.trim(),
-      codice: codice.trim(),
-      createdAt: esistente?.createdAt ?? adesso,
-      updatedAt: adesso,
-    }).catch(nonRiuscito)
-    navigate(ELENCO, { replace: true })
-  }
-
   function onElimina() {
-    if (!esistente) return
-    void remove(esistente.id).catch(nonRiuscito)
+    if (!prodotto) return
+    void remove(prodotto.id).catch(nonRiuscito)
     navigate(ELENCO, { replace: true })
   }
 
   return (
-    <PhoneShell>
-      <Header title={esistente ? frasi.magScheda : frasi.magNuovo} backTo={ELENCO} />
-      <form noValidate onSubmit={onSalva} style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Input label={frasi.magCampoProdotto} value={nome} onChange={(event) => setNome(event.target.value)} error={erroreNome} maxLength={120} size="lg" />
-        <div role="radiogroup" aria-label={frasi.magCampoCategoria} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.magCampoCategoria}</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {CATEGORIE_PRODOTTO.map((item) => (
-              <button key={item} type="button" role="radio" aria-checked={categoria === item} onClick={() => setCategoria(item)} style={chip(categoria === item)}>
-                {frasi[ETICHETTA_CATEGORIA[item]]}
-              </button>
-            ))}
+    <ShellFrame showFab={false}>
+      <Header
+        title={prodotto.nome}
+        subtitle={[misuraProdotto(prodotto, lingua), prodotto.ditta, prodotto.codice].filter(Boolean).join(' · ') || undefined}
+        backTo={ELENCO}
+        action={<IconButton label={frasi.magModifica} onClick={() => setModifica(true)}><Pencil size={18} strokeWidth={2} aria-hidden /></IconButton>}
+      />
+      <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Card>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
+              <div>
+                <strong style={{ display: 'block', fontSize: 40, fontWeight: 800, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{prodotto.pezzi}</strong>
+                <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{totale ? t(lingua, 'magPezziTotale', { totale }) : frasi.magPezzi}</small>
+              </div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: COLORE_STATO[stato], fontWeight: 700, fontSize: 13 }}><Icona size={14} strokeWidth={2.4} aria-hidden />{frasi[ETICHETTA_STATO[stato]]}</span>
+            </div>
+            <Tacche grandi pezzi={prodotto.pezzi} soglia={prodotto.soglia} stato={stato} />
+            <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{prodotto.soglia > 0 ? t(lingua, 'magAvvisoA', { n: prodotto.soglia }) : frasi.magSenzaAvviso}</small>
+            {prodotto.inArrivo > 0 ? <small style={{ color: 'var(--pri-ink)', fontWeight: 700 }}>{t(lingua, 'magInArrivoConto', { n: prodotto.inArrivo })}</small> : null}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+              <Button type="button" style={conIcona} variant="secondary" disabled={prodotto.pezzi === 0} onClick={() => setMovimento('usati')}><Minus size={16} strokeWidth={2.2} aria-hidden />{frasi.magUsati}</Button>
+              <Button type="button" style={conIcona} onClick={() => setMovimento('arrivati')}><Plus size={16} strokeWidth={2.2} aria-hidden />{frasi.magArrivati}</Button>
+            </div>
           </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, alignItems: 'start' }}>
-          <Input label={frasi.magCampoQuantita} value={quantita} onChange={(event) => setQuantita(event.target.value)} error={erroreQuantita} inputMode="decimal" size="lg" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: SIZES.field.gap }}>
-            <span style={{ fontSize: SIZES.field.label, fontWeight: 600, color: 'var(--tx2)' }}>{frasi.magCampoUnita}</span>
-            <Segmented fill label={frasi.magCampoUnita} value={unita} onChange={setUnita} options={[{ value: 'l', label: frasi.magLitri }, { value: 'ml', label: 'ml' }]} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Input label={frasi.magCampoDitta} value={ditta} onChange={(event) => setDitta(event.target.value)} maxLength={120} autoComplete="off" size="lg" />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {ditteProposte(prodotti, ditta).map((item) => (
-              <button key={item} type="button" onClick={() => setDitta(item)} style={proposta}>{item}</button>
-            ))}
-          </div>
-        </div>
-        <Input label={frasi.magCampoCodice} value={codice} onChange={(event) => setCodice(event.target.value)} maxLength={120} autoComplete="off" size="lg" />
-        <Button type="submit" size="lg" style={{ width: '100%' }}>{frasi.magSalva}</Button>
-        {esistente && elimina ? (
-          <Button type="button" variant="bad" onClick={() => setConferma(true)} style={{ width: '100%' }}>{frasi.magElimina}</Button>
+        </Card>
+        {prodotto.movimenti.length > 0 ? (
+          <>
+            <h2 style={{ margin: '4px 2px 0', fontSize: TYPE.section, letterSpacing: TYPE.sectionTracking, textTransform: 'uppercase', color: 'var(--tx2)' }}>{frasi.magStorico}</h2>
+            <Card>
+              {prodotto.movimenti.map((item, indice) => {
+                const entrata = item.delta > 0
+                const Freccia = entrata ? ArrowUp : ArrowDown
+                return (
+                  <div key={`${item.at}-${indice}`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 54, padding: '6px 12px', borderTop: indice === 0 ? undefined : '1px solid var(--line)' }}>
+                    <span style={{ width: 32, height: 32, flex: 'none', display: 'grid', placeItems: 'center', borderRadius: 10, background: entrata ? 'var(--ok-s)' : 'var(--pri-s)', color: entrata ? 'var(--ok)' : 'var(--pri)' }}><Freccia size={16} strokeWidth={2} aria-hidden /></span>
+                    <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 650 }}>{t(lingua, entrata ? 'magMovArrivati' : 'magMovUsati', { n: Math.abs(item.delta) })}</span>
+                      <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{data.format(new Date(item.at))}</small>
+                    </span>
+                    <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{item.dopo - item.delta} → {item.dopo}</strong>
+                  </div>
+                )
+              })}
+            </Card>
+          </>
         ) : null}
-      </form>
-      {conferma && esistente ? (
-        <Dialog open title={frasi.magEliminaDomanda.replace('{{nome}}', esistente.nome)} onClose={() => setConferma(false)}>
+        {elimina ? <Button type="button" variant="ghost" onClick={() => setConferma(true)} style={{ ...conIcona, width: '100%', color: 'var(--bad)' }}><Trash2 size={16} strokeWidth={2} aria-hidden />{frasi.magElimina}</Button> : null}
+      </div>
+      {movimento ? (
+        <MovimentoSheet
+          prodotto={prodotto}
+          modoIniziale={movimento}
+          onClose={() => setMovimento(null)}
+          onConferma={(delta) => { setMovimento(null); void save(muoviProdotto(prodotto, delta, new Date())).catch(nonRiuscito) }}
+        />
+      ) : null}
+      {modifica ? (
+        <DatiProdotto
+          bozza={{ nome: prodotto.nome, categoria: prodotto.categoria, quantita: prodotto.quantita, unita: prodotto.unita, libero: true }}
+          esistente={prodotto}
+          prodotti={prodotti}
+          onClose={() => setModifica(false)}
+          save={save}
+          onSalvato={() => setModifica(false)}
+        />
+      ) : null}
+      {conferma ? (
+        <Dialog open title={t(lingua, 'magEliminaDomanda', { nome: prodotto.nome })} onClose={() => setConferma(false)}>
+          <p style={{ margin: 0, color: 'var(--tx2)' }}>{frasi.magEliminaDettaglio}</p>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button type="button" variant="ghost" onClick={() => setConferma(false)}>{frasi.homeAnnulla}</Button>
             <Button type="button" variant="bad" onClick={onElimina}>{frasi.magEliminaConferma}</Button>
           </div>
         </Dialog>
       ) : null}
-    </PhoneShell>
+    </ShellFrame>
   )
 }

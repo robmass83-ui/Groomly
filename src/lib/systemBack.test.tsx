@@ -32,7 +32,7 @@ describe('tasto indietro di sistema', () => {
 
   it('dal Magazzino senza storia risale ad Altro, dalla scheda all’elenco', () => {
     expect(systemBackChoice('/altro/magazzino', false, false)).toBe('paginaAltro')
-    expect(systemBackChoice('/altro/magazzino/nuovo', false, false)).toBe('magazzino')
+    expect(systemBackChoice('/altro/magazzino/ordini', false, false)).toBe('magazzino')
     expect(systemBackChoice('/altro/magazzino/p1', false, false)).toBe('magazzino')
     expect(systemBackChoice('/altro/magazzino/p1', false, true)).toBe('history')
   })

@@ -1848,10 +1848,17 @@ export async function saveProdotto(_uid: string, prodotto: Prodotto): Promise<vo
   await putDoc(salonDocPath('prodotti', prodotto.id), {
     nome: prodotto.nome,
     categoria: prodotto.categoria,
+    pezzi: prodotto.pezzi,
     quantita: prodotto.quantita,
     unita: prodotto.unita,
     ditta: prodotto.ditta,
+    telefono: prodotto.telefono,
+    email: prodotto.email,
     codice: prodotto.codice,
+    soglia: prodotto.soglia,
+    inArrivo: prodotto.inArrivo,
+    ordinatoIl: prodotto.ordinatoIl,
+    movimenti: prodotto.movimenti,
     createdAt: prodotto.createdAt.getTime(),
     updatedAt: prodotto.updatedAt.getTime(),
   })
