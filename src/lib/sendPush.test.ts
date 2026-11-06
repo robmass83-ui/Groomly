@@ -120,6 +120,18 @@ describe('raccolta invii push', () => {
     expect(sends.some((send) => send.kind === 'complete')).toBe(false)
   })
 
+  it('chi ha perso l’accesso ai clienti non riceve i loro nomi, ma gli aggiornamenti sì', async () => {
+    const giro = (operativo: boolean) => collectSends({
+      ...load('9.0.0'),
+      accountIds: async () => ['active'],
+      operativo: async () => operativo,
+    }, now)
+    expect((await giro(true)).some((send) => send.kind === 'complete')).toBe(true)
+    const senzaPiano = await giro(false)
+    expect(senzaPiano.some((send) => send.kind === 'complete')).toBe(false)
+    expect(senzaPiano.some((send) => send.kind === 'updates')).toBe(true)
+  })
+
   it('un personale nei 30 minuti prima è un promemoria, non un da completare', () => {
     const appointment = appointmentFromDoc('p1', {
       kind: 'personale',

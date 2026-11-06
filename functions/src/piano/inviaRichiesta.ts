@@ -11,7 +11,7 @@ import { linguaCliente, replyToDelSalone, spedisciHtml, tipoEmailPrenotazione } 
 import { salonPrenota } from './gatePrenotazione'
 import { riservaMittente } from './mittente'
 import { catalogoDelSalone } from './paginaPubblica'
-import { intervalloAncoraLibero, postiLiberiPer } from './postiLiberi'
+import { datiUnici, intervalloAncoraLibero, postiLiberiPer, queryRichieste, queryVisite } from './postiLiberi'
 import { erroreDaMessaggio, erroreServer } from '../erroriServer'
 
 export async function inviaRichiestaPer(input: {
@@ -114,13 +114,15 @@ export async function inviaRichiestaPer(input: {
     ...(input.mittente ? { mittente: input.mittente } : {}),
   }
   await db.runTransaction(async (tx) => {
-    const appSnap = await tx.get(db.collection(`salons/${input.salonId}/appointments`))
-    const ricSnap = await tx.get(db.collection(`salons/${input.salonId}/richieste`))
+    const adesso = new Date()
+    const base = `salons/${input.salonId}`
+    const visite = await Promise.all(queryVisite(db, base, adesso).map((query) => tx.get(query)))
+    const ricSnap = await tx.get(queryRichieste(db, base))
     const libero = intervalloAncoraLibero({
       inizio: quando.inizio,
       fine,
-      adesso: new Date(),
-      appuntamenti: appSnap.docs.map((doc) => doc.data()),
+      adesso,
+      appuntamenti: datiUnici(visite),
       richieste: ricSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() })),
     })
     if (!libero) throw erroreServer('failed-precondition', 'orario_non_disponibile')

@@ -66,6 +66,13 @@ In attesa. Si riprendono quando si decide di aprire Play.
   `npx firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH` e `npx firebase functions:secrets:set REVENUECAT_API_KEY`.
   Poi, quando vuoi (gratis): account RevenueCat, chiave segreta V2, ID progetto in `functions/.env` (`REVENUECAT_PROJECT_ID`), chiave `goog_…` nella Console, webhook con «Send test event». Il giorno dei pagamenti: annuncio 15 giorni prima, pannello di accensione tutto verde, ACCENDI. Passi completi in `docs/legal/PRIMA-DEI-PAGAMENTI.md` §3.
 
+## Sicurezza: controlli in console (audit del 6 novembre)
+
+- Google Cloud: budget con avviso sulla fatturazione. Le regole limitano il singolo file, non quanti file crea un account gratuito.
+- Google Cloud: quota giornaliera sull'API Places.
+- Chiave web Firebase: limitarla per API alle sole API Firebase usate, così non chiama Places. Non limitarla ai soli siti: nell'APK gira con origine https://localhost e il login smetterebbe di funzionare. Se si vuole il limite per sito, aggiungere https://localhost e provare prima su un APK di prova.
+- Chiave Android: limitarla al pacchetto it.groomly.app con le impronte di firma GitHub e Play.
+
 ## App Check (codice pronto, spento)
 
 Il codice c’è e non parte. `APP_CHECK_ATTIVO` in `src/lib/appCheck.ts` è `false`. `APP_CHECK_ENABLED` in `android/app/build.gradle` è `false`. `hosting/app-check.js` ha `GROOMLY_APP_CHECK = false`. Non imporre App Check su Firestore o sulle Functions prima che un’app con il flag acceso sia in mano ai tester: l’app di Laura resterebbe fuori.

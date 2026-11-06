@@ -4,6 +4,8 @@ export const PUSH_RATE_MAX = 8
 export const PUSH_RATE_WINDOW_MS = 60 * 1000
 export const MITTENTE_RATE_MAX = 6
 export const MITTENTE_RATE_WINDOW_MS = 60 * 60 * 1000
+export const LETTURE_RATE_MAX = 60
+export const LETTURE_RATE_WINDOW_MS = 10 * 60 * 1000
 export const AVVISI_RATE_MAX = 10
 export const AVVISI_RATE_WINDOW_MS = 60 * 60 * 1000
 export const RISPOSTE_RATE_MAX = 30
@@ -33,6 +35,10 @@ export function avvisiRateDecision(hits: unknown, now: number): { ok: boolean; n
 
 export function risposteRateDecision(hits: unknown, now: number): { ok: boolean; next: number[] } {
   return rateDecisionWindow(hits, now, RISPOSTE_RATE_MAX, RISPOSTE_RATE_WINDOW_MS)
+}
+
+export function lettureRateDecision(hits: unknown, now: number): { ok: boolean; next: number[] } {
+  return rateDecisionWindow(hits, now, LETTURE_RATE_MAX, LETTURE_RATE_WINDOW_MS)
 }
 
 export function mittenteRateDecision(hits: unknown, now: number): { ok: boolean; next: number[] } {

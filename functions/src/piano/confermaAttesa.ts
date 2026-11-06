@@ -7,7 +7,7 @@ import { caneDaDoc, listinoDaDoc, prezziVisita, servizioDaDoc, type ServizioList
 import { archivioDelCane, documentoCane, idValido, type RichiestaSalvata } from './gestisciPrenotazione'
 import type { ProMain } from '../../../src/lib/piano'
 import { listaAttesaAccesa } from './inviaCoda'
-import { appuntamentoOccupato, intervalloAncoraLibero, richiestaOccupata } from './postiLiberi'
+import { appuntamentoOccupato, datiUnici, intervalloAncoraLibero, queryRichieste, queryVisite, richiestaOccupata } from './postiLiberi'
 
 const TOKEN = /^[A-Za-z0-9_-]{16,128}$/
 
@@ -87,11 +87,12 @@ export async function confermaAttesaPer(input: {
 
     const durataMin = durataDi(iscritto?.durataMin)
     const fine = new Date(inizio.getTime() + durataMin * 60_000)
-    const [appSnap, ricSnap] = await Promise.all([
-      tx.get(db.collection(`${base}/appointments`)),
-      tx.get(db.collection(`${base}/richieste`)),
+    const [visite, ricSnap, disdettaSnap] = await Promise.all([
+      Promise.all(queryVisite(db, base, adesso).map((query) => tx.get(query))),
+      tx.get(queryRichieste(db, base)),
+      appointmentId === '' || appointmentId.includes('/') ? null : tx.get(db.doc(`${base}/appointments/${appointmentId}`)),
     ])
-    const appuntamenti = appSnap.docs.map((doc) => doc.data())
+    const appuntamenti = datiUnici(visite)
     const richieste = ricSnap.docs.map((doc) => ({ id: doc.id, data: doc.data() }))
     const libero = intervalloAncoraLibero({ inizio, fine, adesso, appuntamenti, richieste })
     // L'ora è presa se qualcuno la tiene al suo inizio: se solo la durata sfora, è un altro motivo.
@@ -128,7 +129,7 @@ export async function confermaAttesaPer(input: {
       return testo(contatto.email) === email && testo(dati.name) === nomeCane && archivioDelCane(dati.status) !== null
     })
     const esistente = uguali.find((cane) => archivioDelCane(cane.data().status) === false) ?? uguali[0]
-    const visitaDisdetta = appSnap.docs.find((doc) => doc.id === appointmentId)?.data()
+    const visitaDisdetta = disdettaSnap?.data()
     const caneDisdetta = caniSnap.docs.find((cane) => cane.id === testo(visitaDisdetta?.dogId))
     const disdetto = testo(tomba?.nomeCane) || testo(caneDisdetta?.data().name) || testo(visitaDisdetta?.ospiteNome)
 

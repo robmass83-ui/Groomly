@@ -4,7 +4,7 @@ const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string
 vi.mock('firebase-admin/firestore', async () => (await import('./piano/firestoreFinto.testutil')).firestoreFinto(archivio))
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
-import { emailOggi, liberaEmail, margineConsole, prenotaEmail } from './postaGiorno'
+import { emailOggi, liberaEmail, liberaEmailSalone, margineConsole, prenotaEmail, prenotaEmailSalone, riservaPostaSistema, TETTO_POSTA_SISTEMA } from './postaGiorno'
 
 const db = () => getFirestore() as unknown as Firestore
 const ADESSO = new Date('2026-11-05T10:00:00.000Z')
@@ -72,5 +72,45 @@ describe('emailOggi', () => {
     archivio.set('sistema/postaGiorno', { giorno: '2026-11-05', n: 42 })
     await expect(emailOggi(db(), ADESSO)).resolves.toBe(42)
     await expect(emailOggi(db(), DOMANI)).resolves.toBe(0)
+  })
+})
+
+describe('posti del salone prenotati prima di spedire', () => {
+  beforeEach(() => archivio.clear())
+
+  it('il conto sale prima dell’invio e oltre il tetto il salone si ferma', async () => {
+    archivio.set('sistema/postaGiorno', { giorno: '2026-11-05', n: 299, perSalone: { s1: 299 }, accesi: ['s1'] })
+    expect(await prenotaEmailSalone(db(), ADESSO, 's1')).toBe(true)
+    expect(archivio.get('sistema/postaGiorno')).toMatchObject({ n: 300, perSalone: { s1: 300 } })
+    expect(await prenotaEmailSalone(db(), ADESSO, 's1')).toBe(false)
+  })
+
+  it('dieci invii insieme con un posto solo: ne passa uno', async () => {
+    archivio.set('sistema/postaGiorno', { giorno: '2026-11-05', n: 299, perSalone: { s1: 299 }, accesi: ['s1'] })
+    const esiti = []
+    for (let i = 0; i < 10; i += 1) esiti.push(await prenotaEmailSalone(db(), ADESSO, 's1'))
+    expect(esiti.filter(Boolean)).toHaveLength(1)
+  })
+
+  it('un’email che Brevo non prende restituisce il posto', async () => {
+    await prenotaEmailSalone(db(), ADESSO, 's1')
+    await liberaEmailSalone(db(), ADESSO, 's1')
+    expect(archivio.get('sistema/postaGiorno')).toMatchObject({ n: 0, perSalone: { s1: 0 } })
+  })
+})
+
+describe('email di sistema', () => {
+  beforeEach(() => archivio.clear())
+
+  it('hanno un tetto proprio e non toccano il conto dei promemoria', async () => {
+    archivio.set('sistema/postaSistema', { giorno: '2026-11-05', n: TETTO_POSTA_SISTEMA - 1 })
+    expect(await riservaPostaSistema(db(), ADESSO)).toBe(true)
+    expect(await riservaPostaSistema(db(), ADESSO)).toBe(false)
+    expect(archivio.has('sistema/postaGiorno')).toBe(false)
+  })
+
+  it('il giorno dopo si riparte', async () => {
+    archivio.set('sistema/postaSistema', { giorno: '2026-11-05', n: TETTO_POSTA_SISTEMA })
+    expect(await riservaPostaSistema(db(), DOMANI)).toBe(true)
   })
 })

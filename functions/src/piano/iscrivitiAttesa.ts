@@ -14,6 +14,7 @@ import { catalogoDelSalone } from './paginaPubblica'
 const SPECIE: readonly SpecieAttesa[] = ['cane', 'gatto', 'altro']
 const TAGLIE: readonly TagliaAttesa[] = ['piccola', 'media', 'grande']
 const MAX_TESTO = 200
+const GIORNI_TETTO = 60
 
 export type EsitoIscrizione =
   | { ok: true, iscrittoId: string }
@@ -95,7 +96,13 @@ export async function iscrivitiAttesaPer(input: {
     return { ok: true, iscrittoId: gia.id }
   }
   const mittente = input.mittente ?? ''
-  const conti = contaAperte(attive.map((riga) => riga.data), phone, email, mittente)
+  // La lista non scade: nel tetto contano solo le iscrizioni recenti, altrimenti 20 iscritti vecchi la chiudono per sempre.
+  const dal = input.adesso.getTime() - GIORNI_TETTO * 86_400_000
+  const recenti = attive.filter((riga) => {
+    const creato = Date.parse(pulito(riga.data.creatoIl))
+    return !Number.isFinite(creato) || creato >= dal
+  })
+  const conti = contaAperte(recenti.map((riga) => riga.data), phone, email, mittente)
   const antispam = decisioneAntispam({
     aperteTelefono: conti.aperteTelefono,
     aperteMittente: conti.aperteMittente,

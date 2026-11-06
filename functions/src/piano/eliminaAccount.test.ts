@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { archivio, authCancellati } = vi.hoisted(() => ({
   archivio: new Map<string, Record<string, unknown>>(),
@@ -7,9 +7,11 @@ const { archivio, authCancellati } = vi.hoisted(() => ({
 
 vi.mock('firebase-admin/firestore', async () => (await import('./firestoreFinto.testutil')).firestoreFinto(archivio))
 
+const accesso = vi.hoisted(() => ({ confermata: true }))
+
 vi.mock('firebase-admin/auth', () => ({
   getAuth: () => ({
-    getUser: async (uid: string) => ({ uid, email: `${uid}@test.it` }),
+    getUser: async (uid: string) => ({ uid, email: `${uid}@test.it`, emailVerified: accesso.confermata }),
     deleteUser: async (uid: string) => {
       authCancellati.push(uid)
     },
@@ -216,5 +218,34 @@ describe('eliminare l’account di un membro', () => {
     expect(archivio.has('accounts/collab')).toBe(true)
     expect(archivio.get('salons/tit/members/collab')).toEqual({ status: 'attivo' })
     expect(authCancellati).toEqual([])
+  })
+})
+
+describe('eliminare un account con l’email mai confermata', () => {
+  beforeEach(() => {
+    archivio.clear()
+    authCancellati.length = 0
+    accesso.confermata = false
+    archivio.set('accounts/tit', { salonId: 'tit', role: 'titolare', email: 'vittima@test.it' })
+    archivio.set('salons/tit/settings/main', { business: { salonName: 'Compra qui' } })
+  })
+
+  afterEach(() => {
+    accesso.confermata = true
+  })
+
+  it('non manda la lettera a un indirizzo non confermato', async () => {
+    const invia = vi.fn(async () => undefined)
+    await eliminaAccountPer('tit', undefined, invia)
+    expect(invia).not.toHaveBeenCalled()
+    expect(authCancellati).toEqual(['tit'])
+  })
+
+  it('non azzera il limite di invio dell’indirizzo scritto nell’account', async () => {
+    archivio.set('emailRateLimits/vittima@test.it', { hits: [1, 2, 3] })
+    archivio.set('emailRateLimits/reset:vittima@test.it', { hits: [1, 2, 3] })
+    await eliminaAccountPer('tit')
+    expect(archivio.has('emailRateLimits/vittima@test.it')).toBe(true)
+    expect(archivio.has('emailRateLimits/reset:vittima@test.it')).toBe(true)
   })
 })

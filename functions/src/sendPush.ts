@@ -57,6 +57,8 @@ export type PushAppointment = {
 export type PushLoad = {
   accountIds(): Promise<string[]>
   account(uid: string): Promise<{ salonId: string; lingua?: string } | null>
+  /** Come canUse nelle regole: chi ha perso l'accesso ai clienti non ne riceve i nomi nelle push. */
+  operativo?(salonId: string, uid: string): Promise<boolean>
   prefs(uid: string): Promise<unknown>
   devices(uid: string): Promise<PushDevice[]>
   appointments(salonId: string): Promise<PushAppointment[]>
@@ -287,7 +289,8 @@ async function pushDelSalone(
   }))
   for (const member of members) {
     const prefs: PushPrefs = readPushPrefs(await load.prefs(member.uid))
-    const inLingua = appointments.map((appointment) => (
+    const operativo = load.operativo ? await load.operativo(salonId, member.uid) : true
+    const inLingua = !operativo ? [] : appointments.map((appointment) => (
       appointment.personaleSenzaTitolo ? { ...appointment, personalTitle: t(member.lingua, 'persTitolo') } : appointment
     ))
     const devices = (devicesByUid.get(member.uid) ?? [])

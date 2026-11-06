@@ -7,7 +7,7 @@ import { emailValida, type StatoCoda, type TipoCoda } from '../../../src/lib/cod
 import { settimanaValida, type IscrittoAttesa } from '../../../src/lib/listaAttesa'
 import type { ProMain } from '../../../src/lib/piano'
 import { postiEmailSalone, TETTO_EMAIL_GIORNO } from '../../../src/lib/promemoriaEmail'
-import { POSTA_GIORNO, contaInvii, postaOggi, type PostaGiorno } from '../postaGiorno'
+import { POSTA_GIORNO, liberaEmailSalone, postaOggi, prenotaEmailSalone, type PostaGiorno } from '../postaGiorno'
 import { notaProblemaDelGiorno } from '../../../src/lib/righeServizio'
 import { romeDay } from '../../../src/lib/romeTime'
 import { salonCollection } from '../../../src/lib/salonPath'
@@ -29,6 +29,41 @@ import {
 
 const TIPI = new Set<TipoCoda>(['promemoria', 'pronto', 'auguri', 'recensione', 'attesa'])
 const STATI = new Set<StatoCoda>(['in_coda', 'fermata', 'inviata', 'non_inviata', 'chiusa'])
+
+/** Il giro si ferma qui: la function ha più margine, così le righe già spedite fanno in tempo a essere salvate. */
+const TEMPO_GIRO_MS = 50_000
+/** Un giro interrotto non blocca i successivi oltre questo tempo. */
+const BLOCCO_GIRO_MS = 2 * 60_000
+const GIRO_CODA = 'sistema/giroCoda'
+const GRUPPO_SALONI = 20
+
+/** Gli id che Firestore rifiuta: una riga così fallirebbe il salvataggio dopo la spedizione. */
+function idRiservato(id: string): boolean {
+  return id === '.' || id === '..' || /^__.*__$/.test(id) || Buffer.byteLength(id) > 500
+}
+
+/** Un solo giro alla volta: due giri insieme vedrebbero le stesse righe ancora da spedire. */
+async function prendiGiro(db: Firestore, adessoMs: number): Promise<boolean> {
+  const ref = db.doc(GIRO_CODA)
+  return db.runTransaction(async (tx) => {
+    const fino = (await tx.get(ref)).get('fino')
+    if (typeof fino === 'number' && fino > adessoMs) return false
+    tx.set(ref, { fino: adessoMs + BLOCCO_GIRO_MS })
+    return true
+  })
+}
+
+/** Il salone da cui si parte cambia ogni minuto: uno lento non resta sempre davanti agli altri. */
+function aRotazione<T>(voci: readonly T[], adesso: Date): T[] {
+  if (voci.length === 0) return []
+  const inizio = Math.floor(adesso.getTime() / 60_000) % voci.length
+  return [...voci.slice(inizio), ...voci.slice(0, inizio)]
+}
+
+function segnaInviate(posta: PostaGiorno, salonId: string, inviate: number): void {
+  posta.totale += inviate
+  posta.perSalone[salonId] = (posta.perSalone[salonId] ?? 0) + inviate
+}
 
 function dataDi(value: unknown): Date | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value
@@ -270,6 +305,7 @@ function righeDaImpostazioni(value: unknown): RigaInvio[] {
     if (!item || typeof item !== 'object') continue
     const raw = item as Record<string, unknown>
     const id = typeof raw.id === 'string' ? raw.id : ''
+    if (idRiservato(id)) continue
     const riga = rigaLetta(id, raw)
     if (riga) righe.push(riga)
   }
@@ -342,6 +378,8 @@ export async function inviaSubitoRiga(input: {
     fetchImpl: input.fetchImpl,
     subito: true,
     bloccate,
+    prenota: () => prenotaEmailSalone(db, adesso, input.salonId),
+    libera: () => liberaEmailSalone(db, adesso, input.salonId),
   })
   let aggiornata = applicaEsito([riga], esito)[0] ?? riga
   if (esito.attese.includes(riga.id) && aggiornata.motivo !== 'pagina_assente' && !emailValida(aggiornata.email)) {
@@ -350,7 +388,6 @@ export async function inviaSubitoRiga(input: {
   const dopo = esistenti.map((item) => (item.id === aggiornata.id ? aggiornata : item))
   await scriviRighe(db, radice, esistenti, dopo)
   await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
-  await contaInvii(db, adesso, input.salonId, esito.inviate, posta)
   return { stato: aggiornata.stato, motivo: aggiornata.motivo }
 }
 
@@ -361,20 +398,38 @@ export async function giraInvioCoda(input: {
 }): Promise<{ saloni: number; inviate: number }> {
   const db = getFirestore()
   const adesso = input.adesso ?? new Date()
+  const avvio = Date.now()
+  if (!(await prendiGiro(db, avvio))) return { saloni: 0, inviate: 0 }
+  try {
+    return await giroDeiSaloni(db, input, adesso, avvio + TEMPO_GIRO_MS)
+  } finally {
+    await db.doc(GIRO_CODA).set({ fino: 0 }).catch((error: unknown) => logger.error('Giro coda non sbloccato', { error }))
+  }
+}
+
+async function giroDeiSaloni(
+  db: Firestore,
+  input: { apiKey: string; fetchImpl?: typeof fetch },
+  adesso: Date,
+  finoA: number,
+): Promise<{ saloni: number; inviate: number }> {
   const refs = await db.collection('salons').listDocuments()
   const ids = [...new Set([...refs.map((ref) => ref.id), 'shared'])].filter((id) => id !== '' && !id.includes('/'))
   // Prima si contano i saloni con le email accese: la quota di ciascuno dipende da quanti sono.
   const accesi: { salonId: string; settings: Record<string, unknown>; servizi: ReturnType<typeof serviziPerPiano> }[] = []
-  for (const salonId of ids) {
-    try {
-      const radice = salonCollection(salonId).join('/')
-      const settings = (await db.doc(`${radice}/settings/main`).get()).data() ?? {}
-      const proSnap = await db.doc(`${radice}/pro/main`).get()
-      const servizi = serviziPerPiano(settings.serviziEmail, proSnap.data() as ProMain | undefined, adesso)
-      if (serviziAccesi(servizi).length > 0) accesi.push({ salonId, settings, servizi })
-    } catch (error) {
-      logger.error('Impostazioni email del salone non lette', { salonId, error })
-    }
+  // A gruppi: con tanti saloni gratuiti le letture una dopo l'altra mangerebbero il tempo del giro.
+  for (let inizio = 0; inizio < ids.length; inizio += GRUPPO_SALONI) {
+    await Promise.all(ids.slice(inizio, inizio + GRUPPO_SALONI).map(async (salonId) => {
+      try {
+        const radice = salonCollection(salonId).join('/')
+        const [settingsSnap, proSnap] = await Promise.all([db.doc(`${radice}/settings/main`).get(), db.doc(`${radice}/pro/main`).get()])
+        const settings = settingsSnap.data() ?? {}
+        const servizi = serviziPerPiano(settings.serviziEmail, proSnap.data() as ProMain | undefined, adesso)
+        if (serviziAccesi(servizi).length > 0) accesi.push({ salonId, settings, servizi })
+      } catch (error) {
+        logger.error('Impostazioni email del salone non lette', { salonId, error })
+      }
+    }))
   }
   const posta = await postaOggi(db, adesso)
   const idAccesi = accesi.map((voce) => voce.salonId)
@@ -384,7 +439,11 @@ export async function giraInvioCoda(input: {
   }
   let saloni = 0
   let inviate = 0
-  for (const { salonId, settings, servizi } of accesi) {
+  accesi.sort((a, b) => (a.salonId < b.salonId ? -1 : 1))
+  for (const { salonId, settings, servizi } of aRotazione(accesi, adesso)) {
+    if (Date.now() >= finoA) break
+    const prenota = () => prenotaEmailSalone(db, adesso, salonId)
+    const libera = () => liberaEmailSalone(db, adesso, salonId)
     try {
       const radice = salonCollection(salonId).join('/')
 
@@ -458,11 +517,14 @@ export async function giraInvioCoda(input: {
         fetchImpl: input.fetchImpl,
         adesso,
         bloccate,
+        prenota,
+        libera,
+        finoA,
       })
       const dopo = applicaEsito(nate.righe, esito)
       await scriviRighe(db, radice, esistenti, dopo)
       await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
-      await contaInvii(db, adesso, salonId, esito.inviate, posta)
+      segnaInviate(posta, salonId, esito.inviate)
       inviate += esito.inviate
       const dopoOfferte = new Map(offerteSalvate.map((offerta) => [offerta.id, offerta]))
       let scritturaOfferteFallita = false
@@ -482,8 +544,11 @@ export async function giraInvioCoda(input: {
           fetchImpl: input.fetchImpl,
           adesso,
           salva: scrivi,
+          prenota,
+          libera,
+          finoA,
         })
-        await contaInvii(db, adesso, salonId, offerte.inviate, posta)
+        segnaInviate(posta, salonId, offerte.inviate)
         inviate += offerte.inviate
         scritturaOfferteFallita = offerte.scritturaFallita
         if (scritturaOfferteFallita) {

@@ -149,6 +149,24 @@ describe('salonAccess', () => {
     expect(acceptInviteDecision({ ...base, emailVerified: true, legacy: false }).ok).toBe(true)
   })
 
+  it('il titolare non accetta un invito del proprio salone e non ne riceve uno', () => {
+    const invite = { status: 'aperto' as const, expiresAt: '2026-10-25T00:00:00.000Z', email: 'ada@salone.it', salonId: 'owner', role: 'socio' as const }
+    const base = { now, accountEmail: 'ada@salone.it', proEnabled: true, activeOthers: 0, emailVerified: true, legacy: false, personalSalonHasData: false }
+    expect(acceptInviteDecision({ ...base, invite, account: { uid: 'owner', salonId: 'owner', role: 'titolare' } }).message).toBe('Questo account ha già un salone')
+    expect(acceptInviteDecision({ ...base, invite: { ...invite, salonId: 'altro' }, account: { uid: 'owner', salonId: 'owner', role: 'titolare' } }).ok).toBe(true)
+    const caller = { uid: 'socio', email: 's@salone.it', salonId: 'owner', role: 'socio' as const, operator: false }
+    const invito = { caller, proEnabled: true, email: 'ADA@salone.it', role: 'socio', members: [], invites: [], now }
+    expect(createInviteDecision({ ...invito, emailTitolare: 'ada@salone.it' }).message).toBe('Questa email è già nel salone')
+  })
+
+  it('l’invito cade se chi lo ha creato non è più socio', () => {
+    const invite = { status: 'aperto' as const, expiresAt: '2026-10-25T00:00:00.000Z', email: 'nuova@salone.it', salonId: 'owner', role: 'socio' as const }
+    const base = { invite, now, accountEmail: 'nuova@salone.it', account: { uid: 'new', salonId: 'new', role: 'titolare' as const }, proEnabled: true, activeOthers: 0, emailVerified: true, legacy: false, personalSalonHasData: false }
+    expect(acceptInviteDecision({ ...base, autoreAttivo: false }).message).toBe('Invito non valido')
+    expect(acceptInviteDecision({ ...base, autoreAttivo: true }).ok).toBe(true)
+    expect(acceptInviteDecision(base).ok).toBe(true)
+  })
+
   it('non revoca il titolare e cambia solo fra socio e collaboratore', () => {
     const caller = { uid: 'owner', email: 'ada@salone.it', salonId: 'owner', role: 'titolare' as const, operator: false }
     expect(revokeDecision({ caller, salonId: 'owner', targetUid: 'owner', targetRole: 'titolare' }).message).toBe('Non puoi revocare il titolare')

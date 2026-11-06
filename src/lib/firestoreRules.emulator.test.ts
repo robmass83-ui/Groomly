@@ -333,6 +333,11 @@ describe('regole Firestore sull’emulatore', () => {
     }))
     await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'full', 'data'), { dati: 'abc' }))
     await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'chunks', '0'), { dati: 'abc' }))
+    // Un file da 10 MB usa i pezzi da 0 a 17: oltre si riempirebbe il database.
+    await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'chunks', '17'), { dati: 'abc' }))
+    await assertFails(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'chunks', '18'), { dati: 'abc' }))
+    await assertFails(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'chunks', 'altro'), { dati: 'abc' }))
+    await assertFails(setDoc(doc(db, 'salons', SALON, 'files', 'foto-rex', 'full', 'altro'), { dati: 'abc' }))
   })
 
   it('un salone finto con omaggio senza scadenza non sospende il collaboratore', async () => {

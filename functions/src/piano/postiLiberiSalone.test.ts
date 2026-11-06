@@ -92,3 +92,29 @@ describe("callable postiLiberi: il salto del controllo dipende dall'account aute
     await expect(postiLiberiChiamata(singolo, 'u3')).rejects.toThrow('Prenotazioni spente')
   })
 })
+
+describe('le visite che occupano il calendario', () => {
+  const inizio = new Date('2026-11-10T09:00:00+01:00')
+  const fine = new Date('2026-11-10T10:00:00+01:00')
+
+  it.each([
+    ['millisecondi', inizio.getTime(), fine.getTime()],
+    ['testo', inizio.toISOString(), fine.toISOString()],
+  ])('una visita con start in %s toglie l’ora', async (_nome, start, end) => {
+    preparaSalone(true)
+    archivio.set('salons/s1/appointments/v1', { start, end, status: 'programmato' })
+    expect((await postiLiberiPer('s1', giorno, 60)).orari).not.toContain('09:00')
+  })
+
+  it('una richiesta già rifiutata non tiene l’ora', async () => {
+    preparaSalone(true)
+    archivio.set('salons/s1/richieste/r1', { start: inizio.toISOString(), end: fine.toISOString(), status: 'rifiutata' })
+    expect((await postiLiberiPer('s1', giorno, 60)).orari).toContain('09:00')
+  })
+
+  it('una richiesta nuova tiene l’ora', async () => {
+    preparaSalone(true)
+    archivio.set('salons/s1/richieste/r1', { start: inizio.toISOString(), end: fine.toISOString(), status: 'nuova' })
+    expect((await postiLiberiPer('s1', giorno, 60)).orari).not.toContain('09:00')
+  })
+})

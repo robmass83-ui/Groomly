@@ -10,6 +10,7 @@ export async function pulisciRaccolteSalone(db: Firestore, salonId: string): Pro
   await cancellaQuery(db, db.collection('suggerimenti').where('salonId', '==', salonId))
   await cancellaQuery(db, db.collection('betaFeedback').where('salonId', '==', salonId))
   await cancellaQuery(db, db.collection('assistenza').where('salonId', '==', salonId))
+  await db.doc(`invitiLimiti/${salonId}`).delete()
 }
 
 /** I resti di una persona: tutto tranne l'accesso (Auth), che si cancella per ultimo. */
@@ -39,6 +40,7 @@ export async function pulisciPersona(db: Firestore, persona: { uid: string; emai
   const emails = [...new Set(persona.emails.map(normalizeEmail).filter((email) => email !== ''))]
   for (const email of emails) {
     await db.doc(`emailRateLimits/${email}`).delete()
+    await db.doc(`emailRateLimits/reset:${email}`).delete()
   }
 }
 

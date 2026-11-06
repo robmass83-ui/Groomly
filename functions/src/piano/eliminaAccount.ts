@@ -45,8 +45,9 @@ export async function eliminaAccountPer(
   const account = (await db.doc(`accounts/${uid}`).get()).data() ?? {}
   const lingua = linguaValida(account.lingua) ?? 'it'
   const salonId = typeof account.salonId === 'string' ? account.salonId : ''
-  const emailAccount = typeof account.email === 'string' ? account.email : ''
   const emailAuth = typeof utente?.email === 'string' ? utente.email : ''
+  // Solo un indirizzo confermato è davvero della persona: quello scritto nell'account lo decide il client.
+  const emailConfermata = utente?.emailVerified === true ? emailAuth : ''
   // Il piano del salone personale: anche chi ora lavora altrove può averne uno VIP.
   const pro = salonId !== '' && salonId !== 'shared' ? ((await db.doc(`salons/${uid}/pro/main`).get()).data() ?? {}) : {}
   const vip = pro.fonte === 'omaggio' && pro.piano === 'salone' && pro.stato === 'attivo' && (pro.scadeIl == null || pro.scadeIl === '')
@@ -70,7 +71,7 @@ export async function eliminaAccountPer(
     await restituisciMembri(db, uid)
     await db.recursiveDelete(db.doc(`salons/${uid}`))
     await pulisciRaccolteSalone(db, uid)
-    await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
+    await pulisciPersona(db, { uid, emails: [emailConfermata] })
   } else {
     const member = db.doc(`salons/${salonId}/members/${uid}`)
     const dati = (await member.get()).data() ?? {}
@@ -80,13 +81,12 @@ export async function eliminaAccountPer(
     await restituisciMembri(db, uid)
     await db.recursiveDelete(db.doc(`salons/${uid}`))
     await pulisciRaccolteSalone(db, uid)
-    await pulisciPersona(db, { uid, emails: [emailAuth, emailAccount] })
+    await pulisciPersona(db, { uid, emails: [emailConfermata] })
   }
-  const destinazione = utente?.email || emailAccount
   await auth.deleteUser(uid)
-  if (destinazione && invia) {
+  if (emailConfermata && invia) {
     const lettera = emailEliminazione(nomeSalone, lingua)
-    await invia(destinazione, lettera.oggetto, lettera.html).catch(() => undefined)
+    await invia(emailConfermata, lettera.oggetto, lettera.html).catch(() => undefined)
   }
   return { ok: true }
 }

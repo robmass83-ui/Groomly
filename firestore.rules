@@ -266,14 +266,17 @@ service cloud.firestore {
       match /full/{part} {
         allow read: if canUse(salonId);
         allow delete: if ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId));
-        allow create, update: if (ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId)))
+        allow create, update: if part == 'data'
+          && (ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId)))
           && request.resource.data.dati.size() <= 716800;
       }
 
       match /chunks/{n} {
         allow read: if canUse(salonId);
         allow delete: if ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId));
-        allow create, update: if (ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId)))
+        // Un file da 10 MB usa 18 pezzi, da 0 a 17: oltre non serve e riempirebbe il database a spese di Groomly.
+        allow create, update: if n.matches('^[0-9]{1,2}$') && int(n) < 18
+          && (ownerRank(salonId) || (collaboratorePhoto(salonId) && parentPhoto(salonId, fileId)))
           && request.resource.data.dati.size() <= 614400;
       }
     }
@@ -361,6 +364,14 @@ service cloud.firestore {
     }
 
     match /mittentiLimiti/{id} {
+      allow read, write: if false;
+    }
+
+    match /mittentiLetture/{id} {
+      allow read, write: if false;
+    }
+
+    match /invitiLimiti/{id} {
       allow read, write: if false;
     }
 

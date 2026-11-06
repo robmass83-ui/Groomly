@@ -107,6 +107,8 @@ export function createInviteDecision(input: {
   invites: SeatInvite[]
   now: Date
   seatLimit?: number
+  /** L'email del titolare: non sta tra i membri quando il documento manca. */
+  emailTitolare?: string
 }): Denied | Ok<{ email: string; role: StaffRole }> {
   if (!input.proEnabled) return denied('Pro non è attivo')
   if (!isManager(input.caller, input.caller.salonId)) return denied('Accesso negato')
@@ -118,7 +120,7 @@ export function createInviteDecision(input: {
   const alreadyThere = input.members.some((member) => (
     member.status === 'attivo' && typeof member.email === 'string' && normalizeEmail(member.email) === email
   ))
-  if (alreadyThere) return denied('Questa email è già nel salone')
+  if (alreadyThere || (input.emailTitolare && normalizeEmail(input.emailTitolare) === email)) return denied('Questa email è già nel salone')
   if (isSharedEmail(email)) return denied('Questa email non si può invitare')
   return { ok: true, email, role }
 }
@@ -139,6 +141,8 @@ export function acceptInviteDecision(input: {
   personalSalonHasData: boolean
   sceltaSalone?: SceltaSalonePersonale
   seatLimit?: number
+  /** Falso quando chi ha creato l'invito non è più socio del salone: l'invito cade con lui. */
+  autoreAttivo?: boolean
 }): Denied | Ok<{ salonId: string; role: StaffRole; pausa: boolean }> {
   const invite = input.invite
   if (
@@ -147,6 +151,7 @@ export function acceptInviteDecision(input: {
     || !input.proEnabled
     || invite.salonId === ''
     || invite.salonId.includes('/')
+    || input.autoreAttivo === false
   ) {
     return denied('Invito non valido')
   }
@@ -155,6 +160,8 @@ export function acceptInviteDecision(input: {
   if (expiresAt < input.now.getTime()) return denied('Invito scaduto')
   if (normalizeEmail(input.accountEmail) !== normalizeEmail(invite.email)) return denied('Questo invito è per un’altra email')
   if (!input.emailVerified && !input.legacy) return denied(MESSAGGIO_EMAIL_NON_CONFERMATA)
+  // Il titolare che accetta un invito del proprio salone perderebbe il ruolo.
+  if (invite.salonId === input.account.salonId) return denied('Questo account ha già un salone')
   const personalOwner = input.account.role === 'titolare' && input.account.salonId === input.account.uid
   if (!personalOwner) return denied('Questo account ha già un salone')
   if (input.personalSalonHasData && input.sceltaSalone === undefined) return denied("Aggiorna l'app per accettare l'invito")

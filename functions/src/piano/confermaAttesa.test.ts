@@ -44,15 +44,20 @@ function memoria(iniziale: Record<string, Dati>, opzioni: Opzioni = {}) {
     cosa.tipo === 'doc' ? store.get(cosa.path) ?? null : figli(cosa.path).map((chiave) => [chiave, store.get(chiave)]),
   )
   const ref = (path: string) => ({ tipo: 'doc', path, id: path.split('/').pop() as string, get: async () => snap(path) })
-  const interroga = (path: string, filtri: [string, unknown][], max: number) => ({
+  // Come Firestore: un confronto >= guarda solo i valori dello stesso tipo.
+  const passa = (campo: unknown, op: string, valore: unknown) => (
+    op === '>=' ? typeof campo === typeof valore && (campo as number) >= (valore as number) : campo === valore
+  )
+  const interroga = (path: string, filtri: [string, string, unknown][], max: number) => ({
     tipo: 'coll',
     path,
-    where: (campo: string, _op: string, valore: unknown) => interroga(path, [...filtri, [campo, valore]], max),
+    where: (campo: string, op: string, valore: unknown) => interroga(path, [...filtri, [campo, op, valore]], max),
+    select: () => interroga(path, filtri, max),
     limit: (n: number) => interroga(path, filtri, n),
     doc: (id?: string) => ref(`${path}/${id ?? `auto${++contatore}`}`),
     get: async () => {
       const docs = figli(path)
-        .filter((chiave) => filtri.every(([campo, valore]) => store.get(chiave)?.[campo] === valore))
+        .filter((chiave) => filtri.every(([campo, op, valore]) => passa(store.get(chiave)?.[campo], op, valore)))
         .slice(0, max)
         .map((chiave) => snap(chiave))
       return { docs, empty: docs.length === 0 }
@@ -188,14 +193,15 @@ describe('confermaAttesaPer', () => {
       dopoLettura: async (path, tentativo) => {
         if (path !== percorso || tentativo > 0) return
         arrivate += 1
-        if (arrivate >= 2) apri()
+        // Tre letture per conferma, una per ogni forma della data.
+        if (arrivate >= 6) apri()
         await cancello
       },
     })
     const [a, b] = await Promise.all([conferma(db, 'conferma'), conferma(db, 'conferma')])
     // Se le visite si leggessero fuori da tx.get, nessuna lettura sarebbe ricordata e il commit non controllerebbe niente.
-    expect(letture.filter((path) => path === percorso).length).toBeGreaterThan(2)
-    expect(arrivate).toBe(2)
+    expect(letture.filter((path) => path === percorso).length).toBeGreaterThan(6)
+    expect(arrivate).toBe(6)
     expect([a, b].filter((esito) => esito.ok && esito.esito === 'confermato')).toHaveLength(1)
     expect([a, b].filter((esito) => esito.ok && esito.esito === 'occupato')).toHaveLength(1)
     expect(elenco(percorso).filter((visita) => visita.id !== 'v1')).toHaveLength(1)

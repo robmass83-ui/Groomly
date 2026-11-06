@@ -95,12 +95,16 @@ export async function dettaglioDa(input: Base & { placeId: string }): Promise<{ 
   }
 }
 
+/** Il tetto di tutti gli utenti insieme: il limite per utente non ferma chi apre tanti account. */
+export const LIMITE_GIORNALIERO_GLOBALE = 1000
+
 export function decisioneLimite(
   attuale: unknown,
   oggi: string,
+  massimo: number = LIMITE_GIORNALIERO,
 ): { ok: boolean; prossimo: { giorno: string; conteggio: number } } {
   const dati = (attuale && typeof attuale === 'object' ? attuale : {}) as { giorno?: unknown; conteggio?: unknown }
   const conteggio = dati.giorno === oggi && typeof dati.conteggio === 'number' ? dati.conteggio : 0
-  if (conteggio >= LIMITE_GIORNALIERO) return { ok: false, prossimo: { giorno: oggi, conteggio } }
+  if (conteggio >= massimo) return { ok: false, prossimo: { giorno: oggi, conteggio } }
   return { ok: true, prossimo: { giorno: oggi, conteggio: conteggio + 1 } }
 }

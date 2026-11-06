@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { initializeApp, type Credential } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
-import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type QueryDocumentSnapshot } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore, type DocumentData, type DocumentReference, type Firestore, type QueryDocumentSnapshot, type Transaction } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
 import * as logger from 'firebase-functions/logger'
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https'
@@ -29,7 +29,8 @@ import { paginaPubblicaHttp } from './piano/paginaPubblica'
 import { registraSlug, slugDalSalone } from './piano/pubblici'
 import { postiLiberiChiamata, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
-import { mittenteDi } from './piano/mittente'
+import { mittenteDi, riservaMittente } from './piano/mittente'
+import { contaInvii, postaOggi, riservaPostaSistema } from './postaGiorno'
 import { membroTitolareMancante } from './piano/titolareMembro'
 import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
@@ -43,7 +44,7 @@ import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
-import { archivioDaDb, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioDaDb, chiaveEmail, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, datiAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { archivioConsenso, impostaConsensoMetrichePer } from './legale/consensoMetriche'
 import { calcolaStatistiche, pulisciRegistroAdmin, salvaStatistiche } from './metriche/statisticheGiornaliere'
@@ -68,7 +69,7 @@ import { schedaSaloneAdminPer } from './beta/schedaSaloneAdmin'
 import { segnaAvvisoBetaPer } from './beta/segnaAvvisoBeta'
 import { scadiInvitiBetaScaduti } from './beta/scadiInvitiBeta'
 import { mandaAvvisiFineBeta } from './beta/avvisiFineBeta'
-import { decisioneLimite, dettaglioDa, dettaglioPossibile, suggerimentiDa, suggerimentoPossibile } from './indirizzi/places'
+import { decisioneLimite, dettaglioDa, dettaglioPossibile, LIMITE_GIORNALIERO_GLOBALE, suggerimentiDa, suggerimentoPossibile } from './indirizzi/places'
 import { impostaPianoManualePer } from './piano/impostaPianoManuale'
 import { deliveryId } from '../../src/lib/pushDue'
 import {
@@ -142,9 +143,9 @@ function requireEmail(value: unknown): string {
   return email
 }
 
-async function reserveEmailSlot(email: string): Promise<void> {
+async function reserveEmailSlot(chiave: string): Promise<void> {
   const db = getFirestore()
-  const ref = db.collection('emailRateLimits').doc(email)
+  const ref = db.collection('emailRateLimits').doc(chiave)
   const now = Date.now()
   let limited = false
   try {
@@ -227,7 +228,9 @@ export const sendVerificationEmail = onCall(callable, async (request) => {
     throw erroreServer('internal', 'invio')
   }
   if (verified) return { ok: true, alreadyVerified: true }
+  await riservaMittente(await mittenteDi(request.rawRequest))
   await reserveEmailSlot(email)
+  if (!(await riservaPostaSistema(getFirestore(), new Date()))) throw erroreServer('resource-exhausted', 'attendi_riprova')
   const lingua = linguaValida((await getFirestore().doc(`accounts/${request.auth.uid}`).get()).get('lingua')) ?? 'it'
   const link = await firebaseLink(() => getAuth().generateEmailVerificationLink(email), lingua)
   const mail = emailMessaggio(lingua, 'verifica', { url: link })
@@ -237,7 +240,10 @@ export const sendVerificationEmail = onCall(callable, async (request) => {
 
 export const sendPasswordResetEmail = onCall(callable, async (request) => {
   const email = requireEmail(request.data?.email)
-  await reserveEmailSlot(email)
+  // Prima la connessione: il limite per indirizzo da solo non ferma chi prova tanti indirizzi.
+  await riservaMittente(await mittenteDi(request.rawRequest))
+  // Un conto suo: il reset chiesto da un anonimo non consuma la verifica della stessa persona.
+  await reserveEmailSlot(`reset:${email}`)
   let uid = ''
   try {
     uid = (await getAuth().getUserByEmail(email)).uid
@@ -245,6 +251,11 @@ export const sendPasswordResetEmail = onCall(callable, async (request) => {
     if (authCode(error) === 'auth/user-not-found') return { ok: true }
     logger.error('Lettura account non riuscita', { code: authCode(error) })
     throw erroreServer('internal', 'invio')
+  }
+  // Oltre il tetto si risponde come sempre: la risposta non dice se l'indirizzo ha un account.
+  if (!(await riservaPostaSistema(getFirestore(), new Date()))) {
+    logger.error('Tetto delle email di sistema raggiunto')
+    return { ok: true }
   }
   const lingua = linguaValida((await getFirestore().doc(`accounts/${uid}`).get()).get('lingua')) ?? 'it'
   const link = await firebaseLink(() => getAuth().generatePasswordResetLink(email), lingua)
@@ -371,6 +382,10 @@ export const confermaPushTelefono = onCall({
 
 const PAGINA_TELEFONI = 500
 
+// Le push guardano al massimo due giorni indietro: visite più vecchie, in un salone o in tanti, non devono pesare sul giro.
+const GIORNI_PUSH = 3
+const MAX_VISITE_PUSH = 500
+
 export const sendPush = onSchedule({
   schedule: 'every 5 minutes',
   region: 'europe-west1',
@@ -381,7 +396,8 @@ export const sendPush = onSchedule({
   const latestVersion = await githubVersion()
   const deviceRefs = new Map<string, DocumentReference[]>()
   const telefoni = new Map<string, PushDevice[]>()
-  const accessi = new Map<string, { salonId: string; lingua?: string } | null>()
+  const accessi = new Map<string, { salonId: string; lingua?: string; role: string } | null>()
+  const pianiAccesi = new Map<string, Promise<boolean>>()
 
   const load: PushLoad = {
     // Si parte dai telefoni registrati, a pagine, non da tutti gli account: il giro cresce con i telefoni, non con le iscrizioni.
@@ -414,12 +430,20 @@ export const sendPush = onSchedule({
         const snaps = await db.getAll(...uids.slice(inizio, inizio + 100).map((uid) => db.doc(`accounts/${uid}`)))
         for (const snap of snaps) {
           const data = snap.data()
-          accessi.set(snap.id, data ? { salonId: text(data.salonId), lingua: text(data.lingua) } : null)
+          accessi.set(snap.id, data ? { salonId: text(data.salonId), lingua: text(data.lingua), role: text(data.role) } : null)
         }
       }
       return uids
     },
     account: async (uid) => accessi.get(uid) ?? null,
+    operativo: async (salonId, uid) => {
+      const role = accessi.get(uid)?.role ?? ''
+      if (role === '' || role === 'titolare') return true
+      const acceso = pianiAccesi.get(salonId) ?? db.doc(`salons/${salonId}/pro/main`).get().then((snap) => snap.get('enabled') === true)
+      pianiAccesi.set(salonId, acceso)
+      if (await acceso) return true
+      return (await db.doc(`salons/${salonId}/members/${uid}`).get()).get('accessWithoutPro') === true
+    },
     prefs: async (uid) => (await db.doc(`accounts/${uid}/push/prefs`).get()).data(),
     devices: async (uid) => telefoni.get(uid) ?? [],
     errore: (salonId, error) => {
@@ -430,6 +454,8 @@ export const sendPush = onSchedule({
         db.collection(`salons/${salonId}/appointments`)
           .where('status', '==', 'programmato')
           .where('start', '<=', now)
+          .where('start', '>=', now - GIORNI_PUSH * 86_400_000)
+          .limit(MAX_VISITE_PUSH)
           .get(),
         db.collection(`salons/${salonId}/appointments`)
           .where('kind', '==', 'personale')
@@ -705,7 +731,7 @@ export const eliminaAccount = onCall({ ...pianoCall, timeoutSeconds: 300, secret
   const uid = requireUid(request.auth)
   const richiesto = text(field(request.data, 'salonId'))
   return eliminaAccountPer(uid, richiesto || undefined, async (to, subject, html) => {
-    await postBrevoHtml(brevoApiKey.value(), to, subject, html)
+    if (await riservaPostaSistema(getFirestore(), new Date())) await postBrevoHtml(brevoApiKey.value(), to, subject, html)
   })
 })
 
@@ -751,7 +777,7 @@ export const saloneInfo = onCall(pianoCall, async (request) => {
   return saloneInfoPer(text(field(request.data, 'slug')))
 })
 
-export const postiLiberi = onCall(pianoCall, async (request) => {
+export const postiLiberi = onCall({ ...pianoCall, maxInstances: 10 }, async (request) => {
   const durata = Number(field(request.data, 'durataMin'))
   const minuti = Number.isFinite(durata) && durata > 0 ? durata : 60
   const giorni = Number(field(request.data, 'giorni'))
@@ -761,6 +787,7 @@ export const postiLiberi = onCall(pianoCall, async (request) => {
     giorno: text(field(request.data, 'giorno')),
     giorni,
     durataMin: minuti,
+    mittente: await mittenteDi(request.rawRequest),
   }, request.auth?.uid)
 })
 
@@ -826,6 +853,7 @@ export const gestisciPrenotazione = onCall({ ...pianoCall, secrets: [brevoApiKey
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
   if (!account || salonId === '' || account.salonId !== salonId || account.salonId === 'shared') deny('accesso_negato')
   if (account.role !== 'titolare' && account.role !== 'socio' && account.role !== 'collaboratore') deny('accesso_negato')
+  if (!(await operativoNelSalone(uid, account))) deny('accesso_negato')
   return gestisciPrenotazionePer({
     salonId,
     id: text(field(request.data, 'id')),
@@ -1225,10 +1253,21 @@ export const copieCloud = onSchedule({
   if (!esito.scritto) logger.info('Copie cloud non scritte')
 })
 
+/** Come canUse nelle regole: socio e collaboratore lavorano solo con il piano acceso o con l'accesso concesso a mano. */
+async function operativoNelSalone(uid: string, account: { salonId: string; role: AccountRole }): Promise<boolean> {
+  if (account.role === 'titolare') return true
+  const db = getFirestore()
+  const [pro, membro] = await Promise.all([
+    db.doc(salonDocPath(account.salonId, 'pro', 'main')).get(),
+    db.doc(salonDocPath(account.salonId, 'members', uid)).get(),
+  ])
+  return pro.get('enabled') === true || membro.get('accessWithoutPro') === true
+}
+
 export const fermaCoda = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
-  if (!account || account.salonId === '') deny('accesso_negato')
+  if (!account || account.salonId === '' || !(await operativoNelSalone(uid, account))) deny('accesso_negato')
   const id = text(field(request.data, 'id'))
   if (id === '' || id.includes('/')) throw erroreServer('invalid-argument', 'riga_assente')
   const fermata = await fermaCodaRiga({ salonId: account.salonId, id })
@@ -1239,7 +1278,7 @@ export const fermaCoda = onCall(callable, async (request) => {
 export const inviaSubito = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
   const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
-  if (!account || account.salonId === '') deny('accesso_negato')
+  if (!account || account.salonId === '' || !(await operativoNelSalone(uid, account))) deny('accesso_negato')
   const id = text(field(request.data, 'id'))
   if (id === '' || id.includes('/')) throw erroreServer('invalid-argument', 'riga_assente')
   const esito = await inviaSubitoRiga({
@@ -1255,11 +1294,55 @@ export const invioCoda = onSchedule({
   schedule: 'every 1 minutes',
   timeZone: 'Europe/Rome',
   region: 'europe-west1',
+  timeoutSeconds: 120,
   secrets: [brevoApiKey],
 }, async () => {
   const esito = await giraInvioCoda({ apiKey: brevoApiKey.value() })
   logger.info('Coda email', esito)
 })
+
+const INVITI_SALONE_GIORNO = 20
+const INVITI_EMAIL_GIORNO = 3
+
+// Annullare un invito libera il posto: senza questo conto si potrebbero mandare email all'infinito.
+// Non usa emailRateLimits: toglierebbe all'invitato i posti per confermare la propria email.
+async function riservaInvito(db: Firestore, salonId: string, email: string): Promise<void> {
+  const ref = db.doc(`invitiLimiti/${salonId}`)
+  const giorno = chiaveGiornoRoma(new Date())
+  const chiave = chiaveEmail(email)
+  const ok = await db.runTransaction(async (tx) => {
+    const letto = (await tx.get(ref)).data()
+    const oggi = letto?.giorno === giorno
+    const n = oggi && typeof letto.n === 'number' ? letto.n : 0
+    const perEmail: Record<string, number> = oggi && letto.perEmail && typeof letto.perEmail === 'object' ? letto.perEmail : {}
+    if (n >= INVITI_SALONE_GIORNO || (perEmail[chiave] ?? 0) >= INVITI_EMAIL_GIORNO) return false
+    tx.set(ref, { giorno, n: n + 1, perEmail: { ...perEmail, [chiave]: (perEmail[chiave] ?? 0) + 1 } })
+    return true
+  })
+  if (!ok) throw erroreServer('resource-exhausted', 'attendi_riprova')
+}
+
+// Quando un socio esce o scende di ruolo, cadono anche gli inviti che aveva aperto.
+function chiudiInvitiDi(
+  tx: Transaction,
+  autore: string,
+  inviti: readonly QueryDocumentSnapshot[],
+  proRef: DocumentReference,
+  scadenze: unknown,
+): void {
+  let rimaste = scadenze
+  let cambiate = false
+  for (const invito of inviti) {
+    if (text(invito.get('createdBy')) !== autore || text(invito.get('status')) !== 'aperto') continue
+    tx.delete(invito.ref)
+    const dopo = removeOneOpenInviteExpiry(rimaste, text(invito.get('expiresAt')))
+    if (dopo !== null) {
+      rimaste = dopo
+      cambiate = true
+    }
+  }
+  if (cambiate) tx.set(proRef, { openInviteExpiries: rimaste }, { merge: true })
+}
 
 export const createInvite = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
@@ -1278,6 +1361,7 @@ export const createInvite = onCall(callable, async (request) => {
   const membersSnap = membersQuery ? await membersQuery.get() : null
   const invitesSnap = invitesQuery ? await invitesQuery.get() : null
   const settingsSnap = settingsRef ? await settingsRef.get() : null
+  const emailTitolare = readable ? text((await db.doc(`accounts/${salonId}`).get()).get('email')) : ''
   const decision = createInviteDecision({
     caller: { salonId, role: account.role },
     proEnabled: proSnap?.get('enabled') === true,
@@ -1287,9 +1371,11 @@ export const createInvite = onCall(callable, async (request) => {
     invites: invitesSnap ? seatInvites(invitesSnap.docs) : [],
     now: new Date(),
     seatLimit: limitePosti(proSnap?.data()),
+    emailTitolare,
   })
   if (!decision.ok) denyMessaggio(decision.message)
   if (!proRef || !membersQuery || !invitesQuery) deny('accesso_negato')
+  await riservaInvito(db, salonId, decision.email)
 
   const token = tokenBytes()
   const inviteRef = db.doc(`invites/${token}`)
@@ -1309,6 +1395,7 @@ export const createInvite = onCall(callable, async (request) => {
       invites: seatInvites(invites.docs),
       now: new Date(),
       seatLimit: limitePosti(pro.data()),
+      emailTitolare,
     })
     if (!again.ok) denyMessaggio(again.message)
     if (current.exists) throw erroreServer('internal', 'invio')
@@ -1322,6 +1409,7 @@ export const createInvite = onCall(callable, async (request) => {
       createdAt: created.toISOString(),
       expiresAt,
       status: 'aperto',
+      createdBy: uid,
     })
     tx.set(proRef, {
       openInviteExpiries: appendOpenInviteExpiry(pro.get('openInviteExpiries'), expiresAt),
@@ -1359,6 +1447,10 @@ export const createInvite = onCall(callable, async (request) => {
     if (error instanceof HttpsError) throw error
     throw erroreServer('internal', 'invio')
   }
+  const inviata = new Date()
+  await contaInvii(db, inviata, salonId, 1, await postaOggi(db, inviata)).catch((error: unknown) => {
+    logger.error('Invito non contato tra le email del giorno', { code: authCode(error) })
+  })
   return { ok: true }
 })
 
@@ -1384,6 +1476,7 @@ export const acceptInvite = onCall(callable, async (request) => {
     let proData: DocumentData | undefined
     let titolareEsiste = true
     let datiAccountTitolare: DocumentData | undefined
+    let autoreAttivo = true
     if (invite) {
       proRef = db.doc(salonDocPath(invite.salonId, 'pro', 'main'))
       const proSnap = await tx.get(proRef)
@@ -1393,6 +1486,11 @@ export const acceptInvite = onCall(callable, async (request) => {
       const members = await tx.get(db.collection(salonDocPath(invite.salonId, 'members')))
       activeOthers = activeStaffCount(members.docs)
       titolareEsiste = members.docs.some((d) => d.id === invite.salonId)
+      // Gli inviti di prima non hanno l'autore; il titolare può non avere il documento membro.
+      const autore = text(inviteSnap?.get('createdBy'))
+      autoreAttivo = autore === '' || autore === invite.salonId || members.docs.some((d) => (
+        d.id === autore && text(d.get('status')) === 'attivo' && text(d.get('role')) === 'socio'
+      ))
       if (!titolareEsiste) datiAccountTitolare = (await tx.get(db.doc(`accounts/${invite.salonId}`))).data()
     }
     const dogs = await tx.get(db.collection(salonDocPath(uid, 'dogs')).limit(1))
@@ -1411,6 +1509,7 @@ export const acceptInvite = onCall(callable, async (request) => {
       personalSalonHasData,
       sceltaSalone,
       seatLimit: limitePosti(proData),
+      autoreAttivo,
     })
     if (!decision.ok) denyMessaggio(decision.message)
     if (decision.pausa && lettoPausa) scriviPausa(tx, db, uid, lettoPausa, new Date())
@@ -1449,6 +1548,9 @@ export const revokeMember = onCall(callable, async (request) => {
     const restore = shouldRestoreAccount(text(targetAccountSnap.get('salonId')), salonId)
     const lettoPausa = restore ? await leggiPerPausa(tx, db, targetUid) : null
     const settingsSnap = restore && readable ? await tx.get(db.doc(salonDocPath(salonId, 'settings', 'main'))) : null
+    const proRef = readable ? db.doc(salonDocPath(salonId, 'pro', 'main')) : null
+    const proSnap = proRef ? await tx.get(proRef) : null
+    const invitiSnap = readable ? await tx.get(db.collection('invites').where('salonId', '==', salonId)) : null
     const targetRole = memberSnap?.exists
       ? text(memberSnap.get('role'))
       : targetUid === salonId ? 'titolare' : ''
@@ -1461,6 +1563,7 @@ export const revokeMember = onCall(callable, async (request) => {
     if (!decision.ok) denyMessaggio(decision.message)
     if (!memberRef || !memberSnap?.exists) deny('accesso_negato')
     tx.update(memberRef, { status: 'revocato' })
+    if (proRef && invitiSnap) chiudiInvitiDi(tx, targetUid, invitiSnap.docs, proRef, proSnap?.get('openInviteExpiries'))
     if (restore) {
       tx.set(targetAccountRef, { salonId: targetUid, role: 'titolare' }, { merge: true })
       if (lettoPausa) scriviRipresa(tx, db, targetUid, lettoPausa, new Date())
@@ -1537,7 +1640,9 @@ export const changeMemberRole = onCall(callable, async (request) => {
     if (!account) deny('accesso_negato')
     const salonId = account.salonId
     const readable = salonId !== '' && !salonId.includes('/')
-    const proSnap = readable ? await tx.get(db.doc(salonDocPath(salonId, 'pro', 'main'))) : null
+    const proRef = readable ? db.doc(salonDocPath(salonId, 'pro', 'main')) : null
+    const proSnap = proRef ? await tx.get(proRef) : null
+    const invitiSnap = readable ? await tx.get(db.collection('invites').where('salonId', '==', salonId)) : null
     const memberRef = readable ? db.doc(salonDocPath(salonId, 'members', targetUid)) : null
     const memberSnap = memberRef ? await tx.get(memberRef) : null
     const targetAccountRef = db.doc(`accounts/${targetUid}`)
@@ -1552,6 +1657,9 @@ export const changeMemberRole = onCall(callable, async (request) => {
     if (!decision.ok) denyMessaggio(decision.message)
     if (!memberRef || !memberSnap?.exists) deny('accesso_negato')
     tx.update(memberRef, { role: decision.role })
+    if (decision.role !== 'socio' && proRef && invitiSnap) {
+      chiudiInvitiDi(tx, targetUid, invitiSnap.docs, proRef, proSnap?.get('openInviteExpiries'))
+    }
     if (text(targetAccountSnap.get('salonId')) === salonId) {
       tx.update(targetAccountRef, { role: decision.role })
     }
@@ -1636,16 +1744,19 @@ function linguaPlaces(value: unknown): string {
 async function riservaRichiestaPlaces(uid: string): Promise<void> {
   const db = getFirestore()
   const ref = db.doc(`placesRateLimits/${uid}`)
+  const globale = db.doc('sistema/placesGiorno')
   const oggi = chiaveGiornoRoma(new Date())
   let limitato = false
   try {
     await db.runTransaction(async (tx) => {
       const decisione = decisioneLimite((await tx.get(ref)).data(), oggi)
-      if (!decisione.ok) {
+      const totale = decisioneLimite((await tx.get(globale)).data(), oggi, LIMITE_GIORNALIERO_GLOBALE)
+      if (!decisione.ok || !totale.ok) {
         limitato = true
         return
       }
       tx.set(ref, decisione.prossimo)
+      tx.set(globale, totale.prossimo)
     })
   } catch (error) {
     logger.error('Limite indirizzi non disponibile', { code: authCode(error) })
@@ -1654,12 +1765,19 @@ async function riservaRichiestaPlaces(uid: string): Promise<void> {
   if (limitato) throw erroreServer('resource-exhausted', 'troppe_ricerche')
 }
 
+// Le ricerche costano: solo chi ha confermato l'email o viene dagli account di prima. Gli altri scrivono l'indirizzo a mano.
+async function indirizziAmmessi(uid: string, emailConfermata: boolean): Promise<boolean> {
+  if (emailConfermata) return true
+  return (await getFirestore().doc(`accounts/${uid}`).get()).get('legacy') === true
+}
+
 export const suggerisciIndirizzi = onCall(placesCall, async (request) => {
   const uid = requireUid(request.auth)
   const testo = text(field(request.data, 'testo')).slice(0, 200)
   const chiave = chiavePlaces()
   // Senza chiave o con testo troppo corto non si chiama Google e non si consuma il limite.
   if (!suggerimentoPossibile(testo, chiave)) return { suggerimenti: [] }
+  if (!(await indirizziAmmessi(uid, request.auth?.token.email_verified === true))) return { suggerimenti: [] }
   await riservaRichiestaPlaces(uid)
   const suggerimenti = await suggerimentiDa({
     testo,
@@ -1676,6 +1794,7 @@ export const dettaglioIndirizzo = onCall(placesCall, async (request) => {
   const placeId = text(field(request.data, 'placeId')).slice(0, 300)
   const chiave = chiavePlaces()
   if (!dettaglioPossibile(placeId, chiave)) return { indirizzo: '', placeId: '', paese: null }
+  if (!(await indirizziAmmessi(uid, request.auth?.token.email_verified === true))) return { indirizzo: '', placeId: '', paese: null }
   await riservaRichiestaPlaces(uid)
   const dettaglio = await dettaglioDa({
     placeId,

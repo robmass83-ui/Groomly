@@ -39,6 +39,8 @@ vi.mock('firebase-admin/firestore', () => ({
 }))
 
 const { inviaSubitoRiga } = await import('./giraCoda')
+const { romeDay } = await import('../../../src/lib/romeTime')
+const oggi = () => romeDay(new Date())
 
 const riga = {
   id: 'r1',
@@ -103,5 +105,30 @@ describe('iscrittoDi con la settimana', () => {
     expect(iscrittoDi('i1', { nome: 'Ada', settimana })?.settimana).toEqual(settimana)
     expect(iscrittoDi('i1', { nome: 'Ada', settimana: 'x' })).not.toHaveProperty('settimana')
     expect(iscrittoDi('i1', { nome: 'Ada' })).not.toHaveProperty('settimana')
+  })
+})
+
+describe('una riga con un id che Firestore rifiuta', () => {
+  beforeEach(() => archivio.clear())
+
+  it('non parte: fallirebbe il salvataggio dopo la spedizione', async () => {
+    archivio.set('salons/s1/settings/main', { codaEmail: [{ ...riga, id: '__x__' }] })
+    archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'attivo' })
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    expect(await inviaSubitoRiga({ salonId: 's1', id: '__x__', apiKey: 'k', fetchImpl: fetchImpl as typeof fetch })).toBeNull()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+})
+
+describe('il conto del tetto', () => {
+  beforeEach(() => archivio.clear())
+
+  it('sale prima di spedire, così una scrittura fallita dopo non lo azzera', async () => {
+    archivio.set('salons/s1/settings/main', { codaEmail: [riga] })
+    archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'attivo' })
+    archivio.set('sistema/postaGiorno', { giorno: oggi(), n: 300, perSalone: { s1: 300 }, accesi: ['s1'] })
+    const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
+    await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'k', fetchImpl: fetchImpl as typeof fetch })
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })

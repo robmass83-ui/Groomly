@@ -96,6 +96,7 @@ export function firestoreFinto(archivio: Map<string, Dati>) {
     where: (campo: string, op: string, valore: unknown) =>
       query(percorso, (chiave) => filtro(chiave) && confronta(archivio.get(chiave)?.[campo], op, valore), max, fonte),
     orderBy: () => query(percorso, filtro, max, fonte),
+    select: () => query(percorso, filtro, max, fonte),
     limit: (n: number) => query(percorso, filtro, n, fonte),
     startAt: (inizio: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) >= inizio, max, fonte),
     endAt: (fine: string) => query(percorso, (chiave) => filtro(chiave) && idDi(chiave) <= fine, max, fonte),

@@ -5,7 +5,7 @@ import { pulisciPersona, pulisciRaccolteSalone } from './pulisciSalone'
 import { erroreDaMessaggio, erroreServer, messaggioServer } from '../erroriServer'
 
 /** Persona del salone da cancellare: titolare o collaboratore, con l'email dell'accesso e quella dell'account. */
-export type PersonaSalone = { uid: string; emails: string[] }
+export type PersonaSalone = { uid: string; emails: string[]; emailAccesso?: string }
 
 /**
  * Solo per i test: l'operatore cancella un salone intero.
@@ -69,7 +69,8 @@ export async function eliminaSalonePer(input: {
   await db.recursiveDelete(db.doc(`salons/${salonId}`))
   await pulisciRaccolteSalone(db, salonId)
   for (const persona of daCancellare) {
-    await pulisciPersona(db, persona)
+    // Il limite di invio si azzera solo per l'email di accesso: quella dell'account la scrive il client.
+    await pulisciPersona(db, { uid: persona.uid, emails: persona.emailAccesso ? [persona.emailAccesso] : [] })
   }
   // Per ultimi gli accessi: così la stessa email torna libera per una nuova registrazione.
   for (const uid of uids) {
@@ -104,7 +105,7 @@ async function personeDelSalone(db: Firestore, salonId: string): Promise<Persona
   const persone: PersonaSalone[] = []
   for (const [uid, email] of emailAccount) {
     const accesso = uid === salonId ? accessoTitolare : await auth.getUser(uid).catch(() => null)
-    persone.push({ uid, emails: [email, accesso?.email ?? ''].filter((voce) => voce !== '') })
+    persone.push({ uid, emails: [email, accesso?.email ?? ''].filter((voce) => voce !== ''), emailAccesso: accesso?.email ?? '' })
   }
   return persone
 }

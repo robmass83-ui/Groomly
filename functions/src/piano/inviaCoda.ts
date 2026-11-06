@@ -153,6 +153,12 @@ export async function inviaCoda(input: {
   subito?: boolean
   /** Gli indirizzi che hanno chiesto di non ricevere più nulla da questo salone. */
   bloccate?: ReadonlySet<string>
+  /** Prenota il posto prima di spedire: falso vuol dire tetto raggiunto, e il giro si ferma. */
+  prenota?: () => Promise<boolean>
+  /** Restituisce il posto di un'email che Brevo non ha preso. */
+  libera?: () => Promise<void>
+  /** Oltre quest'ora (millisecondi) non si spedisce altro: il resto parte al giro dopo. */
+  finoA?: number
 }): Promise<EsitoCoda> {
   const scelte = input.subito
     ? input.righe.filter((riga) => riga.stato === 'in_coda' || riga.stato === 'non_inviata')
@@ -178,6 +184,8 @@ export async function inviaCoda(input: {
   const spedite: string[] = []
   let inviate = 0
   for (const riga of nelTetto) {
+    if (input.finoA !== undefined && Date.now() >= input.finoA) break
+    if (input.prenota && !(await input.prenota())) break
     const gia = riga.token && TOKEN.test(riga.token) ? riga.token : ''
     const assegnato = gia || randomBytes(16).toString('hex')
     if (!gia) token.push({ id: riga.id, token: assegnato })
@@ -200,6 +208,7 @@ export async function inviaCoda(input: {
       spedite.push(riga.id)
     } catch {
       riprova.push(riga.id)
+      await input.libera?.()
     }
   }
   return { inviate, riprova, attese, spedite, token, fermate }
@@ -225,6 +234,9 @@ export async function inviaOfferteAttesa(input: {
   salva?: (offerta: OffertaAttesaDoc) => Promise<void>
   salonId?: string
   bloccate?: ReadonlySet<string>
+  prenota?: () => Promise<boolean>
+  libera?: () => Promise<void>
+  finoA?: number
 }): Promise<{ inviate: number; offerte: OffertaAttesaDoc[]; scritturaFallita: boolean }> {
   const adesso = input.adesso ?? new Date()
   const offerte = input.offerte.map((offerta) => ({ ...offerta }))
@@ -239,9 +251,11 @@ export async function inviaOfferteAttesa(input: {
   for (const offerta of offerte) {
     if (offerta.inviataIl) continue
     if (margine <= 0) break
+    if (input.finoA !== undefined && Date.now() >= input.finoA) break
     const iscritto = perId.get(offerta.iscrittoId)
     if (!iscritto || !emailValida(iscritto.email)) continue
     if (input.bloccate?.has(normalizeEmail(iscritto.email))) continue
+    if (input.prenota && !(await input.prenota())) break
     const inizio = dataRoma(offerta.inizio)
     const linguaIscritto = linguaValida(iscritto.lingua) ?? lingua
     const url = conLingua(offerta.url, linguaIscritto)
@@ -267,6 +281,7 @@ export async function inviaOfferteAttesa(input: {
       inviate += 1
     } catch {
       offerta.inviataIl = null
+      await input.libera?.()
       continue
     }
     if (input.salva) {

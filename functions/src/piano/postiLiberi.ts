@@ -1,8 +1,9 @@
-import { getFirestore, type DocumentData } from 'firebase-admin/firestore'
+import { getFirestore, type DocumentData, type Firestore, type Query, type QuerySnapshot } from 'firebase-admin/firestore'
 import { appointmentEnd, sumDuration } from '../../../src/lib/fineServizi'
 import { calendarioPrenotabile, fineOccupata, intervalloImpegnoPersonale, intervalloLibero } from '../../../src/lib/disponibilita'
 import { salonPrenota } from './gatePrenotazione'
 import { erroreServer } from '../erroriServer'
+import { riservaLettura } from './mittente'
 
 export function dataDi(value: unknown): Date | null {
   if (value instanceof Date) return value
@@ -104,6 +105,31 @@ export function intervalloAncoraLibero(input: {
   )
 }
 
+/** Solo ciò che serve a dire se un'ora è occupata: mai le foto delle richieste, mai le visite di anni fa. */
+const CAMPI_VISITA = ['kind', 'start', 'end', 'services', 'status', 'scadeIl', 'plannedEnd', 'promemoria', 'bloccaOnline', 'provvisorio']
+const CAMPI_RICHIESTA = ['start', 'end', 'services', 'durataMin', 'status', 'scadeIl']
+/** Un impegno personale può durare a lungo: si guarda indietro con largo margine. */
+const GIORNI_INDIETRO = 35
+
+/**
+ * Le visite recenti. Firestore confronta solo valori dello stesso tipo e `start` è salvato in millisecondi,
+ * ma `dataDi` ne accetta anche altre forme: una query per forma, così nessuna visita sparisce dal calendario.
+ */
+export function queryVisite(db: Firestore, base: string, adesso: Date): Query[] {
+  const dal = new Date(adesso.getTime() - GIORNI_INDIETRO * 86_400_000)
+  const visite = db.collection(`${base}/appointments`).select(...CAMPI_VISITA)
+  return [dal.getTime(), dal, dal.toISOString()].map((limite) => visite.where('start', '>=', limite))
+}
+
+export function queryRichieste(db: Firestore, base: string): Query {
+  return db.collection(`${base}/richieste`).where('status', '==', 'nuova').select(...CAMPI_RICHIESTA)
+}
+
+/** Unisce le query per forma: lo stesso documento conta una volta sola. */
+export function datiUnici(snaps: readonly QuerySnapshot[]): DocumentData[] {
+  return [...new Map(snaps.flatMap((snap) => snap.docs.map((doc) => [doc.id, doc.data()] as const))).values()]
+}
+
 type OpzioniLiberi = { esclusa?: string; perSalone?: boolean }
 
 async function mappaLiberi(salonId: string, dal: string, quanti: number, durataMin: number, opzioni: OpzioniLiberi = {}): Promise<Record<string, string[]>> {
@@ -115,11 +141,13 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
   // Il controllo «prenotazioni accese» vale solo per il cliente: il salone gestisce le richieste già arrivate.
   if (!perSalone && !(await salonPrenota(salonId))) throw erroreServer('failed-precondition', 'prenotazioni_spente')
   const db = getFirestore()
-  const [settingsSnap, appuntamenti, richieste, chiusure] = await Promise.all([
-    db.doc(`salons/${salonId}/settings/main`).get(),
-    db.collection(`salons/${salonId}/appointments`).get(),
-    db.collection(`salons/${salonId}/richieste`).get(),
-    db.collection(`salons/${salonId}/closures`).get(),
+  const base = `salons/${salonId}`
+  const adesso = new Date()
+  const [settingsSnap, visite, richieste, chiusure] = await Promise.all([
+    db.doc(`${base}/settings/main`).get(),
+    Promise.all(queryVisite(db, base, adesso).map((query) => query.get())),
+    queryRichieste(db, base).get(),
+    db.collection(`${base}/closures`).get(),
   ])
   const settings = settingsSnap.data() ?? {}
   return calendarioPrenotabile({
@@ -135,9 +163,9 @@ async function mappaLiberi(salonId: string, dal: string, quanti: number, durataM
     }),
     passoMin: 60,
     durataMin: durataUtile(durataMin),
-    appuntamenti: appuntamenti.docs.flatMap((doc) => appuntamentoOccupato(doc.data())),
+    appuntamenti: datiUnici(visite).flatMap((data) => appuntamentoOccupato(data)),
     richieste: richieste.docs.flatMap((doc) => (doc.id === esclusa ? [] : richiestaOccupata(doc.data()))),
-    adesso: new Date(),
+    adesso,
   })
 }
 
@@ -164,10 +192,11 @@ export async function membroDelSalone(uid: string | undefined, salonId: string):
 // La callable pubblica postiLiberi: il cliente passa dal controllo «prenotazioni accese»,
 // il salone (es. «Proponi un altro orario» in Home) no, perché gestisce richieste già arrivate.
 export async function postiLiberiChiamata(
-  input: { salonId: string; giorno: string; giorni: number; durataMin: number },
+  input: { salonId: string; giorno: string; giorni: number; durataMin: number; mittente?: string },
   uid: string | undefined,
 ): Promise<{ orari: string[] } | { giorni: Record<string, string[]> }> {
   const perSalone = await membroDelSalone(uid, input.salonId)
+  if (!perSalone) await riservaLettura(input.mittente ?? '')
   if (Number.isFinite(input.giorni) && input.giorni > 1) return calendarioLiberiPer(input.salonId, input.giorno, input.giorni, input.durataMin, { perSalone })
   return postiLiberiPer(input.salonId, input.giorno, input.durataMin, '', { perSalone })
 }

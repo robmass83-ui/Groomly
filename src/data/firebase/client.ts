@@ -2767,6 +2767,8 @@ export async function reloadEmailVerified(): Promise<boolean> {
     throw mapMailError(error)
   }
   emailVerified = user.emailVerified === true
+  // Il token vecchio dice ancora «non confermata» fino a un'ora: le functions guardano quello.
+  if (emailVerified) await user.getIdToken(true).catch(() => undefined)
   return emailVerified
 }
 

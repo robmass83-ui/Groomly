@@ -47,6 +47,9 @@ export function brevoHtmlBody(
   }
 }
 
+/** Brevo che non risponde non deve tenere fermo il giro delle email fino alla scadenza della function. */
+const ATTESA_BREVO_MS = 15_000
+
 export async function postBrevoHtml(
   apiKey: string,
   toEmail: string,
@@ -66,6 +69,7 @@ export async function postBrevoHtml(
         'api-key': apiKey,
       },
       body: JSON.stringify(brevoHtmlBody(toEmail, subject, html, replyTo, headers)),
+      signal: AbortSignal.timeout(ATTESA_BREVO_MS),
     })
   } catch {
     throw new BrevoRequestError(0, 'rete')
