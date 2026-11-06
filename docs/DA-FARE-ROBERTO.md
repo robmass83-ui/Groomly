@@ -20,25 +20,17 @@ Aggiornato il 6 novembre 2026. La versione pubblicata è la **1.1.194**, firmata
 - **Email in cinque lingue.** Partono tutte dal codice. I template Brevo non si usano, quindi non vanno tradotti.
 - **Pagine legali online.** Privacy 3, Termini 2 e DPA 2 in cinque lingue, più la pagina per eliminare l’account. Stato voce per voce in `docs/legal/STATO-CONFORMITA.md`.
 - **Laura.** Omaggio Salone già scritto sul suo `pro/main`. Il suo salone vero è `salons/{uid di Laura}`: `salon/shared` è un resto in sola lettura.
-- **Console admin.** Pubblicata, con home Oggi, tasto + e ricerca. Il claim admin è sulla hotmail. Guida in `docs/GUIDA-ADMIN-MANAGER.md`.
+- **Console admin.** Pubblicata, con home Oggi, tasto + e ricerca. Guida in `docs/GUIDA-ADMIN-MANAGER.md`.
+- **Accessi admin.** Passaggio chiuso il 6 novembre: la hotmail entra solo in `/admin`, robmass83 è socio di I Pelosetti.
+- **Google Analytics.** Collegato a `groomly-3128b`, con conservazione a 2 mesi, segnali Google spenti e personalizzazione degli annunci spenta.
+- **Crashlytics.** Non ha un pulsante da attivare: parte al primo avvio di una build con l’SDK.
+- **Storage.** Non è attivo, quindi non c’è nessuna regola da copiare.
 - **Altro e Magazzino.** Impostazioni si apre dall’icona del profilo, e la barra in basso ha la voce Altro con il Magazzino.
 - **Variante `play`.** Stesso `applicationId` `it.groomly.app`, senza aggiornamento APK e senza `REQUEST_INSTALL_PACKAGES`. L’AAB compila ed è firmato con la chiave di upload. Non è stato caricato su Play.
 - **App Check.** Codice pronto e spento. I passi di console sono più sotto.
 - **Copia del keystore.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` sono al sicuro.
 
 ## Ti resta, fuori da Play
-
-**Passaggio degli accessi admin.** I passi sono in `docs/GUIDA-ADMIN-MANAGER.md`. L’ultimo stato scritto è del 5 novembre: se li hai già fatti, salta.
-
-1. `collega`, che fa di robmass83 un socio di I Pelosetti.
-2. Le prove d’accesso: robmass83 apre I Pelosetti, la hotmail apre `/admin`, Laura controlla il suo salone.
-3. `stacca`, che toglie alla hotmail account e riga socio.
-
-**A mano nelle console.**
-
-- Firebase Console › Storage: controlla se Storage è attivo. Se lo è, copia lì le regole di `storage.rules`.
-- Firebase Console: attiva Crashlytics.
-- Google Analytics: collegalo a `groomly-3128b`, con conservazione a 2 mesi e con segnali Google e pubblicità spenti.
 
 **Sul telefono.**
 
