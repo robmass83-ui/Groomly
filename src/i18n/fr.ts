@@ -1597,6 +1597,8 @@ export const fr = {
   sospesoTitoloSalone: 'Votre accès au salon est suspendu',
   copiaNonRiuscita: 'Échec de la copie',
   bakFileNonValido: 'Fichier non valide',
+  bakFotoSaltate: "{{n}} photos ou fichiers de cette sauvegarde ne peuvent pas être restaurés. Les clients et les visites, si.",
+  bakAltroSalone: "Cette sauvegarde appartient au salon « {{nome}} », pas à celui ouvert maintenant.",
   bakRipristinato: 'Restauré',
   bakRipristinoIncompleto: 'Restauration incomplète, réessayez',
   indVerificato: 'Adresse vérifiée',

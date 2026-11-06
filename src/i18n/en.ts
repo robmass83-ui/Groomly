@@ -1597,6 +1597,8 @@ export const en = {
   sospesoTitoloSalone: 'Your access to the salon is suspended',
   copiaNonRiuscita: 'Couldn’t copy',
   bakFileNonValido: 'Invalid file',
+  bakFotoSaltate: "{{n}} photos or files in this backup can't be restored. Clients and visits can.",
+  bakAltroSalone: "This backup belongs to the salon “{{nome}}”, not the one open now.",
   bakRipristinato: 'Restored',
   bakRipristinoIncompleto: 'Restore incomplete, try again',
   indVerificato: 'Address verified',

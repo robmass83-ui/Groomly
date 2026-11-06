@@ -277,3 +277,14 @@ describe('copia cloud', () => {
     expect(deleted).toEqual([])
   })
 })
+
+describe('la scadenza della copia di sicurezza', () => {
+  const adesso = new Date('2026-11-06T10:00:00.000Z')
+
+  it('scaduta non si propone più; senza data aspetta il server', async () => {
+    const { copiaScaduta } = await import('./ripristinoSicurezza')
+    expect(copiaScaduta({ scadeIl: '2026-11-06T09:00:00.000Z' }, adesso)).toBe(true)
+    expect(copiaScaduta({ scadeIl: '2026-11-07T09:00:00.000Z' }, adesso)).toBe(false)
+    expect(copiaScaduta({}, adesso)).toBe(false)
+  })
+})

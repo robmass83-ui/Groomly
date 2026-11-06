@@ -1597,6 +1597,8 @@ export const de = {
   sospesoTitoloSalone: 'Ihr Zugang zum Salon ist ausgesetzt',
   copiaNonRiuscita: 'Kopieren fehlgeschlagen',
   bakFileNonValido: 'Datei ungültig',
+  bakFotoSaltate: "{{n}} Fotos oder Dateien dieser Sicherung lassen sich nicht wiederherstellen. Kunden und Termine schon.",
+  bakAltroSalone: "Diese Sicherung gehört zum Salon „{{nome}}“, nicht zum gerade geöffneten.",
   bakRipristinato: 'Wiederhergestellt',
   bakRipristinoIncompleto: 'Wiederherstellung unvollständig, versuchen Sie es erneut',
   indVerificato: 'Adresse bestätigt',

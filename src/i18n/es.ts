@@ -1597,6 +1597,8 @@ export const es = {
   sospesoTitoloSalone: 'Tu acceso al salón está suspendido',
   copiaNonRiuscita: 'No se ha podido copiar',
   bakFileNonValido: 'Archivo no válido',
+  bakFotoSaltate: "{{n}} fotos o archivos de esta copia no se pueden restaurar. Clientes y visitas sí.",
+  bakAltroSalone: "Esta copia es del salón «{{nome}}», no del que está abierto ahora.",
   bakRipristinato: 'Restaurado',
   bakRipristinoIncompleto: 'Restauración incompleta, inténtalo de nuevo',
   indVerificato: 'Dirección verificada',

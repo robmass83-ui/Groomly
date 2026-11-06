@@ -343,6 +343,8 @@ export async function applicaPiano(input: {
 
     tx.set(ref, {
       ...piano.richiesta,
+      // Da qui partono i 90 giorni della Privacy.
+      ...(piano.richiesta.status === 'rifiutata' || piano.richiesta.status === 'scaduta' ? { chiusaIl: input.adesso.toISOString() } : {}),
       ...(piano.appuntamento === 'crea' && visitaRef ? { appointmentId: visitaRef.id } : {}),
       ...(input.emailStato ? { emailStato: input.emailStato } : {}),
     }, { merge: true })

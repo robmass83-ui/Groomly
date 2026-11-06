@@ -46,7 +46,7 @@ async function chiudiNuovePassate(salone: DocumentReference, adesso: Date, apiKe
       const fatto = await getFirestore().runTransaction(async (tx) => {
         const attuale = (await tx.get(ref)).data()
         if (attuale?.status !== 'nuova') return null
-        tx.update(ref, { status: 'scaduta' })
+        tx.update(ref, { status: 'scaduta', chiusaIl: adesso.toISOString() })
         return attuale
       })
       if (!fatto) continue

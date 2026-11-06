@@ -11,6 +11,8 @@ import { frase } from '../../i18n/frase'
 
 const LIMITE_JSON = 900000
 const LIMITE_BYTE = 80 * 1024 * 1024
+// La Privacy promette 30 giorni: la cancellazione vera la fa il giro della notte sul server.
+const GIORNI_COPIA = 30
 
 type CopiaCloud = {
   bundle: BackupBundle
@@ -28,6 +30,12 @@ function strumenti(): { fs: FirestoreApi; db: ReturnType<typeof getFirestore> } 
     fs: { doc, getDoc, writeBatch, Bytes },
     db: getFirestore(getApp()),
   }
+}
+
+export function copiaScaduta(copia: Record<string, unknown>, adesso = new Date()): boolean {
+  if (typeof copia.scadeIl !== 'string') return false
+  const scade = Date.parse(copia.scadeIl)
+  return Number.isFinite(scade) && scade <= adesso.getTime()
 }
 
 function stringhe(value: unknown): string[] {
@@ -59,7 +67,8 @@ export async function salvaCopiaCloud(uid: string, ids: readonly string[]): Prom
   if (totale > LIMITE_BYTE) throw new Error(frase('errCopiaSicurezza'))
   const precedente = await readSalonDoc('meta', 'ripristino-sicurezza')
   const nuovi = letti.presenti.map((file) => file.id)
-  const documento = { bundle, codici, assenti: letti.assenti, presenti: nuovi }
+  const scadeIl = new Date(Date.now() + GIORNI_COPIA * 86_400_000).toISOString()
+  const documento = { bundle, codici, assenti: letti.assenti, presenti: nuovi, scadeIl }
   if (JSON.stringify(documento).length > LIMITE_JSON) throw new Error(frase('errCopiaSicurezza'))
   await applicaFileRipristino(letti.presenti, fs, db, 'sicurezza')
   await transactionSalon(async (tx) => {
@@ -71,12 +80,12 @@ export async function salvaCopiaCloud(uid: string, ids: readonly string[]): Prom
 
 export async function esisteCopiaCloud(): Promise<boolean> {
   const saved = await readSalonDoc('meta', 'ripristino-sicurezza')
-  return saved !== null
+  return saved !== null && !copiaScaduta(saved)
 }
 
 export async function leggiCopiaCloud(): Promise<CopiaCloud | null> {
   const saved = await readSalonDoc('meta', 'ripristino-sicurezza')
-  if (!saved) return null
+  if (!saved || copiaScaduta(saved)) return null
   const richiesti = stringhe(saved.presenti)
   const { fs, db } = strumenti()
   const letti = await leggiFileAttuali(richiesti, fs, db, 'sicurezza')

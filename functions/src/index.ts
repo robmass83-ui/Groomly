@@ -31,6 +31,7 @@ import { postiLiberiChiamata, preparaRichiestaPer } from './piano/postiLiberi'
 import { inviaRichiestaPer } from './piano/inviaRichiesta'
 import { mittenteDi, riservaMittente } from './piano/mittente'
 import { contaInvii, postaOggi, riservaPostaSistema } from './postaGiorno'
+import { pulisciConservazione } from './piano/conservazione'
 import { membroTitolareMancante } from './piano/titolareMembro'
 import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
@@ -1214,6 +1215,7 @@ export const statisticheGiornaliere = onSchedule({
   const adesso = new Date()
   await salvaStatistiche(db, await calcolaStatistiche({ db, adesso, infoPersone: infoPersoneAuth }))
   await pulisciRegistroAdmin(db, adesso)
+  logger.info('Conservazione', await pulisciConservazione(db, adesso))
 })
 
 export const schedaSaloneAdmin = onCall({ ...pianoCall, timeoutSeconds: 60 }, async (request) => {

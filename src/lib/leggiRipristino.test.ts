@@ -167,7 +167,7 @@ describe('leggiRipristino', () => {
     })
   })
 
-  it('rifiuta percorso, lunghezza, esito, id e i limiti prima di accettare il completo', async () => {
+  it('salta e conta le voci che non tornano, ma clienti e visite si ripristinano', async () => {
     const bytes = new Uint8Array([1, 2, 3])
     const path = 'cani/C0001 - Fido/profilo.webp'
     const casi = [
@@ -183,7 +183,8 @@ describe('leggiRipristino', () => {
       await zipCompleto({ f1: metaOk() }),
     ]
     for (const archivio of casi) {
-      expect(await leggiRipristino(archivio)).toEqual({ esito: 'rifiutato', messaggio: FILE })
+      const esito = await leggiRipristino(archivio)
+      expect(esito).toMatchObject({ esito: 'completo', saltati: 1 })
     }
     const tanti: GroomlyDati['files'] = {}
     const voci201: Record<string, Uint8Array> = {}
@@ -193,13 +194,22 @@ describe('leggiRipristino', () => {
       tanti[id] = metaOk({ id, percorsoBackup: percorso, byteSize: 0 })
       voci201[percorso] = new Uint8Array(0)
     }
-    expect(await leggiRipristino(await zipCompleto(tanti, voci201))).toEqual({ esito: 'rifiutato', messaggio: FILE })
+    const oltre = await leggiRipristino(await zipCompleto(tanti, voci201))
+    expect(oltre).toMatchObject({ esito: 'completo', saltati: 1 })
+    expect(oltre.esito === 'completo' ? oltre.file : []).toHaveLength(200)
     const pesanti: GroomlyDati['files'] = {}
     for (let index = 0; index < 9; index += 1) {
       const id = `p${index}`
       pesanti[id] = metaOk({ id, percorsoBackup: `file-sciolti/${id}.webp`, byteSize: FILE_MAX_BYTES })
     }
-    expect(await leggiRipristino(await zipCompleto(pesanti))).toEqual({ esito: 'rifiutato', messaggio: FILE })
+    expect(await leggiRipristino(await zipCompleto(pesanti))).toMatchObject({ esito: 'completo', file: [], saltati: 9 })
+  })
+
+  it('una voce con un id strano, come quella di un collaboratore, non fa perdere la copia', async () => {
+    const path = 'cani/C0001 - Fido/profilo.webp'
+    const esito = await leggiRipristino(await zipCompleto({ 'a.b': metaOk({ id: 'a.b' }), f1: metaOk() }, { [path]: new Uint8Array([1, 2, 3]) }))
+    expect(esito).toMatchObject({ esito: 'completo', saltati: 1 })
+    expect(esito.esito === 'completo' ? esito.file.map((file) => file.id) : []).toEqual(['f1'])
   })
 
   it('uno ZIP completo senza file ok è valido e uno solo dati non legge le foto', async () => {

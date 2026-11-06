@@ -25,10 +25,13 @@ export type FileRipristino = {
   h?: number
 }
 
+/** Il salone da cui viene la copia, scritto nel manifest. */
+export type SaloneCopia = { id: string; nome: string }
+
 export type EsitoRipristino =
   | { esito: 'vecchio'; bundle: BackupBundle }
-  | { esito: 'solo-dati'; bundle: BackupBundle; codici: CodiciCaneDoc }
-  | { esito: 'completo'; bundle: BackupBundle; codici: CodiciCaneDoc; file: FileRipristino[] }
+  | { esito: 'solo-dati'; bundle: BackupBundle; codici: CodiciCaneDoc; salone?: SaloneCopia }
+  | { esito: 'completo'; bundle: BackupBundle; codici: CodiciCaneDoc; file: FileRipristino[]; saltati: number; salone?: SaloneCopia }
   | { esito: 'rifiutato'; messaggio: string }
 
 type FileInCorso = Omit<FileRipristino, 'bytes'> & { percorso: string }
@@ -76,40 +79,48 @@ function leggiVoce(id: string, value: unknown): { esito: 'mancante' } | { esito:
   return { esito: 'ok', file }
 }
 
+// Una foto che non torna non deve far perdere clienti e visite: si salta, si conta e i dati si ripristinano.
+// I limiti restano per la memoria del telefono: oltre, le foto si saltano, non la copia.
 async function leggiCompleto(
   zip: JSZip,
   parsed: Record<string, unknown>,
   pronto: { bundle: BackupBundle; codici: CodiciCaneDoc },
+  salone: SaloneCopia | undefined,
 ): Promise<EsitoRipristino> {
   if (!isRecord(parsed.files)) return rifiuto(frase('bakFileNonValido'))
+  let saltati = 0
   const pronti: FileInCorso[] = []
   const percorsi = new Set<string>()
+  let peso = 0
   for (const [id, value] of Object.entries(parsed.files)) {
     const voce = leggiVoce(id, value)
-    if (!voce) return rifiuto(frase('bakFileNonValido'))
-    if (voce.esito === 'mancante') continue
-    if (percorsi.has(voce.file.percorso)) return rifiuto(frase('bakFileNonValido'))
+    if (voce?.esito === 'mancante') continue
+    if (!voce || percorsi.has(voce.file.percorso) || pronti.length >= LIMITE_FILE || peso + voce.file.byteSize > LIMITE_BYTE) {
+      saltati += 1
+      continue
+    }
     percorsi.add(voce.file.percorso)
+    peso += voce.file.byteSize
     pronti.push(voce.file)
   }
-  if (pronti.length > LIMITE_FILE) return rifiuto(frase('bakFileNonValido'))
-  if (pronti.reduce((sum, file) => sum + file.byteSize, 0) > LIMITE_BYTE) return rifiuto(frase('bakFileNonValido'))
   const file: FileRipristino[] = []
   for (const item of pronti) {
-    const entry = zip.file(item.percorso)
-    if (!entry) return rifiuto(frase('bakFileNonValido'))
-    let letti: Uint8Array
-    try {
-      letti = await entry.async('uint8array')
-    } catch {
-      return rifiuto(frase('bakFileNonValido'))
+    const letti = await zip.file(item.percorso)?.async('uint8array').catch(() => null)
+    if (!letti || letti.length !== item.byteSize) {
+      saltati += 1
+      continue
     }
-    if (letti.length !== item.byteSize) return rifiuto(frase('bakFileNonValido'))
     const { percorso, ...rest } = item
     void percorso
     file.push({ ...rest, bytes: new Uint8Array(letti) })
   }
-  return { esito: 'completo', bundle: pronto.bundle, codici: pronto.codici, file }
+  return { esito: 'completo', bundle: pronto.bundle, codici: pronto.codici, file, saltati, ...(salone ? { salone } : {}) }
+}
+
+function saloneDi(manifest: Record<string, unknown>): SaloneCopia | undefined {
+  const salone = manifest.salone
+  if (!isRecord(salone) || typeof salone.id !== 'string' || salone.id === '') return undefined
+  return { id: salone.id, nome: typeof salone.nome === 'string' ? salone.nome : '' }
 }
 
 function leggiCodici(value: unknown): CodiciCaneDoc | null {
@@ -184,9 +195,10 @@ async function leggiZip(bytes: Uint8Array): Promise<EsitoRipristino> {
   const codici = leggiCodici(parsed.codiciCane)
   const pronto = codici ? bundleDati(parsed, codici) : null
   if (!pronto) return rifiuto(frase('bakFileNonValido'))
-  if (manifest.tipo === 'completo') return leggiCompleto(zip, parsed, pronto)
+  const salone = saloneDi(manifest)
+  if (manifest.tipo === 'completo') return leggiCompleto(zip, parsed, pronto, salone)
   if (manifest.tipo !== 'solo-dati') return rifiuto(frase('bakFileNonValido'))
-  return { esito: 'solo-dati', bundle: pronto.bundle, codici: pronto.codici }
+  return { esito: 'solo-dati', bundle: pronto.bundle, codici: pronto.codici, ...(salone ? { salone } : {}) }
 }
 
 function leggiJson(bytes: Uint8Array): EsitoRipristino {

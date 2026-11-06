@@ -309,6 +309,24 @@ describe('regole Firestore sull’emulatore', () => {
       await assertSucceeds(updateDoc(ref(confermata), { email: 'nuova@test.it' }))
     })
 
+    it('la copia di sicurezza del ripristino è di titolare e socio, con i limiti dei file', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'salons', SALON, 'meta', 'ripristino-sicurezza'), { presenti: ['f1'] })
+        await setDoc(doc(ctx.firestore(), 'salons', SALON, 'sicurezza', 'f1'), { name: 'foto' })
+      })
+      const titolare = env.authenticatedContext(ALTRO).firestore()
+      const collab = env.authenticatedContext(COLLAB).firestore()
+      await assertSucceeds(getDoc(doc(titolare, 'salons', SALON, 'meta', 'ripristino-sicurezza')))
+      await assertFails(getDoc(doc(collab, 'salons', SALON, 'meta', 'ripristino-sicurezza')))
+      await assertFails(getDoc(doc(collab, 'salons', SALON, 'sicurezza', 'f1')))
+      await assertFails(setDoc(doc(collab, 'salons', SALON, 'sicurezza', 'f2'), { name: 'x' }))
+      await assertSucceeds(setDoc(doc(titolare, 'salons', SALON, 'sicurezza', 'f2'), { name: 'x' }))
+      await assertSucceeds(setDoc(doc(titolare, 'salons', SALON, 'sicurezza', 'f2', 'full', 'data'), { dati: 'abc' }))
+      await assertSucceeds(setDoc(doc(titolare, 'salons', SALON, 'sicurezza', 'f2', 'chunks', '17'), { dati: 'abc' }))
+      await assertFails(setDoc(doc(titolare, 'salons', SALON, 'sicurezza', 'f2', 'chunks', '18'), { dati: 'abc' }))
+      await assertSucceeds(deleteDoc(doc(titolare, 'salons', SALON, 'sicurezza', 'f2')))
+    })
+
     it('le offerte della lista d’attesa non si leggono e non si scrivono dal client', async () => {
       const db = env.authenticatedContext(ALTRO).firestore()
       await assertFails(getDoc(doc(db, 'salons', SALON, 'offerteAttesa', 'o1')))

@@ -261,7 +261,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [backupOpen, setBackupOpen] = useState(false)
-  type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[] }
+  type RipristinoPronto = { bundle: BackupBundle; codici: CodiciCaneDoc | null; file: FileRipristino[]; saltati: number; altroSalone: string }
   const [pending, setPending] = useState<RipristinoPronto | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [avanzamento, setAvanzamento] = useState<{ fatti: number; totale: number } | null>(null)
@@ -389,6 +389,8 @@ export function SettingsPage() {
         bundle: esito.bundle,
         codici: esito.esito === 'solo-dati' || esito.esito === 'completo' ? esito.codici : null,
         file: esito.esito === 'completo' ? esito.file : [],
+        saltati: esito.esito === 'completo' ? esito.saltati : 0,
+        altroSalone: esito.esito !== 'vecchio' && esito.salone && esito.salone.id !== account?.salonId ? esito.salone.nome || '—' : '',
       })
     } catch {
       toast.show(frasi.bakFileNonValido, 'plain')
@@ -1154,6 +1156,8 @@ export function SettingsPage() {
       </Dialog>
       <Dialog open={pending !== null} title={frasi.caniRipristina} onClose={() => { setParola(''); setPending(null) }}>
         <p style={{ margin: 0 }}>{counts ? t(lingua, 'bakConteggi', { cani: counts.dogs, appuntamenti: counts.appointments, servizi: counts.services }) : ''}</p>
+        {pending?.altroSalone ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{t(lingua, 'bakAltroSalone', { nome: pending.altroSalone })}</p> : null}
+        {pending?.saltati ? <p role="alert" style={{ margin: 0 }}>{t(lingua, 'bakFotoSaltate', { n: pending.saltati })}</p> : null}
         <p style={{ margin: 0 }}>{frasi.bakSostituisce}</p>
         <p style={{ margin: 0 }}>{frasi.bakUnisciSpiega}</p>
         <Button onClick={() => { void confirmRestore('unisci') }} disabled={restoring}>{frasi.bakUnisci}</Button>

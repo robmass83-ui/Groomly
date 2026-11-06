@@ -285,6 +285,26 @@ service cloud.firestore {
           && request.resource.data.dati.size() <= 614400;
       }
     }
+    // La copia di prima di un ripristino: tiene anche i clienti cancellati dopo, quindi solo titolare e socio.
+    // Le regole si sommano: quella generica in fondo esclude queste raccolte.
+    match /salons/{salonId}/meta/ripristino-sicurezza {
+      allow read: if ownerRank(salonId);
+    }
+    match /salons/{salonId}/sicurezza/{fileId} {
+      allow read, delete: if ownerRank(salonId);
+      allow create, update: if fileOk() && ownerRank(salonId);
+
+      match /full/{part} {
+        allow read, delete: if ownerRank(salonId);
+        allow create, update: if part == 'data' && ownerRank(salonId) && request.resource.data.dati.size() <= 716800;
+      }
+
+      match /chunks/{n} {
+        allow read, delete: if ownerRank(salonId);
+        allow create, update: if n.matches('^[0-9]{1,2}$') && int(n) < 18
+          && ownerRank(salonId) && request.resource.data.dati.size() <= 614400;
+      }
+    }
     match /salons/{salonId}/interesse/{feature} {
       allow read: if ownerRank(salonId);
       allow create: if ownerRank(salonId)
@@ -322,11 +342,13 @@ service cloud.firestore {
       allow write: if false;
     }
     match /salons/{salonId}/{kind}/{id} {
-      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta') && kind != 'offerteAttesa';
+      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta') && kind != 'offerteAttesa'
+        && kind != 'sicurezza' && !(kind == 'meta' && id == 'ripristino-sicurezza');
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
     match /salons/{salonId}/{kind}/{id}/{rest=**} {
-      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta') && kind != 'offerteAttesa';
+      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta') && kind != 'offerteAttesa'
+        && kind != 'sicurezza' && !(kind == 'meta' && id == 'ripristino-sicurezza');
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
 
