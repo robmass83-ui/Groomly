@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { isNewerVersion } from './appRelease'
+import { isNewerVersion, noteInLingua, notesFromRelease } from './appRelease'
+import { t } from '../i18n/t'
 import { tagPubblicato, urlApk, urlApkGithub, urlProntoAccettato, urlPubblicatoAccettato, versioneSupera } from './releasePubblicata'
 
 describe('versione pubblicata', () => {
@@ -22,6 +23,17 @@ describe('versione pubblicata', () => {
     expect(urlProntoAccettato('1.1.97', 'https://groomlyapp.it/groomly.apk', '1.1.96')).toBe(false)
     expect(urlPubblicatoAccettato('1.1.96', urlApkGithub('1.1.96'), '1.1.96')).toBe(true)
     expect(urlPubblicatoAccettato('1.1.96', urlApkGithub('1.1.95'), '1.1.96')).toBe(false)
+  })
+
+  it('hosting/release.json dice cosa cambia, in tutte le lingue', () => {
+    const hosted = JSON.parse(readFileSync(path.join(process.cwd(), 'hosting', 'release.json'), 'utf8')) as { notes: string[] }
+    const notes = notesFromRelease(hosted.notes)
+    for (const lingua of ['it', 'en', 'es', 'fr', 'de'] as const) {
+      const righe = noteInLingua(notes, lingua)
+      expect(righe.length).toBeGreaterThan(0)
+      expect(righe).not.toContain(t(lingua, 'relNoteGeneriche'))
+      expect(righe.join(' ')).not.toMatch(/release GitHub/i)
+    }
   })
 
   it('tiene hosting/release.json non più nuovo dell’ultimo tag GitHub', () => {

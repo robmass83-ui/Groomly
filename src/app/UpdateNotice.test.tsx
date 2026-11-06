@@ -112,6 +112,7 @@ describe('avviso di aggiornamento', () => {
     const dialog = screen.getByRole('dialog', { name: 'Vuoi aggiornare adesso?' })
     expect(dialog.parentElement?.getAttribute('style')).toContain('align-items: center')
     expect(screen.getByText('È pronta la versione 9.0.0.')).toBeInTheDocument()
+    expect(screen.getByText('Novità')).toBeInTheDocument()
     expect(screen.getByText('Un mensile non crea da solo la visita successiva.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Scarica' }))
     expect(AppInstaller.downloadAndInstall).toHaveBeenCalledWith({ url: release.url })

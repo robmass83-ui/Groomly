@@ -220,9 +220,12 @@ export function UpdateNotice({ release }: { release?: AppRelease | null }) {
     <Dialog open title={frasi.aggAdesso} onClose={dismiss}>
       <p style={{ margin: 0 }}>{frasi.aggPronta.replace('{{version}}', offer.version)}</p>
       {notes.length > 0 ? (
-        <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
-          {notes.map((note) => <li key={note}>{note}</li>)}
-        </ul>
+        <>
+          <p style={{ margin: 0, fontWeight: 700 }}>{frasi.infoNovita}</p>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: TYPE.base }}>
+            {notes.map((note) => <li key={note}>{note}</li>)}
+          </ul>
+        </>
       ) : null}
       {notice ? <p style={{ margin: 0 }}>{notice}</p> : null}
       {/* dentro la finestra, non sopra: «Più tardi» deve restare toccabile per annullare il download */}
