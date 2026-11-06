@@ -264,9 +264,11 @@ async function pulisci(): Promise<void> {
   for (const salone of saloni) {
     await db.recursiveDelete(db.doc(`salons/${salone.uid}`))
     await db.recursiveDelete(db.doc(`accounts/${salone.uid}`))
-    await auth.deleteUser(salone.uid)
   }
-  const restano = (await auth.listUsers()).users.filter((utente) => utente.email?.startsWith('mag360-'))
+  // Dall'elenco e non dagli id: un giro fermato a metà ne ha già cancellati alcuni.
+  const seminati = (await auth.listUsers()).users.filter((utente) => utente.email?.startsWith('mag360-'))
+  await auth.deleteUsers(seminati.map((utente) => utente.uid))
+  const restano =(await auth.listUsers()).users.filter((utente) => utente.email?.startsWith('mag360-'))
   const salonsRestanti = await Promise.all(saloni.map((salone) => db.doc(`salons/${salone.uid}`).listCollections()))
   console.log(`PULITI ${saloni.length}, utenti rimasti ${restano.length}, sottocollezioni rimaste ${salonsRestanti.flat().length}`)
   if (restano.length > 0 || salonsRestanti.flat().length > 0) process.exit(1)
