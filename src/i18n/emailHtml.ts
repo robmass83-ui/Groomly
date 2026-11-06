@@ -775,9 +775,8 @@ export function emailMessaggio(
   const scheda = (dati.scheda ?? '').trim()
     ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${escapaHtml(dati.scheda ?? '').trim().replaceAll('\n', '<br>')}</p>`
     : ''
-  const pezziRiga = [salone.trim() ? escapaHtml(salone.trim()) : '', cane.trim() ? escapaHtml(cane.trim()) : ''].filter(Boolean)
-  const riga = pezziRiga.length
-    ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${pezziRiga.join(' · ')}</p>`
+  const riga = salone.trim()
+    ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:#2C4560">${escapaHtml(salone.trim())}</p>`
     : ''
   const stileSi = 'display:inline-block;background:#2E7FB0;color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;padding:14px 26px;border-radius:10px'
   const stileNo = 'display:inline-block;background:#ffffff;color:#9E2F2A;text-decoration:none;font-weight:700;font-size:16px;padding:12px 26px;border:2px solid #9E2F2A;border-radius:10px;margin-left:12px'

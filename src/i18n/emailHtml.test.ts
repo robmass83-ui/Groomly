@@ -168,7 +168,8 @@ describe('email', () => {
         })
         expect(mail.oggetto).toBe(frasi[lingua].oggetto)
         expect(mail.html).toContain(frasi[lingua].frase)
-        expect(mail.html).toContain('Canespa · Rex')
+        expect(mail.html).toContain('>Canespa</p>')
+        expect(mail.html).not.toContain('Canespa · Rex')
       }
     }
     const proposta = emailMessaggio('it', 'proposta', { ...PIENI, url, urlRifiuta })
@@ -264,7 +265,13 @@ describe('email', () => {
     expect(mail.html).not.toContain('puntuali')
     expect(mail.html).not.toContain('>Vedi')
     expect(mail.html).toContain('Hai una domanda?')
-    expect(mail.html).toContain('Canespa · Rex')
+    expect(mail.html).toContain('>Canespa</p>')
+    expect(mail.html).not.toContain('Canespa · Rex')
+  })
+
+  it('sotto il testo resta solo il salone: senza salone la riga non c’è, anche col nome del cane', () => {
+    const mail = emailMessaggio('it', 'rifiuto', { cliente: 'Giulia', cane: 'Rex' })
+    expect(mail.html).not.toContain('>Rex</p>')
   })
 
   it('senza rispondi-a non promette la risposta', () => {
