@@ -2,14 +2,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { buildBackup, isEmptyBackup, readRestoreBundle, restoreBackup } from '../../lib/backupDoc'
 import { canonicalJson, type GroomlyDati } from '../../lib/backupBundle'
-import type { Prodotto } from '../../lib/prodotti'
+import { DETTAGLI_VUOTI, type Prodotto } from '../../lib/prodotti'
 import { deleteProdottoLocal, listProdotti, prodottiToLocalMap, saveProdottoLocal } from './prodotti'
 
 const UID = 'salone'
 const data = new Date('2026-11-05T10:00:00.000Z')
 
 function prodotto(over: Partial<Prodotto> = {}): Prodotto {
-  return { id: 'p1', nome: 'Shampoo', categoria: 'lavaggio', quantita: 5, unita: 'l', ditta: 'Ditta Alfa', codice: 'SH-1', pezzi: 4, telefono: '', email: '', soglia: 2, inArrivo: 0, ordinatoIl: null, movimenti: [], createdAt: data, updatedAt: data, ...over }
+  return { id: 'p1', nome: 'Shampoo', categoria: 'lavaggio', quantita: 5, unita: 'l', ditta: 'Ditta Alfa', codice: 'SH-1', pezzi: 4, telefono: '', email: '', soglia: 2, inArrivo: 0, ordinatoIl: null, movimenti: [], ...DETTAGLI_VUOTI, createdAt: data, updatedAt: data, ...over }
 }
 
 describe('prodotti sul telefono', () => {

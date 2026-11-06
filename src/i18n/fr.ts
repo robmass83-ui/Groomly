@@ -216,6 +216,8 @@ export const fr = {
   catAlRefrigerante: 'Spray refroidissant pour lames',
   catAlVasca: 'Nettoyant bac et table',
   catAlGuanti: 'Gants jetables',
+  pwStimeTitolo: 'Sachez combien de temps dure chaque produit',
+  pwStimeTesto: 'Estimation selon les chiens lavés, coût par lavage et résumé des dépenses.',
   catShScuro: 'Shampooing poil foncé',
   catShLungoIdra: 'Shampooing poil long / hydratant',
   catShMuta: 'Shampooing anti-mue',

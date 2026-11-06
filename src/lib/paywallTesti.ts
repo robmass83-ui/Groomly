@@ -1,6 +1,6 @@
 import {
   Bell, Cake, CalendarPlus, Cloud, CloudUpload, FileDown, Heart, History, List,
-  MessageCircle, PawPrint, RotateCcw, Star, UserPlus, Users, type LucideIcon,
+  MessageCircle, PawPrint, RotateCcw, Star, UserPlus, Users, Warehouse, type LucideIcon,
 } from 'lucide-react'
 import type { Chiave } from '../i18n/t'
 import type { FeatureKey } from './piano'
@@ -21,4 +21,5 @@ export const TESTI_PAYWALL: Record<FeatureKey, { titolo: Chiave; testo: Chiave; 
   fedelta: { titolo: 'pwFedeltaTitolo', testo: 'pwFedeltaTesto', icona: Heart },
   team: { titolo: 'pwTeamTitolo', testo: 'pwTeamTesto', icona: Users },
   postiExtra: { titolo: 'pwPostiExtraTitolo', testo: 'pwPostiExtraTesto', icona: UserPlus },
+  stimeMagazzino: { titolo: 'pwStimeTitolo', testo: 'pwStimeTesto', icona: Warehouse },
 }

@@ -171,6 +171,25 @@ describe('regole Firestore sull’emulatore', () => {
     await assertSucceeds(setDoc(doc(db, 'salons', SALON, 'dogs', 'fido'), dogToDoc(modificato)))
   })
 
+  it('i campi nuovi del prodotto sono facoltativi e hanno il tipo giusto', async () => {
+    const db = env.authenticatedContext(COLLAB).firestore()
+    const prodotto = doc(db, 'salons', SALON, 'prodotti', 'campi')
+    const base = { nome: 'Shampoo', categoria: 'lavaggio' }
+    await assertSucceeds(setDoc(prodotto, base))
+    await assertSucceeds(setDoc(prodotto, { nome: 'Vecchio', categoria: 'shampoo', pezzi: 1 }))
+    await assertSucceeds(setDoc(prodotto, { ...base, uso: 'vendita', diluizione: 10, apertoIl: 1762400000000, mesiDopoApertura: 12, costo: 18.5, prezzoVendita: 25, mlPerCane: { piccola: 15, media: 30, grande: 50 }, giorniConsegna: 3, confrontoIl: 1762400000000 }))
+    await assertSucceeds(setDoc(prodotto, { ...base, uso: 'salone', diluizione: null, apertoIl: null, mesiDopoApertura: null, costo: null, prezzoVendita: null, mlPerCane: null, giorniConsegna: null, confrontoIl: null }))
+    await assertFails(setDoc(prodotto, { ...base, uso: 'regalo' }))
+    await assertFails(setDoc(prodotto, { ...base, diluizione: 'tanta' }))
+    await assertFails(setDoc(prodotto, { ...base, diluizione: 1.5 }))
+    await assertFails(setDoc(prodotto, { ...base, costo: -1 }))
+    await assertFails(setDoc(prodotto, { ...base, prezzoVendita: '25' }))
+    await assertFails(setDoc(prodotto, { ...base, mesiDopoApertura: -1 }))
+    await assertFails(setDoc(prodotto, { ...base, mlPerCane: { piccola: 15 } }))
+    await assertFails(setDoc(prodotto, { ...base, mlPerCane: { piccola: 15, media: 30, grande: -1 } }))
+    await assertFails(setDoc(prodotto, { ...base, giorniConsegna: 'presto' }))
+  })
+
   it('il collaboratore aggiunge e modifica un prodotto ma non lo elimina', async () => {
     const db = env.authenticatedContext(COLLAB).firestore()
     const titolare = env.authenticatedContext(ALTRO).firestore()

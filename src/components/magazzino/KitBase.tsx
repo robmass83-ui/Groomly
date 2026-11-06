@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
 import { CATALOGO_PRODOTTI, KIT_BASE } from '../../lib/catalogoProdotti'
-import { muoviProdotto, type Prodotto } from '../../lib/prodotti'
+import { DETTAGLI_VUOTI, muoviProdotto, type Prodotto } from '../../lib/prodotti'
 import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Contatore } from './Contatore'
@@ -42,6 +42,9 @@ export function KitBase({ onSalva, onDaSolo }: { onSalva: (prodotti: Prodotto[])
       inArrivo: 0,
       ordinatoIl: null,
       movimenti: [],
+      ...DETTAGLI_VUOTI,
+      diluizione: voce.diluizione,
+      mlPerCane: voce.mlPerCane,
       createdAt: adesso,
       updatedAt: adesso,
     }, pezzi[voce.frase] ?? 1, adesso)))

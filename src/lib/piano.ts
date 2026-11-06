@@ -42,6 +42,7 @@ export type FeatureKey =
   | 'promemoriaAuto' | 'richiamo' | 'pronto' | 'compleanno'
   | 'prenotazioni' | 'listaAttesa' | 'recensioni' | 'fedelta'
   | 'team' | 'postiExtra'
+  | 'stimeMagazzino'
 
 export interface ProMain extends TracciaBeta {
   piano?: Livello
@@ -85,6 +86,7 @@ const LIVELLO: Record<FeatureKey, Livello> = {
   fedelta: 'pro',
   team: 'salone',
   postiExtra: 'salone',
+  stimeMagazzino: 'pro',
 }
 
 const OFFLINE_MS = 72 * 60 * 60 * 1000

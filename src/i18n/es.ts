@@ -216,6 +216,8 @@ export const es = {
   catAlRefrigerante: 'Spray refrigerante para cuchillas',
   catAlVasca: 'Limpiador de bañera y mesa',
   catAlGuanti: 'Guantes desechables',
+  pwStimeTitolo: 'Sabes cuánto te dura cada producto',
+  pwStimeTesto: 'Estimación según los perros lavados, coste por lavado y resumen del gasto.',
   catShScuro: 'Champú pelo oscuro',
   catShLungoIdra: 'Champú pelo largo / hidratante',
   catShMuta: 'Champú antimuda',

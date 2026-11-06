@@ -45,6 +45,30 @@ describe('percorsi', () => {
 })
 
 describe('json', () => {
+  const vecchio = (prodotti?: Record<string, unknown>): GroomlyDati => ({
+    versioneFormato: 1,
+    dogs: {},
+    appointments: {},
+    services: {},
+    settings: {},
+    closures: {},
+    ...(prodotti ? { prodotti } : {}),
+    files: {},
+    deletedDogs: { ids: [], appointmentIds: [], storicoIds: [] },
+    codiciCane: { next: 1, cartella: 'cani', byId: {} },
+    fotoMancanti: [],
+  })
+
+  it('il checksum dei backup vecchi non cambia, con o senza prodotti', async () => {
+    expect(await sha256Hex(canonicalJson(vecchio()))).toBe('b019857a71bcd2b99ff3ac3ce6465aab319d107d218c9d91f147e85c1612626d')
+    expect(await sha256Hex(canonicalJson(vecchio({ p1: { nome: 'Profumo talco', categoria: 'profumi', pezzi: 2 } })))).toBe('76f419b4db66e7dc3322adc833d2a5cea3fc2bbc9eafe91935a4b769dac22c2b')
+  })
+
+  it('un backup vecchio si legge ancora con i prodotti com’erano', () => {
+    const letto = readRestoreBundle(JSON.parse(canonicalJson(vecchio({ p1: { nome: 'Profumo talco', categoria: 'profumi', pezzi: 2 } }))))
+    expect(letto?.prodotti).toEqual({ p1: { nome: 'Profumo talco', categoria: 'profumi', pezzi: 2 } })
+  })
+
   it('è un superinsieme leggibile dal ripristino attuale, senza settings.backup', () => {
     const settings = settingsSenzaBackup({
       business: { salonName: 'Pelosetti', name: 'Laura' },

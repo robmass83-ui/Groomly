@@ -216,6 +216,8 @@ export const en = {
   catAlRefrigerante: 'Blade cooling spray',
   catAlVasca: 'Tub and table cleaner',
   catAlGuanti: 'Disposable gloves',
+  pwStimeTitolo: 'Know how long every product lasts',
+  pwStimeTesto: 'Estimate from dogs washed, cost per wash and spending summary.',
   catShScuro: 'Dark coat shampoo',
   catShLungoIdra: 'Long coat shampoo / moisturising',
   catShMuta: 'De-shedding shampoo',

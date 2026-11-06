@@ -20,7 +20,7 @@ export const FRASI_AMMESSE: Record<string, readonly string[]> = {
   // Messaggi per chi lancia scripts/imposta-admin.ts: nessuna schermata li mostra.
   'src/lib/passaggioAdmin.ts': ['Il salone di Laura non è il suo uid: trovato ${stato.lauraSalonId ?? \'niente\'}.', 'robmass83 non è collegato al salone di Laura.'],
   // Nomi già salvati sui prodotti del vecchio catalogo: servono solo a riconoscerli.
-  'src/lib/catalogoProdotti.ts': ['Disinfettante per attrezzi', 'Lame per tosatrice', 'Olio per tosatrice', 'Spray refrigerante lame'],
+  'src/lib/catalogoProdotti.ts': ['Désinfectant pour outils', 'Lame per tosatrice', 'Olio per tosatrice', 'Spray refrigerante lame'],
   // Nome di prodotto, uguale in tutte le lingue.
   'src/components/admin/AdminFrame.tsx': ['Groomly Admin'],
   // Nomi su Drive: la conservazione delle copie in Android cerca questo prefisso e il registro si sovrascrive per nome.

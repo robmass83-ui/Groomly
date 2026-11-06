@@ -214,6 +214,8 @@ export const it = {
   catAlRefrigerante: 'Spray refrigerante lame',
   catAlVasca: 'Detergente vasca e tavolo',
   catAlGuanti: 'Guanti monouso',
+  pwStimeTitolo: 'Sai quanto ti dura ogni prodotto',
+  pwStimeTesto: 'Stima dai cani lavati, costo per lavaggio e riepilogo della spesa.',
   catShScuro: 'Shampoo pelo scuro',
   catShLungoIdra: 'Shampoo pelo lungo / idratante',
   catShMuta: 'Shampoo anti-muta',

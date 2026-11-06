@@ -193,10 +193,35 @@ service cloud.firestore {
       allow delete: if ownerRank(salonId);
     }
     match /salons/{salonId}/prodotti/{prodottoId} {
+      function numeroVuotoOk(data, campo) {
+        return !(campo in data) || data[campo] == null || (data[campo] is number && data[campo] >= 0);
+      }
+      function interoVuotoOk(data, campo) {
+        return !(campo in data) || data[campo] == null || (data[campo] is int && data[campo] >= 0);
+      }
+      function consumoOk(data) {
+        return !('mlPerCane' in data) || data.mlPerCane == null
+          || (data.mlPerCane is map
+              && data.mlPerCane.keys().hasOnly(['piccola', 'media', 'grande'])
+              && data.mlPerCane.piccola is number && data.mlPerCane.piccola >= 0
+              && data.mlPerCane.media is number && data.mlPerCane.media >= 0
+              && data.mlPerCane.grande is number && data.mlPerCane.grande >= 0);
+      }
+      // La categoria non si controlla: le APK vecchie scrivono ancora le chiavi vecchie.
       function prodottoOk() {
-        return request.resource.data.nome is string
-          && request.resource.data.nome.size() > 0
-          && request.resource.data.nome.size() <= 120;
+        let data = request.resource.data;
+        return data.nome is string
+          && data.nome.size() > 0
+          && data.nome.size() <= 120
+          && (!('uso' in data) || data.uso in ['salone', 'vendita'])
+          && interoVuotoOk(data, 'diluizione')
+          && numeroVuotoOk(data, 'apertoIl')
+          && interoVuotoOk(data, 'mesiDopoApertura')
+          && numeroVuotoOk(data, 'costo')
+          && numeroVuotoOk(data, 'prezzoVendita')
+          && interoVuotoOk(data, 'giorniConsegna')
+          && numeroVuotoOk(data, 'confrontoIl')
+          && consumoOk(data);
       }
       allow read: if canUse(salonId);
       allow create, update: if canUse(salonId) && prodottoOk();

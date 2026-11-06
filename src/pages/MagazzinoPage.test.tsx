@@ -6,12 +6,12 @@ import { App } from '../app/App'
 import { createAccount } from '../data/local/auth'
 import { listProdotti, saveProdottoLocal } from '../data/local/prodotti'
 import { storageKeys, writeJson } from '../data/local/storage'
-import type { Prodotto } from '../lib/prodotti'
+import { DETTAGLI_VUOTI, type Prodotto } from '../lib/prodotti'
 
 const data = new Date('2026-11-05T10:00:00.000Z')
 
 function prodotto(over: Partial<Prodotto> = {}): Prodotto {
-  return { id: 'p1', nome: 'Shampoo manto bianco', categoria: 'lavaggio', pezzi: 10, quantita: 5, unita: 'l', ditta: 'Ditta Alfa', telefono: '', email: '', codice: 'SH-120', soglia: 3, inArrivo: 0, ordinatoIl: null, movimenti: [], createdAt: data, updatedAt: data, ...over }
+  return { id: 'p1', nome: 'Shampoo manto bianco', categoria: 'lavaggio', pezzi: 10, quantita: 5, unita: 'l', ditta: 'Ditta Alfa', telefono: '', email: '', codice: 'SH-120', soglia: 3, inArrivo: 0, ordinatoIl: null, movimenti: [], ...DETTAGLI_VUOTI, createdAt: data, updatedAt: data, ...over }
 }
 
 async function entra(role?: string) {
@@ -185,6 +185,48 @@ describe('magazzino', () => {
     await user.type(campo, 'SH-121')
     await user.click(screen.getByRole('button', { name: 'Salva prodotto' }))
     expect(listProdotti(account.uid)[0]).toMatchObject({ codice: 'SH-121', pezzi: 10 })
+  })
+
+  it('modificare un prodotto non perde i dati che la scheda non mostra', async () => {
+    const account = await entra()
+    const nascosti = { apertoIl: 111, confrontoIl: 222, mlPerCane: { piccola: 15, media: 30, grande: 50 }, diluizione: 10, costo: 18.5, mesiDopoApertura: 12, giorniConsegna: 3 }
+    saveProdottoLocal(account.uid, prodotto(nascosti))
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/altro/magazzino/p1" />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica prodotto' }))
+    const scheda = await screen.findByRole('dialog')
+    await user.click(within(scheda).getByRole('button', { name: 'Salva prodotto' }))
+    expect(listProdotti(account.uid)[0]).toMatchObject(nascosti)
+  })
+
+  it('la scheda salva i campi facoltativi dagli altri dettagli', async () => {
+    const account = await entra()
+    saveProdottoLocal(account.uid, prodotto())
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/altro/magazzino/p1" />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica prodotto' }))
+    const scheda = await screen.findByRole('dialog')
+    await user.click(within(scheda).getByRole('button', { name: 'Altri dettagli' }))
+    await user.type(within(scheda).getByLabelText('Costo a pezzo (€)'), '18,50')
+    await user.click(within(scheda).getByRole('switch', { name: 'Lo vendo ai clienti' }))
+    await user.type(within(scheda).getByLabelText('Prezzo di vendita (€)'), '25')
+    await user.click(within(within(scheda).getByRole('group', { name: 'Mesi dopo l’apertura' })).getByRole('button', { name: 'Più' }))
+    await user.click(within(scheda).getByRole('button', { name: 'Salva prodotto' }))
+    expect(listProdotti(account.uid)[0]).toMatchObject({ costo: 18.5, uso: 'vendita', prezzoVendita: 25, mesiDopoApertura: 1 })
+  })
+
+  it('un costo scritto male non salva e riapre gli altri dettagli', async () => {
+    const account = await entra()
+    saveProdottoLocal(account.uid, prodotto())
+    const user = userEvent.setup()
+    render(<App memory isDev={false} initialPath="/altro/magazzino/p1" />)
+    await user.click(await screen.findByRole('button', { name: 'Modifica prodotto' }))
+    const scheda = await screen.findByRole('dialog')
+    await user.click(within(scheda).getByRole('button', { name: 'Altri dettagli' }))
+    await user.type(within(scheda).getByLabelText('Costo a pezzo (€)'), 'tanto')
+    await user.click(within(scheda).getByRole('button', { name: 'Salva prodotto' }))
+    expect(within(scheda).getByText('Scrivi un numero valido')).toBeInTheDocument()
+    expect(listProdotti(account.uid)[0].costo).toBeNull()
   })
 
   it('i contatti di un fornitore valgono per tutti i suoi prodotti', async () => {

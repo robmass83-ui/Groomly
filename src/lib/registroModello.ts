@@ -2,6 +2,7 @@ import type { Appointment, AppointmentStatus, DogSize, Temperament } from '../ty
 import { APP_VERSION } from './appVersion'
 import { sumDuration } from './appointments'
 import { buildManifest, type GroomlyDati } from './backupBundle'
+import { ETICHETTA_CATEGORIA, misuraProdotto, ordinaProdotti, prodottoDaDoc } from './prodotti'
 import { appointmentAmount, classify } from './earnings'
 import { romeIso } from './romeTime'
 import { frase } from '../i18n/frase'
@@ -85,6 +86,19 @@ export type RigaServizio = {
 }
 export type RigaRazza = { razza: string; taglia: string; voce: string; tipo: string; prezzo: number | null }
 
+export type RigaProdotto = {
+  nome: string
+  categoria: string
+  uso: string
+  pezzi: number
+  contenuto: string
+  ditta: string
+  codice: string
+  diluizione: string
+  apertoIl: Date | null
+  costo: number | null
+}
+
 export type RegistroModello = {
   salone: string
   creatoIl: string
@@ -97,6 +111,7 @@ export type RegistroModello = {
   anni: RigaAnno[]
   servizi: RigaServizio[]
   razze: RigaRazza[]
+  prodotti: RigaProdotto[]
 }
 
 function record(value: unknown): Record<string, unknown> | null {
@@ -260,6 +275,27 @@ function tripla(value: unknown): { piccola: number | null; media: number | null;
     media: numero(row?.media),
     grande: numero(row?.grande),
   }
+}
+
+// I backup fatti prima del Magazzino non hanno la chiave; quelli vecchi hanno ancora le categorie di allora.
+function righeProdotti(dati: GroomlyDati): RigaProdotto[] {
+  const prodotti = Object.entries(dati.prodotti ?? {}).flatMap(([id, raw]) => {
+    const row = record(raw)
+    const prodotto = row ? prodottoDaDoc(id, row) : null
+    return prodotto ? [prodotto] : []
+  })
+  return ordinaProdotti(prodotti).map((prodotto) => ({
+    nome: prodotto.nome,
+    categoria: frase(ETICHETTA_CATEGORIA[prodotto.categoria]),
+    uso: frase(prodotto.uso === 'vendita' ? 'regUsoVendita' : 'regUsoSalone'),
+    pezzi: prodotto.pezzi,
+    contenuto: misuraProdotto(prodotto, leggiLinguaAttiva()),
+    ditta: prodotto.ditta,
+    codice: prodotto.codice,
+    diluizione: prodotto.diluizione === null ? '' : `1:${prodotto.diluizione}`,
+    apertoIl: prodotto.apertoIl === null ? null : new Date(prodotto.apertoIl),
+    costo: prodotto.costo,
+  }))
 }
 
 export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModello {
@@ -463,5 +499,6 @@ export function costruisciRegistro(dati: GroomlyDati, now: Date): RegistroModell
     anni,
     servizi,
     razze,
+    prodotti: righeProdotti(dati),
   }
 }

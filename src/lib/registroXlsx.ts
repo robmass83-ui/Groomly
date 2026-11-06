@@ -37,7 +37,7 @@ function larghezza(sheet: Worksheet, headers: string[], rows: Cella[][]) {
 
 function scriviTabella(sheet: Worksheet, name: string, headers: string[], rows: Cella[][], freezeCols: number) {
   const coloreStato = fondi()
-  const prezzi = new Set([frase('regUltimoPrezzo'), frase('regTotaleSpeso'), frase('regPrezzo'), frase('regPrezzoPiccola'), frase('regPrezzoMedia'), frase('regPrezzoGrande')])
+  const prezzi = new Set([frase('regUltimoPrezzo'), frase('regTotaleSpeso'), frase('regPrezzo'), frase('regPrezzoPiccola'), frase('regPrezzoMedia'), frase('regPrezzoGrande'), frase('regCosto')])
   const stato = frase('regStato')
   const note = frase('regNote')
   if (rows.length === 0) {
@@ -158,6 +158,11 @@ export async function registroXlsx(dati: GroomlyDati, opzioni: RegistroOpzioni):
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
       cell.fill = HEADER
     })
+  }
+
+  if (registro.prodotti.length > 0) {
+    const magazzino = book.addWorksheet(frase('regMagazzino'))
+    scriviTabella(magazzino, 'TabMagazzino', testi('regNome', 'regCategoria', 'regUso', 'regPezzi', 'regContenuto', 'regDitta', 'regCodice', 'regDiluizione', 'regApertoIl', 'regCosto'), registro.prodotti.map((row) => [row.nome, row.categoria, row.uso, row.pezzi, row.contenuto, row.ditta, row.codice, row.diluizione, row.apertoIl, row.costo]), 1)
   }
 
   if (opzioni.altri) {

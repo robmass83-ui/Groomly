@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { arrivatoProdotto, daOrdinare, filtraProdotti, fornitori, leggiQuantita, misuraProdotto, muoviProdotto, prodottoDaDoc, prodottoValido, quantitaProposta, statoProdotto, tacche, totaleProdotto, type Prodotto } from './prodotti'
+import { DETTAGLI_VUOTI, arrivatoProdotto, daOrdinare, dosaggio, filtraProdotti, fornitori, leggiQuantita, misuraProdotto, muoviProdotto, prodottoDaDoc, prodottoValido, quantitaProposta, statoProdotto, tacche, totaleProdotto, type Prodotto } from './prodotti'
 import { CATALOGO_PRODOTTI, KIT_BASE } from './catalogoProdotti'
 import { de } from '../i18n/de'
 import { en } from '../i18n/en'
@@ -10,7 +10,7 @@ import { it as frasiIt } from '../i18n/it'
 const data = new Date('2026-11-05T10:00:00.000Z')
 
 function prodotto(over: Partial<Prodotto> = {}): Prodotto {
-  return { id: 'p1', nome: 'Shampoo manto bianco', categoria: 'lavaggio', quantita: 5, unita: 'l', ditta: 'Ditta Alfa', codice: 'SH-120', pezzi: 4, telefono: '', email: '', soglia: 2, inArrivo: 0, ordinatoIl: null, movimenti: [], createdAt: data, updatedAt: data, ...over }
+  return { id: 'p1', nome: 'Shampoo manto bianco', categoria: 'lavaggio', quantita: 5, unita: 'l', ditta: 'Ditta Alfa', codice: 'SH-120', pezzi: 4, telefono: '', email: '', soglia: 2, inArrivo: 0, ordinatoIl: null, movimenti: [], ...DETTAGLI_VUOTI, createdAt: data, updatedAt: data, ...over }
 }
 
 describe('prodotti', () => {
@@ -156,7 +156,42 @@ describe('prodotti', () => {
 
   it('un fornitore compare una volta sola con i contatti trovati', () => {
     const elenco = [prodotto({ ditta: 'Alfa' }), prodotto({ id: 'p2', ditta: 'alfa', telefono: '333' }), prodotto({ id: 'p3', ditta: '' })]
-    expect(fornitori(elenco)).toEqual([{ nome: 'Alfa', telefono: '333', email: '' }])
+    expect(fornitori(elenco)).toEqual([{ nome: 'Alfa', telefono: '333', email: '', giorniConsegna: null }])
+  })
+
+  it('i giorni di consegna valgono per il fornitore', () => {
+    const elenco = [prodotto({ ditta: 'Alfa' }), prodotto({ id: 'p2', ditta: 'alfa', giorniConsegna: 4 })]
+    expect(fornitori(elenco)[0].giorniConsegna).toBe(4)
+  })
+
+  describe('campi nuovi', () => {
+    const vecchio = { nome: 'Shampoo', categoria: 'shampoo', quantita: 5, unita: 'l', ditta: '', codice: '', createdAt: data.getTime(), updatedAt: data.getTime() }
+
+    it('un documento vecchio si legge con i campi vuoti', () => {
+      expect(prodottoDaDoc('a', vecchio)).toMatchObject(DETTAGLI_VUOTI)
+    })
+
+    it('legge i campi salvati', () => {
+      const salvato = { uso: 'vendita', diluizione: 10, apertoIl: 5, mesiDopoApertura: 12, costo: 18.5, prezzoVendita: 25, mlPerCane: { piccola: 15, media: 30, grande: 50 }, giorniConsegna: 3, confrontoIl: 9 }
+      expect(prodottoDaDoc('a', { ...vecchio, ...salvato })).toMatchObject(salvato)
+    })
+
+    it('un campo storto vale vuoto e non fa sparire il prodotto', () => {
+      const letto = prodottoDaDoc('a', { ...vecchio, uso: 'boh', diluizione: 'tanta', costo: -3, mesiDopoApertura: 1.5, mlPerCane: { piccola: 1 }, apertoIl: 'ieri' })
+      expect(letto).toMatchObject(DETTAGLI_VUOTI)
+    })
+
+    it('la diluizione dice quanto prodotto e quanta acqua per un litro', () => {
+      expect(dosaggio(10)).toEqual({ prodotto: 91, acqua: 909 })
+      expect(dosaggio(1)).toEqual({ prodotto: 500, acqua: 500 })
+    })
+
+    it('togliere un pezzo azzera l’apertura, caricarne no', () => {
+      const aperto = prodotto({ apertoIl: 123 })
+      expect(muoviProdotto(aperto, -1, data).apertoIl).toBeNull()
+      expect(muoviProdotto(aperto, 2, data).apertoIl).toBe(123)
+      expect(arrivatoProdotto({ ...aperto, inArrivo: 2 }, data).apertoIl).toBe(123)
+    })
   })
 
   it('il filtro da ordinare prende finiti e sotto il minimo', () => {

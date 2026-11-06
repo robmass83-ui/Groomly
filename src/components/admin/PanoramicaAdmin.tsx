@@ -39,6 +39,7 @@ const TITOLO_FUNZIONE: Record<FeatureKey, Chiave> = {
   fedelta: 'pwFedeltaTitolo',
   team: 'pwTeamTitolo',
   postiExtra: 'pwPostiExtraTitolo',
+  stimeMagazzino: 'pwStimeTitolo',
 }
 
 /** Nome leggibile di una funzione (Avvisami e feedback): i titoli del paywall, più le due vetrine. */

@@ -45,6 +45,25 @@ async function book(blob: Blob) {
 }
 
 describe('registroXlsx', () => {
+  it('il foglio Magazzino c’è solo con i prodotti e legge anche le categorie vecchie', async () => {
+    const prodotti = {
+      p1: { nome: 'Shampoo neutro', categoria: 'shampoo', pezzi: 3, quantita: 5, unita: 'l', ditta: 'Alfa', codice: 'SH-1', createdAt: VISITA, updatedAt: VISITA },
+      p2: { nome: 'Crema', categoria: 'cura', uso: 'vendita', pezzi: 1, quantita: null, unita: 'l', ditta: '', codice: '', diluizione: 10, apertoIl: Date.UTC(2026, 9, 3), costo: 12.5, createdAt: VISITA, updatedAt: VISITA },
+    }
+    const workbook = await book(await registroXlsx({ ...dati(), prodotti }, { now: NOW }))
+    const foglio = workbook.getWorksheet('Magazzino')
+    expect(foglio?.getRow(1).values).toEqual([undefined, 'Nome', 'Categoria', 'Uso', 'Pezzi', 'Contenuto', 'Ditta', 'Codice', 'Diluizione', 'Aperto il', 'Costo'])
+    expect(foglio?.getRow(2).getCell(1).value).toBe('Crema')
+    expect(foglio?.getRow(2).getCell(3).value).toBe('Vendita')
+    expect(foglio?.getRow(2).getCell(8).value).toBe('1:10')
+    expect(foglio?.getRow(2).getCell(9).value).toBeInstanceOf(Date)
+    expect(foglio?.getRow(2).getCell(10).value).toBe(12.5)
+    expect(foglio?.getRow(3).getCell(2).value).toBe('Lavaggio')
+    expect(foglio?.getRow(3).getCell(5).value).toBe('5 L')
+    const vuoto = await book(await registroXlsx({ ...dati(), prodotti: {} }, { now: NOW }))
+    expect(vuoto.getWorksheet('Magazzino')).toBeUndefined()
+  })
+
   it('apre su Cani, con data di Roma e telefono testo', async () => {
     const workbook = await book(await registroXlsx(dati(), { now: NOW }))
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual(['Cani', 'Appuntamenti', 'Clienti', 'Incassi mensili', 'Listino', 'Info'])

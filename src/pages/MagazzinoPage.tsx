@@ -162,7 +162,7 @@ export function MagazzinoPage() {
         <SceltaProdotto
           prodotti={prodotti}
           onClose={() => setAperto(null)}
-          onCatalogo={(voce) => setAperto({ tipo: 'dati', bozza: { nome: frasi[voce.frase], categoria: voce.categoria, quantita: voce.quantita, unita: voce.unita, libero: false } })}
+          onCatalogo={(voce) => setAperto({ tipo: 'dati', bozza: { nome: frasi[voce.frase], categoria: voce.categoria, quantita: voce.quantita, unita: voce.unita, libero: false, diluizione: voce.diluizione, mlPerCane: voce.mlPerCane } })}
           onLibero={(nome) => setAperto({ tipo: 'dati', bozza: { nome, categoria: 'lavaggio', quantita: null, unita: 'l', libero: true } })}
           onEsistente={(prodotto) => setAperto({ tipo: 'movimento', id: prodotto.id, modo: 'arrivati' })}
         />

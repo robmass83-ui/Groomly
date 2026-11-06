@@ -32,6 +32,9 @@ function categoriaDaDoc(data: Record<string, unknown>): CategoriaProdotto {
   return salvata === 'cura' && dalNome === 'pulizia' ? dalNome : nota
 }
 
+export const USI_PRODOTTO = ['salone', 'vendita'] as const
+export type UsoProdotto = (typeof USI_PRODOTTO)[number]
+
 export const UNITA_PRODOTTO = ['l', 'ml'] as const
 export type UnitaProdotto = (typeof UNITA_PRODOTTO)[number]
 
@@ -72,9 +75,34 @@ export interface Prodotto {
   inArrivo: number
   ordinatoIl: number | null
   movimenti: Movimento[]
+  uso: UsoProdotto
+  /** 10 vuol dire 1:10. `null` è pronto all'uso. */
+  diluizione: number | null
+  apertoIl: number | null
+  mesiDopoApertura: number | null
+  /** Euro per pezzo. */
+  costo: number | null
+  prezzoVendita: number | null
+  mlPerCane: ConsumoPerTaglia | null
+  /** Vale per tutta la ditta, come telefono ed email. */
+  giorniConsegna: number | null
+  /** L'ultima volta che si è chiesto se aggiornare il consumo. */
+  confrontoIl: number | null
   createdAt: Date
   updatedAt: Date
 }
+
+export const DETTAGLI_VUOTI = {
+  uso: 'salone',
+  diluizione: null,
+  apertoIl: null,
+  mesiDopoApertura: null,
+  costo: null,
+  prezzoVendita: null,
+  mlPerCane: null,
+  giorniConsegna: null,
+  confrontoIl: null,
+} as const satisfies Partial<Prodotto>
 
 function interoValido(value: number): boolean {
   return Number.isInteger(value) && value >= 0 && value <= PEZZI_MAX
@@ -93,6 +121,7 @@ export function prodottoValido(prodotto: Prodotto): boolean {
     && interoValido(prodotto.inArrivo)
     && CATEGORIE_PRODOTTO.includes(prodotto.categoria)
     && UNITA_PRODOTTO.includes(prodotto.unita)
+    && USI_PRODOTTO.includes(prodotto.uso)
     && (prodotto.quantita === null || (Number.isFinite(prodotto.quantita) && prodotto.quantita > 0))
     && !Number.isNaN(prodotto.createdAt.getTime())
     && !Number.isNaN(prodotto.updatedAt.getTime())
@@ -108,6 +137,23 @@ function testoDa(value: unknown): string {
 
 function interoDa(value: unknown, riserva: number): number {
   return typeof value === 'number' && interoValido(value) ? value : riserva
+}
+
+/** Un valore storto vale come campo vuoto: i campi facoltativi non fanno sparire il prodotto. */
+function numeroDa(value: unknown, minimo = 0): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= minimo ? value : null
+}
+
+function interoFacoltativoDa(value: unknown, minimo: number): number | null {
+  return typeof value === 'number' && interoValido(value) && value >= minimo ? value : null
+}
+
+function consumoDa(value: unknown): ConsumoPerTaglia | null {
+  const dati = value as Partial<ConsumoPerTaglia> | null | undefined
+  const piccola = numeroDa(dati?.piccola, 0)
+  const media = numeroDa(dati?.media, 0)
+  const grande = numeroDa(dati?.grande, 0)
+  return piccola === null || media === null || grande === null ? null : { piccola, media, grande }
 }
 
 function movimentiDa(value: unknown): Movimento[] {
@@ -137,6 +183,15 @@ export function prodottoDaDoc(id: string, data: Record<string, unknown>): Prodot
     inArrivo: interoDa(data.inArrivo, 0),
     ordinatoIl: typeof data.ordinatoIl === 'number' ? data.ordinatoIl : null,
     movimenti: movimentiDa(data.movimenti),
+    uso: data.uso === 'vendita' ? 'vendita' : 'salone',
+    diluizione: interoFacoltativoDa(data.diluizione, 1),
+    apertoIl: numeroDa(data.apertoIl),
+    mesiDopoApertura: interoFacoltativoDa(data.mesiDopoApertura, 1),
+    costo: numeroDa(data.costo),
+    prezzoVendita: numeroDa(data.prezzoVendita),
+    mlPerCane: consumoDa(data.mlPerCane),
+    giorniConsegna: interoFacoltativoDa(data.giorniConsegna, 0),
+    confrontoIl: numeroDa(data.confrontoIl),
     createdAt: dataDa(data.createdAt),
     updatedAt: dataDa(data.updatedAt),
   }
@@ -184,12 +239,25 @@ export function tacche(pezzi: number, soglia: number): { accese: number; minimo:
   }
 }
 
+/** 1:N sono una parte di prodotto e N d'acqua. */
+export function dosaggio(diluizione: number): { prodotto: number; acqua: number } {
+  const prodotto = Math.round(1000 / (diluizione + 1))
+  return { prodotto, acqua: 1000 - prodotto }
+}
+
 /** I pezzi non scendono sotto zero: se non cambia nulla torna lo stesso prodotto. */
 export function muoviProdotto(prodotto: Prodotto, delta: number, adesso: Date): Prodotto {
   const dopo = Math.min(PEZZI_MAX, Math.max(0, prodotto.pezzi + delta))
   if (dopo === prodotto.pezzi) return prodotto
   const movimento = { at: adesso.getTime(), delta: dopo - prodotto.pezzi, dopo }
-  return { ...prodotto, pezzi: dopo, movimenti: [movimento, ...prodotto.movimenti].slice(0, MOVIMENTI_MAX), updatedAt: adesso }
+  return {
+    ...prodotto,
+    pezzi: dopo,
+    // Il pezzo aperto è finito: la data vale per il prossimo.
+    apertoIl: delta < 0 ? null : prodotto.apertoIl,
+    movimenti: [movimento, ...prodotto.movimenti].slice(0, MOVIMENTI_MAX),
+    updatedAt: adesso,
+  }
 }
 
 export function arrivatoProdotto(prodotto: Prodotto, adesso: Date): Prodotto {
@@ -209,16 +277,17 @@ export interface Fornitore {
   nome: string
   telefono: string
   email: string
+  giorniConsegna: number | null
 }
 
 /** I contatti vivono sui prodotti: vince il primo prodotto che li ha. */
 export function fornitori(prodotti: Prodotto[]): Fornitore[] {
   const trovati = new Map<string, Fornitore>()
-  for (const { ditta, telefono, email } of prodotti) {
+  for (const { ditta, telefono, email, giorniConsegna } of prodotti) {
     const chiave = normalizeSearch(ditta)
     if (!chiave) continue
     const noto = trovati.get(chiave)
-    trovati.set(chiave, { nome: noto?.nome ?? ditta.trim(), telefono: noto?.telefono || telefono, email: noto?.email || email })
+    trovati.set(chiave, { nome: noto?.nome ?? ditta.trim(), telefono: noto?.telefono || telefono, email: noto?.email || email, giorniConsegna: noto?.giorniConsegna ?? giorniConsegna })
   }
   return [...trovati.values()].sort((a, b) => a.nome.localeCompare(b.nome))
 }

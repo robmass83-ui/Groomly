@@ -216,6 +216,8 @@ export const de = {
   catAlRefrigerante: 'Kühlspray für Scherköpfe',
   catAlVasca: 'Wannen- und Tischreiniger',
   catAlGuanti: 'Einweghandschuhe',
+  pwStimeTitolo: 'Wisse, wie lange jedes Produkt reicht',
+  pwStimeTesto: 'Schätzung aus gewaschenen Hunden, Kosten pro Wäsche und Ausgabenübersicht.',
   catShScuro: 'Shampoo für dunkles Fell',
   catShLungoIdra: 'Shampoo für langes Fell / Feuchtigkeit',
   catShMuta: 'Shampoo gegen Fellwechsel',
