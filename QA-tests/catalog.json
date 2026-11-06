@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "generatedAt": "2026-11-05T01:33:53.000Z",
+  "generatedAt": "2026-11-06T10:53:03.024Z",
   "framework": "vite-react",
   "devUrl": "http://127.0.0.1:5173",
   "stack": {
@@ -54,7 +54,7 @@
     "maxTasksPerRoute": 5,
     "authMode": "per-role",
     "defaultRole": "titolare",
-    "note": "analisi fatte con agenti generici + Playwright del progetto: gli agenti .claude/agents non erano caricabili nella sessione di init"
+    "note": "analisi fatte con agenti generici + Playwright del progetto: gli agenti .claude/agents non erano caricabili nella sessione di init; 6/11/2026 riallineamento senza browser, vedi .qa-catalog/sync-2026-11-06.md"
   },
   "auth": {
     "mode": "per-role",
@@ -122,7 +122,7 @@
     {
       "path": "/animali/:id",
       "sourceFile": "src/pages/DogPage.tsx",
-      "fingerprint": "4821f8992589adef5449bb1bf98a5cffdfd287a0d9c1dea38cb7176a279e1109",
+      "fingerprint": "7bb3a1bb645ed65feb13f4b012c22660d212a2addb162d30f78273add0d45949",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -168,7 +168,7 @@
     {
       "path": "/animali/nuovo",
       "sourceFile": "src/pages/DogPage.tsx",
-      "fingerprint": "4821f8992589adef5449bb1bf98a5cffdfd287a0d9c1dea38cb7176a279e1109",
+      "fingerprint": "7bb3a1bb645ed65feb13f4b012c22660d212a2addb162d30f78273add0d45949",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -285,7 +285,7 @@
     {
       "path": "/benvenuto",
       "sourceFile": "src/pages/TourPage.tsx",
-      "fingerprint": "eb18c5dd9d1429e74fcec89481d4d60b781a0875ebf96f21dd19682b9abf2f3a",
+      "fingerprint": "4f2fdf1caef6fa416df7a265737a655604c9c7bf32b5f4d0e3da2fe3dc06d6d6",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -308,7 +308,7 @@
     {
       "path": "/calendario",
       "sourceFile": "src/pages/CalendarPage.tsx",
-      "fingerprint": "9e1e1b9b690d3280b7d1f01014c6c4390f0029dbd84cf87c29a1644739b77817",
+      "fingerprint": "e566db27d55922df22aca1156753abfff25ed03fa40931f4360e3604535a169f",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -378,7 +378,7 @@
     {
       "path": "/impostazioni",
       "sourceFile": "src/pages/SettingsPage.tsx",
-      "fingerprint": "1818dda8fa71b5d7ca08a5d4875e009df56b59f7abe1ac3e474519b3b0720797",
+      "fingerprint": "6603866e011b088d96dab4be65793e8c4fb24660d0e97ebfdbc76391241aa284",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -401,7 +401,7 @@
     {
       "path": "/impostazioni/abbonamento",
       "sourceFile": "src/pages/AbbonamentoPage.tsx",
-      "fingerprint": "64d72ac2fe443b5e2fb996aae068bb12219accb1b0a0d2dd574195941dd7c35f",
+      "fingerprint": "45c4dfac4da524d0f193c95e7ce44d97e97cb0f8809215116be76fd922ff5e2b",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -421,7 +421,7 @@
     {
       "path": "/impostazioni/abbonamento/:piano",
       "sourceFile": "src/pages/AbbonamentoPage.tsx",
-      "fingerprint": "64d72ac2fe443b5e2fb996aae068bb12219accb1b0a0d2dd574195941dd7c35f",
+      "fingerprint": "45c4dfac4da524d0f193c95e7ce44d97e97cb0f8809215116be76fd922ff5e2b",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -444,7 +444,7 @@
     {
       "path": "/impostazioni/account",
       "sourceFile": "src/pages/AccountPage.tsx",
-      "fingerprint": "19645c4003985b1cd0dc7e57daefc8d2ae38d7ae3a167d644fe1ee963597aafd",
+      "fingerprint": "4957bf958ededf1a9e938edfb26302be4b8be806a864746cf21fef09ca0093ac",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -467,7 +467,7 @@
     {
       "path": "/impostazioni/account/elimina",
       "sourceFile": "src/pages/EliminaAccountPage.tsx",
-      "fingerprint": "9fcbebfb1f8aa40174ccae85c840c637e3c1998af1401f259a06383ce7c99578",
+      "fingerprint": "41c29f8027d7fac0a40bb33ef91a524b95ac34a4bbcd1813d6bf33ff5f6f2148",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -534,7 +534,7 @@
     {
       "path": "/impostazioni/avvisi",
       "sourceFile": "src/pages/AvvisiSistemaPage.tsx",
-      "fingerprint": "2e66876a1bc0a5a09768aca5ca3877751fcb2b38f0cf7daeb394dfaf74ca8c8b",
+      "fingerprint": "0cb430e868b4348b035ddf3474ab7a9d7cf5470fb4b2c1ed419d73ce7242b4f8",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -557,7 +557,7 @@
     {
       "path": "/impostazioni/info",
       "sourceFile": "src/pages/InfoGroomlyPage.tsx",
-      "fingerprint": "cce38147b59d3c9d9a5f959b7867ab7d5b968bf7497c2a622e797905d4883108",
+      "fingerprint": "0b53e36c81be6c16fedb45b6ea768c89b3fe07069f852a1400d588ed9bf1f76c",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -600,7 +600,7 @@
     {
       "path": "/impostazioni/licenze",
       "sourceFile": "src/pages/LicenzePage.tsx",
-      "fingerprint": "d12a55bf4d84f7d450f52c60dcde83be29a5814643bff416c6c562c9678b36fa",
+      "fingerprint": "fa106d43afcfb4a426d31a627b41de64d749918cb3fee69bf1e50ed500bc1df8",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -690,7 +690,7 @@
     {
       "path": "/impostazioni/pro",
       "sourceFile": "src/pages/ProPage.tsx",
-      "fingerprint": "5a51c0d09c4986d630020d24ee5caa1a8b64b72117e038582720c96071a352ac",
+      "fingerprint": "96c8b3a20e27bb2f2e76ad391332661afef81c0ddf052c2a7cbd190b5a046692",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -737,7 +737,7 @@
     {
       "path": "/impostazioni/suggerimenti",
       "sourceFile": "src/pages/SuggerimentiPage.tsx",
-      "fingerprint": "558aa62d467172b27982c86776dcb3ab989e7b62e5377e2405f2829e6e862b70",
+      "fingerprint": "2dcd32fff99f185c8e17e5923538c7d992e99d6d7b1e39a1ffb897760baea449",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -760,7 +760,7 @@
     {
       "path": "/impostazioni/team",
       "sourceFile": "src/pages/ProPage.tsx",
-      "fingerprint": "5a51c0d09c4986d630020d24ee5caa1a8b64b72117e038582720c96071a352ac",
+      "fingerprint": "96c8b3a20e27bb2f2e76ad391332661afef81c0ddf052c2a7cbd190b5a046692",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -784,7 +784,7 @@
     {
       "path": "/impostazioni/utenti",
       "sourceFile": "src/app/router.tsx",
-      "fingerprint": "213fb4007169db9811bf4c553e2471e7c4948254dac072b729bfc58fcd68ff57",
+      "fingerprint": "48af6b8d30abeb35ed3daddf1c0efe0ce7649c08bde09d6e1703ba0456214cca",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -888,7 +888,7 @@
     {
       "path": "/listino",
       "sourceFile": "src/pages/ListinoPage.tsx",
-      "fingerprint": "26ce6b84b2fa05fe77c33696ab20980dafd66f0768b8bd10a6f75998bee6ec82",
+      "fingerprint": "27b99c6ad94c9e530422c9abfed73bba56e03f06cfdc75956d9879ce21ba2ac5",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -956,7 +956,7 @@
     {
       "path": "/listino/stampa",
       "sourceFile": "src/pages/PriceSheetExportPage.tsx",
-      "fingerprint": "69b2357ed38488d4657187a828e4dffe7219b6be8aa297e8582c01819f4a244a",
+      "fingerprint": "077860d24591e913e51abe8ac8db1b5dd4c06e5e200768802d175903a0d8704b",
       "requiresAuth": true,
       "rolesAllowed": [
         "titolare",
@@ -1002,7 +1002,7 @@
     {
       "path": "/login",
       "sourceFile": "src/pages/LoginPage.tsx",
-      "fingerprint": "5d9d72e7401b80491acc459b5002749d34b395dd0aadddca88d5f359af710c80",
+      "fingerprint": "bf4efff8853db98117fdd1dac65793bac80336a20712694728847d049195410d",
       "requiresAuth": null,
       "rolesAllowed": [
         "anonymous"
@@ -1038,6 +1038,86 @@
         "T211-mensili-vista-filtri-as-titolare",
         "T212-mensili-fissa-cane-as-titolare",
         "T213-mensili-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/altro",
+      "sourceFile": "src/pages/AltroPage.tsx",
+      "fingerprint": "f20b6d8fbf09a9556b15c78a7863d866db6a9696be91418beed071cc11b46eb4",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T216-altro-voci-as-titolare",
+        "T217-altro-as-collaboratore"
+      ]
+    },
+    {
+      "path": "/altro/magazzino",
+      "sourceFile": "src/pages/MagazzinoPage.tsx",
+      "fingerprint": "25c987c1c6e5d731b1a7a2f089f97f44d632e4c9998fa2b69741510ef8228d83",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T221-magazzino-vuoto-primo-prodotto-as-titolare",
+        "T222-magazzino-cerca-filtri-as-titolare"
+      ]
+    },
+    {
+      "path": "/altro/magazzino/nuovo",
+      "sourceFile": "src/pages/ProdottoPage.tsx",
+      "fingerprint": "f99e360d8993f603bc6de56ba69d3704ff88c17de9bb7903b82c59bbafd17bad",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T226-prodotto-nuovo-crea-as-titolare",
+        "T227-prodotto-nuovo-validazione-as-titolare"
+      ]
+    },
+    {
+      "path": "/altro/magazzino/:id",
+      "sourceFile": "src/pages/ProdottoPage.tsx",
+      "fingerprint": "f99e360d8993f603bc6de56ba69d3704ff88c17de9bb7903b82c59bbafd17bad",
+      "requiresAuth": true,
+      "rolesAllowed": [
+        "titolare",
+        "titolare-go",
+        "collaboratore"
+      ],
+      "guards": [
+        "Guard",
+        "StaffLock"
+      ],
+      "httpMethods": [],
+      "tasks": [
+        "T231-prodotto-modifica-elimina-as-titolare",
+        "T232-prodotto-id-as-collaboratore"
       ]
     }
   ]

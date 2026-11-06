@@ -36,7 +36,7 @@
 9. Assert: passo tempi. Fill ogni minuto = `60`. Click **Fatto, avanti**.
 10. Assert: passo backup Drive con **Collega Google Drive** e **Avanti**. Click **Avanti** (non collegare Drive).
 11. Assert: passo fiscale. Fill Partita IVA = `12345678901`. Click **Fatto, avanti**.
-12. Assert: schermata finale con pulsante **Entra in Groomly**. Click **Entra in Groomly**.
+12. Se compaiono, rispondere alla domanda sulle email promozionali e a quella sulle statistiche (solo per chi deve ancora rispondere). Assert: schermata finale con pulsante **Entra in Groomly**. Click **Entra in Groomly**.
 13. Assert: URL is `/`.
 14. Navigate to `/impostazioni/account`. Assert: logo, indirizzo e Partita IVA `12345678901` impostati nei dati toelettatura.
 15. Navigate to `/listino`. Assert: i prezzi `30` sono presenti.

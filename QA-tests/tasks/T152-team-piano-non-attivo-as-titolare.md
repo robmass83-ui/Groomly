@@ -28,7 +28,7 @@
 
 ### TC-02: Navigazione
 1. Click **Indietro**. Assert: URL is `/impostazioni`.
-2. Verificare i link Home (`/`), Animali (`/animali`), Agenda (`/calendario`), Mensili (`/mensili`), Listino (`/listino`), Impostazioni (`/impostazioni`).
+2. Verificare i link Home (`/`), Animali (`/animali`), Agenda (`/calendario`), Mensili (`/mensili`), Listino (`/listino`), Altro (`/altro`).
 
 ### TC-03: Negative & edge cases
 - Assert: il toggle del piano non è visibile al titolare (solo operatore).

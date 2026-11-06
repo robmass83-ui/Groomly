@@ -28,12 +28,8 @@
 3. Search the DOM for the text `Scrivi un avviso`. Assert: absent.
 4. Assert: the empty state `Nessuna notifica` is shown.
 
-### TC-02: Modal — scrivi-avviso (solo operatore, se disponibile)
-1. Sign in with an operator account. Open `/impostazioni/avvisi` and open the compose dialog.
-2. Assert: dialog `Scrivi un avviso` with radiogroup `Tipo di avviso` (`Importante`, `Aggiornamento`, `Manutenzione`, `Novità`), `Titolo`, `Testo dell’avviso`.
-3. Submit **`Pubblica a tutti i saloni`** with `titolo` = `"   "`. Assert: error `Scrivi un titolo`.
-4. Fill `tipo` = `Aggiornamento`, `titolo` = `Manutenzione notturna`, `testo` = `Servizio fermo alle 2`; click **`Pubblica a tutti i saloni`**. Assert: dialog closes and the notice appears in the list.
-5. Click `Elimina avviso`. Assert dialog `Eliminare l’avviso per tutti?`; cancel keeps the notice; confirm removes it and `Nessuna notifica` returns.
+### TC-02: Avvisi solo dalla Console
+1. Gli avvisi si scrivono e si tolgono dalla Console admin (pagina Comunicazioni), non più da qui: su `/impostazioni/avvisi` nessun account vede controlli di scrittura.
 
 ### TC-03: Negative
 - Direct navigation as `titolare` never exposes the compose form.

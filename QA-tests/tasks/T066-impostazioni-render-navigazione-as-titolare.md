@@ -53,8 +53,12 @@ For each row in `Test data`:
 | `Aggiungi` (tab bar FAB) | click | opens the new-appointment flow |
 
 ### TC-04: Tab bar
-1. Click each of `Home`, `Animali`, `Agenda`, `Mensili`, `Listino`, `Impostazioni` in the bottom bar.
-2. Assert: URLs `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/impostazioni` respectively.
+1. Click each of `Home`, `Animali`, `Agenda`, `Mensili`, `Listino`, `Altro` in the bottom bar.
+2. Assert: URLs `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/altro` respectively.
+
+### TC-05: Impostazioni dall'icona del profilo
+1. Navigate to `/`. Click the profile icon in the header.
+2. Assert: URL `/impostazioni`. La voce `Impostazioni` non è più nella barra in basso.
 
 ## Assertions
 - [ ] Heading and 4 sections visible.

@@ -15,19 +15,19 @@
 - Signed in as titolare-go
 
 ## Test data
-- Librerie attese: React MIT, Capacitor MIT, Firebase Apache-2.0, Lucide ISC.
+- Elenco completo generato: ogni riga mostra nome, versione e licenza; fra le righe ci sono react, @capacitor/core, firebase e lucide-react.
 
 ## Steps
 
 ### TC-01: Happy path - il titolare free legge le licenze
 1. Sign in as titolare-go. Navigate to `/impostazioni/licenze`.
 2. Assert: titolo "Licenze open source" e il testo "Groomly usa librerie open source".
-3. Assert: quattro righe React MIT, Capacitor MIT, Firebase Apache-2.0, Lucide ISC.
+3. Assert: lo stesso elenco completo visto dal titolare.
 4. Click **Indietro**. Assert: URL is `/impostazioni/legale`.
 
 ### TC-02: Negative & edge cases
 - Assert: nessuna richiesta di upgrade o blocco di piano nella pagina.
-- Assert: i link repository hanno gli stessi href visti con il titolare (React: `https://github.com/facebook/react`).
+- Assert: le righe non sono link.
 
 ## Assertions
 - [ ] Pagina accessibile al piano free senza redirect.

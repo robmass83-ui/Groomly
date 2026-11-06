@@ -36,7 +36,7 @@
 | `Agenda` | click | `/calendario` |
 | `Mensili` | click | `/mensili` |
 | `Listino` | click | `/listino` |
-| `Impostazioni` | click | `/impostazioni` |
+| `Altro` | click | `/altro` |
 | `Aggiungi` (FAB) | click | opens new-appointment flow |
 
 ## Assertions

@@ -15,7 +15,7 @@
 - Signed in as role `titolare`
 
 ## Test data
-- Tab bar targets: `Home` `/`, `Animali` `/animali`, `Agenda` `/calendario`, `Mensili` `/mensili`, `Listino` `/listino`, `Impostazioni` `/impostazioni`.
+- Tab bar targets: `Home` `/`, `Animali` `/animali`, `Agenda` `/calendario`, `Mensili` `/mensili`, `Listino` `/listino`, `Altro` `/altro`.
 
 ## Steps
 
@@ -29,7 +29,7 @@
 | `Agenda` | click | `/calendario` |
 | `Mensili` | click | `/mensili` |
 | `Listino` | click | `/listino` |
-| `Impostazioni` | click | `/impostazioni` |
+| `Altro` | click | `/altro` |
 
 For each row: navigate to `/incassi/statistiche` first, perform the click, assert the destination heading.
 

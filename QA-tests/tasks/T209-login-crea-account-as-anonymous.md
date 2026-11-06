@@ -29,8 +29,8 @@
 
 ### TC-01: Happy path — Crea un account
 1. Navigate to `/login`. Click **`Non hai un account? Crea account`**.
-2. Assert: form shows `Nome`, `Cognome`, `Email`, `Password`, `Nome della toelettatura`, `Partita IVA`, checkbox `Accetto privacy e termini`, button **`Crea account`**.
-3. Fill every field with its `Test data` value and check `Accetto privacy e termini`.
+2. Assert: form shows `Nome`, `Cognome`, `Email`, `Password`, `Nome della toelettatura`, `Partita IVA`, checkbox `Accetto privacy, termini e accordo dati`, button **`Crea account`**.
+3. Fill every field with its `Test data` value and check `Accetto privacy, termini e accordo dati`.
 4. Click **`Crea account`**.
 5. Assert: the account is created and the app leaves the form: either the confirm-email view (`Ho confermato` / `Invia di nuovo` / `Esci`) or redirect to `/` showing the new salone `Salone QA {runId}`; record which.
 6. Reload. Assert: the session persists in the same view.

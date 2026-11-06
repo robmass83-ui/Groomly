@@ -30,7 +30,7 @@
 |---|---|---|
 | `Home` | click | `/` |
 | `Listino` | click | `/listino` |
-| `Impostazioni` | click | `/impostazioni` |
+| `Altro` | click | `/altro` |
 | `Aggiungi` (FAB) | click | new-appointment flow |
 
 ## Assertions

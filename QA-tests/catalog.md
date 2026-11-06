@@ -1,6 +1,6 @@
 # Catalogo QA — Groomly
 
-Generato: 2026-11-05T01:33:53.000Z · 43 rotte · 190 task
+Generato: 2026-11-06T10:53:03.024Z · 47 rotte · 207 task
 
 | Path | Auth | Ruoli | Task |
 | --- | --- | --- | --- |
@@ -47,3 +47,7 @@ Generato: 2026-11-05T01:33:53.000Z · 43 rotte · 190 task
 | `/listino/vedi` | sì | titolare, titolare-go, collaboratore | T201-listino-vedi-nessun-file-as-titolare, T202-listino-vedi-immagine-as-titolare, T203-listino-vedi-pdf-as-titolare, T204-listino-vedi-as-collaboratore, T205-listino-vedi-as-titolare-go-e-anonimo |
 | `/login` | no | anonymous | T206-login-entra-as-anonymous, T207-login-validazione-credenziali-as-anonymous, T208-login-password-dimenticata-as-anonymous, T209-login-crea-account-as-anonymous, T210-login-crea-account-validazione-as-anonymous |
 | `/mensili` | sì | titolare, titolare-go, collaboratore | T211-mensili-vista-filtri-as-titolare, T212-mensili-fissa-cane-as-titolare, T213-mensili-as-collaboratore |
+| `/altro` | sì | titolare, titolare-go, collaboratore | T216-altro-voci-as-titolare, T217-altro-as-collaboratore |
+| `/altro/magazzino` | sì | titolare, titolare-go, collaboratore | T221-magazzino-vuoto-primo-prodotto-as-titolare, T222-magazzino-cerca-filtri-as-titolare |
+| `/altro/magazzino/nuovo` | sì | titolare, titolare-go, collaboratore | T226-prodotto-nuovo-crea-as-titolare, T227-prodotto-nuovo-validazione-as-titolare |
+| `/altro/magazzino/:id` | sì | titolare, titolare-go, collaboratore | T231-prodotto-modifica-elimina-as-titolare, T232-prodotto-id-as-collaboratore |

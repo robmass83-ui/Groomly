@@ -26,7 +26,7 @@
 4. Click **Indietro**. Assert: URL `/impostazioni/abbonamento`.
 
 ### TC-02: Navigazione laterale
-1. Click nav links **Home**, **Animali**, **Agenda**, **Mensili**, **Listino**, **Impostazioni** in turn; assert URLs `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/impostazioni`.
+1. Click nav links **Home**, **Animali**, **Agenda**, **Mensili**, **Listino**, **Altro** in turn; assert URLs `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/altro`.
 
 ## Assertions
 - [ ] Salone shown as not active for plus36.

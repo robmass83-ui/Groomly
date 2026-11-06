@@ -941,5 +941,91 @@
       "src/app/router.tsx#SheetLayer"
     ],
     "featureFlags": []
+  },
+  {
+    "path": "/altro",
+    "sourceFile": "src/pages/AltroPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/altro/magazzino",
+    "sourceFile": "src/pages/MagazzinoPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/altro/magazzino/nuovo",
+    "sourceFile": "src/pages/ProdottoPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
+  },
+  {
+    "path": "/altro/magazzino/:id",
+    "sourceFile": "src/pages/ProdottoPage.tsx",
+    "kind": "page",
+    "requiresAuth": true,
+    "rolesAllowed": [
+      "titolare",
+      "titolare-go",
+      "collaboratore"
+    ],
+    "guards": [
+      "Guard",
+      "StaffLock"
+    ],
+    "httpMethods": [],
+    "dynamicParams": [
+      "id"
+    ],
+    "layoutChain": [
+      "src/app/router.tsx#SheetLayer"
+    ],
+    "featureFlags": []
   }
 ]
