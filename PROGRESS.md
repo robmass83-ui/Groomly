@@ -1,11 +1,73 @@
-# PROGRESS — dove eravamo rimasti (3 novembre 2026)
+# PROGRESS — dove eravamo rimasti (6 novembre 2026)
 
-Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo passo”».
+Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Punto della situazione”».
+
+## Punto della situazione (6 novembre)
+
+Questa sezione sostituisce le chat del 5 e 6 novembre. Le etichette «non unito» nelle sezioni più in basso sono storiche: tutti i rami di quelle sezioni sono uniti in `main`.
+
+### Stato
+- **Online:** 1.1.194, firmata con la chiave Groomly. Il tag è `v1.1.194`.
+- **`main` locale:** 3 commit oltre `origin/main`, oltre all'aggiornamento di questo file. Sono la scheda Plus con le prenotazioni online per prime, in cinque lingue. Non sono pubblicati e non è stato fatto il push.
+- **Unico lavoro in corso:** la chat «Test lenti, promemoria, QA, documenti e pulizia», ramo `claude/rifiniture-test-pulizia-91bb22`. Vedi «In corso» qui sotto.
+
+### Fatto nelle chat
+- **Piani e conformità** (coordinamento dei quattro blocchi): accessi admin, conformità legale, Console, metriche. Tutti pubblicati.
+- **Conformità nel codice:** pubblicata con la 1.1.192. Stato voce per voce in `docs/legal/STATO-CONFORMITA.md`.
+- **Accessi admin:** pubblicati con la 1.1.192. Permessi solo dal claim, `adminLog`, riconferma password.
+- **Console Admin e sito admin:** pubblicati. `admin.groomlyapp.it` risponde, il certificato è a posto (chat «Accesso al sito web»).
+- **Metriche e testi legali:** pubblicati con la 1.1.193. Privacy 3, Termini 2, DPA 2. Analytics e Crashlytics restano spenti fino al sì del titolare.
+- **Agenda:** visite accavallate e razza sotto il servizio, pubblicate con la 1.1.193.
+- **Navigazione e Magazzino:** pubblicati con la 1.1.193. Impostazioni dall'icona del profilo, voce Altro, Magazzino in `/altro/magazzino`, collezione `salons/{id}/prodotti`. Design in `docs/superpowers/specs/2026-11-05-nav-profilo-altro-design.md` e `2026-11-05-magazzino-design.md`.
+- **Lingua del sito:** la pagina del salone segue la lingua del browser, l'avviso di orario scaduto la lingua nuova. Pubblicati con la 1.1.193.
+- **Console Oggi:** home con azioni, tasto + e ricerca, pubblicata con la 1.1.194.
+- **Avviso legale:** inviato da Roberto a Laura. La riaccettazione parte il 2026-12-01 (`RIACCETTA_DAL`). Le accettazioni non vanno mai scritte al posto degli utenti.
+- **Prove sul telefono con la 1.1.194 e controlli su I Pelosetti:** Roberto le ha date per fatte il 6 novembre.
+
+### Decisioni prese
+- **Lingua:** vale quella del telefono. Se l'utente la cambia in Impostazioni, vince la sua scelta. La posizione non si usa per le installazioni nuove.
+- **Magazzino:** il collaboratore vede, aggiunge e modifica; elimina solo chi ha rango di titolare. È per tutti i piani. L'eliminazione è definitiva, con conferma.
+
+### In corso
+La chat di rifinitura, partita il 6 novembre, ha cinque lavori. Non unisce, non fa push e non pubblica. Se la chat si perde, si riparte da qui:
+1. `npm run test:slow`: 26 test rossi, 23 in `DogsPage` e `LoginPage`, 3 in `src/pages/appointments.test.tsx`. Per ogni gruppo capire se sbaglia il test o il codice, senza indebolire i test.
+2. Promemoria mensile: se la lingua cambia con l'app aperta, il testo in coda si aggiorna solo al prossimo avvio. Seguire il commit `0eefb06f` e tenere conto di `src/app/providers.tsx`.
+3. Catalogo QA: riallineare le 18 pagine disallineate, più Altro e Magazzino.
+4. `docs/DA-FARE-ROBERTO.md`: parla ancora della 1.1.127 e della chiave debug, va portato allo stato reale.
+5. Pulizia dei worktree vecchi, per ultima, con le regole della memoria `worktree-junction-node-modules`: prima `cmd /c rmdir` sulle giunzioni, poi `git worktree remove`, mai cancellazioni ricorsive.
+
+Al 6 novembre i lavori erano ancora al primo punto. Controllare con `git log main..claude/rifiniture-test-pulizia-91bb22` cosa è già fatto.
+
+### Prossimo passo
+1. Finita la rifinitura, unire `claude/rifiniture-test-pulizia-91bb22` in `main`.
+2. Fare un rilascio unico con la scheda Plus e le rifiniture: suite, push, APK con `assembleGithubRelease`, release GitHub, hosting. Vedi le memorie `rilascio-cartella-pulita` e `release-apk-firma-debug`.
+
+### Da fare a mano (Roberto)
+Non risulta che siano stati fatti: spuntarli qui quando sono chiusi.
+- [ ] **Account admin:** creare la chiave in `C:\Users\masal\.groomly\admin-sdk.json`, lanciare `scripts/imposta-admin.ts collega`, poi `collega --esegui`. Provare i tre accessi: robmass83 apre I Pelosetti, la hotmail apre `/admin`, Laura il suo salone. Solo dopo, `stacca --esegui`.
+- [ ] **Google Analytics:** collegarlo a `groomly-3128b`, conservazione 2 mesi, segnali Google e pubblicità spenti.
+- [ ] **Crashlytics:** attivarlo in Firebase Console per `it.groomly.app`.
+- [ ] **Storage:** se è attivo, copiare lì le regole di `storage.rules`.
+- [ ] **Console Oggi:** Roberto ha detto che nella home non appare nulla. Con «Tutto fatto per oggi» e i numeri è normale; con pagina bianca o numeri che non arrivano è un difetto da guardare.
+- [ ] **«Ho cambiato idea»:** provarlo quando capita un link di disiscrizione in un'email ai clienti.
+- [ ] **Laura:** deve avere almeno la 1.1.193 prima del 1° dicembre.
+- [ ] **Notifiche in inglese:** causa mai dimostrata. La lettura del 5 novembre dava `lingua` italiana per Laura e per il socio. Se ne arriva un'altra, annotare testo esatto, ora e telefono.
+- [ ] **Server di prova locali** rimasti accesi: chiuderli.
+
+### Solo all'apertura di Play e dei pagamenti
+- Play: Scheda sicurezza dati da `docs/play/scheda-sicurezza-dati.md`, screenshot senza nomi di saloni veri, traduzioni francese e tedesco, test chiuso con 12-15 tester, App Check.
+- Pagamenti: Partita IVA, RevenueCat e webhook. Elenco in `docs/legal/PRIMA-DEI-PAGAMENTI.md`.
+- Prima di accendere Plus e Salon: far rileggere Termini, Privacy e DPA a un professionista.
+
+### Prima di cancellare le chat
+- **Aspettare la fine della rifinitura.** La chat di rifinitura e quella «Modifiche applicazione toelettatura», che deve unire e rilasciare, vanno tenute finché non hanno finito, oppure il seguito passa a una chat nuova con questo file.
+- **Giunzioni:** il 6 novembre restavano in `beta-b1-server-12dde6` (`functions/node_modules`) e in `lingua-notifiche-sito-02f033` (`node_modules` e `functions/node_modules`), cioè i worktree delle chat Agenda e Lingua. Cancellare quei worktree prima della pulizia può svuotare `D:\Groomly\node_modules`.
+- Le chat di «Masala Brother app» sono di un altro progetto: questo file non le copre.
 
 ## Rilascio 1.1.193 (6 novembre)
 
 - Pubblicati insieme: metriche e testi legali, agenda con visite accavallate e razza, profilo in alto, pagina Altro e Magazzino, lingua della pagina del salone, avviso orario scaduto.
-- Riaccettazione dal 2026-12-01: resta da mandare l'avviso da Comunicazioni entro il 16 novembre (`docs/legal/AVVISO-DOCUMENTI.md`).
+- Riaccettazione dal 2026-12-01: avviso a Laura già inviato (`docs/legal/AVVISO-DOCUMENTI.md`).
 
 ## Obiettivo generale
 
@@ -19,18 +81,18 @@ Per riprendere in una chat nuova: «Leggi PROGRESS.md e riprendi da “Prossimo 
 **Conteggio (4 novembre, dopo la 1.1.188):** critiche, alte, medie e basse dell'audit tutte chiuse. Le ultime sei righe di basse (Prenotazioni, Team, Animali e mensili, Account, Grafica, Telefono) sono state fatte in sessioni parallele, unite in `main` e pubblicate insieme nella 1.1.188.
 
 ## Stato di `main`
-- **Metriche e testi legali (blocco 4 di 4, 5/11/2026) — sul ramo `claude/metriche-legale-348c15`, non unito, non pubblicato.**
+- **Metriche e testi legali (blocco 4 di 4, 5/11/2026) — unito, pubblicato con la 1.1.193.**
   - Design `docs/superpowers/specs/2026-11-05-metriche-legale-design.md`, piano `docs/superpowers/plans/2026-11-05-metriche-legale.md`.
   - `/admin/metriche` con numeri notturni in `statsGiornaliere`. Analytics e Crashlytics spenti fino al sì del titolare, solo sui suoi telefoni.
   - Privacy 3, Termini 2, DPA 2 in 5 lingue, vecchi testi in `/privacy/v2/`, `/termini/v1-1/`, `/dpa/v1/`. `VERSIONE_DOCUMENTI` è 2.
-  - La riaccettazione parte da `RIACCETTA_DAL`: la data sul ramo è provvisoria. Sequenza del via in `docs/legal/AVVISO-DOCUMENTI.md`.
+  - La riaccettazione parte da `RIACCETTA_DAL`, fissata al 2026-12-01. Sequenza del via in `docs/legal/AVVISO-DOCUMENTI.md`.
   - Da fare a mano: collegare Analytics, attivare Crashlytics, compilare la Scheda da `docs/play/scheda-sicurezza-dati.md`, far rileggere i testi prima di accendere Plus e Salon.
-- **Console Admin e sito admin (blocco 3 di 4, 5/11/2026) — sul ramo `claude/console-admin-a89fd1`, non unita, non pubblicata.**
+- **Console Admin e sito admin (blocco 3 di 4, 5/11/2026) — unita e pubblicata.**
   - Design `docs/superpowers/specs/2026-11-05-console-admin-design.md`, piano `docs/superpowers/plans/2026-11-05-console-admin.md`.
   - Rotte `/admin/*` con `AdminLayout`, Assistenza con risposte, Comunicazioni con email promozionali e di servizio, Registro, Sistema, scheda salone con numeri aggregati, sito con ingresso proprio (`build:admin`, `deploy:admin`).
   - Avvisi per account in `accounts/{uid}/avvisi`, contatore email comune in `functions/src/postaGiorno.ts`.
   - Da fare a mano: sito Hosting `groomly-admin`, DNS Hostinger, domini autorizzati, App Check. Elenco in `docs/GUIDA-ADMIN-MANAGER.md`.
-- Ultima release: **1.1.189** (GitHub release v1.1.189 + hosting `release.json` aggiornati; functions ridistribuite il 4 novembre). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
+- Ultima release: **1.1.194** (vedi «Punto della situazione»). Nota del 4 novembre, per la 1.1.189: (GitHub release v1.1.189 + hosting `release.json` aggiornati; functions ridistribuite il 4 novembre). Function `dettaglioIndirizzo` in produzione dal 3 novembre (paese dall'indirizzo). Tutti i rami qui sotto sono uniti in `main` e pushati.
 - Rami di lavoro (già uniti, restano su GitHub): `fix/c2-chiusura-tiene-assegnatario`, `fix/a5-collaboratore-soldi-regole`, `fix/a1-lista-attesa-solo-col-piano`, `fix/a2-prova-solo-a-chi-non-ha-mai-avuto-plus`, `fix/a3-impegni-bloccano-promemoria-no`, `fix/a8-a9-elimina-account-titolare`, `fix/a7-invito-non-si-perde`, `fix/piccole-decisioni-dopo-a7`, `fix/a10-esci-pulisce-il-telefono`, `fix/medie-dati-e-caricamento`, `fix/medie-prenotazioni-online`, `fix/medie-piani`, `fix/medie-team-inviti`, `fix/medie-team-ruoli`, `fix/medie-agenda-incassi`, `fix/medie-animali-listino`, `fix/medie-account-profilo`, `fix/medie-home-telefono`, `fix/listino-razza-server`, `fix/basse-validazioni`.
 - **Beta Plus/Salon (4/11/2026) — unita in `main`, pubblicata con la 1.1.189.**
   - Ondate A (A1 fondamenta, A2 design, A3 nomi «Salon») e B (B1 server, B2 Admin Manager, B3 app del salone, B4 abbonamenti spenti) unite. Coordinamento in `docs/superpowers/specs/2026-11-04-beta-piani-ondate-coordinamento.md`. Il pannello di accensione di B4 è montato nel tab Piani.
@@ -299,7 +361,9 @@ ode_modules`, da togliere poi con `rmdir`; `cap sync` lì riscrive `android/capa
 - Controllo «frasi fisse» (`src/i18n/frasiFisse.test.ts`): segnala come italiano ogni letterale del codice uguale a un valore di `it.ts` diverso da `en.ts`. Se una chiave nuova ha lo stesso testo di un dato (es. `'fisso'`, `'Bagno + tosatura'`) cambiare il testo della chiave o riusare una traduzione esistente (`nomeVoceListino`).
 - I test di `functions/` vanno lanciati dalla radice: da dentro `functions/` falliscono anche `inviaRichiesta.test.ts` e `rispondiRichiesta.test.ts` (leggono file con percorsi dalla radice).
 
-## Prossimo passo
+## Prossimo passo (storico, al 4 novembre)
+Il prossimo passo attuale è in «Punto della situazione», in cima.
+
 **Stato al 4 novembre:** i sei rami delle basse (`fix/basse-prenotazioni` e `claude/basse-{team,telefono,account,animali,grafica}-*`) sono uniti in `main`. Conflitti solo in PROGRESS/audit, in `SchedaAbbonamento.tsx` (ora tutte le righe vanno a capo), `display.ts` (import) e `DogPage.tsx` (galleria con `useScegliFoto` e classe `tocco`). Suite: app solo i 25 fallimenti noti, functions 264/264 (da lanciare dalla radice con `--dir functions`), hosting 34/34. **1.1.188** committata, pushata, release GitHub v1.1.188 (firma 96dafbcd… verificata), hosting e functions pubblicati.
 - Facoltativo: deploy delle functions che usano `src/lib/prenotazione.ts` (`inviaRichiesta` e la lista d'attesa pubblica) per avere «Nome non valido» / «Telefono non valido» al posto di «Richiesta non valida»; senza, la pagina ferma comunque il cliente prima.
 - Domanda aperta per Roberto: le schede già salvate con telefoni finti («333», «-») ora chiedono un numero vero al salvataggio. Se Laura usa «-» per chi non dà il numero, rendere il telefono facoltativo nella scheda.
