@@ -1,9 +1,36 @@
 import type { Lingua } from '../i18n/lingua'
+import type { DogSize } from '../types/models'
+import { NOMI_VECCHI } from './catalogoProdotti'
 import { normalizeSearch } from './normalizza'
 
-export const CATEGORIE_PRODOTTO = ['shampoo', 'balsami', 'profumi', 'cura', 'altro'] as const
+/** `varie` è la riserva dei prodotti non riconosciuti: non si propone, si vede solo se contiene qualcosa. */
+export const CATEGORIE_PRODOTTO = ['lavaggio', 'finitura', 'cura', 'macchinette', 'pulizia', 'tocchi', 'varie'] as const
 export type CategoriaProdotto = (typeof CATEGORIE_PRODOTTO)[number]
+export const CATEGORIE_SCELTA = CATEGORIE_PRODOTTO.filter((categoria) => categoria !== 'varie')
 export type FiltroProdotti = CategoriaProdotto | 'tutti' | 'daOrdinare'
+
+export const ETICHETTA_CATEGORIA = {
+  lavaggio: 'magCatLavaggio',
+  finitura: 'magCatFinitura',
+  cura: 'magCatCuraEstesa',
+  macchinette: 'magCatMacchinette',
+  pulizia: 'magCatPulizia',
+  tocchi: 'magCatTocchi',
+  varie: 'magCatAltro',
+} as const satisfies Record<CategoriaProdotto, string>
+
+const CATEGORIE_VECCHIE = new Map<unknown, CategoriaProdotto>([['shampoo', 'lavaggio'], ['balsami', 'lavaggio'], ['profumi', 'finitura'], ['altro', 'pulizia']])
+const CATEGORIA_DAL_NOME = new Map(Object.entries(NOMI_VECCHI).flatMap(([categoria, nomi]) => nomi.map((nome) => [normalizeSearch(nome), categoria as CategoriaProdotto] as const)))
+
+/** Chi ha `uso` è già salvato nel formato nuovo: il nome non deve più spostarlo. */
+function categoriaDaDoc(data: Record<string, unknown>): CategoriaProdotto {
+  const salvata = data.categoria
+  const nota = CATEGORIE_PRODOTTO.find((categoria) => categoria === salvata) ?? CATEGORIE_VECCHIE.get(salvata) ?? 'varie'
+  if ('uso' in data) return nota
+  const dalNome = CATEGORIA_DAL_NOME.get(normalizeSearch(testoDa(data.nome)))
+  if (salvata === 'altro' && dalNome) return dalNome
+  return salvata === 'cura' && dalNome === 'pulizia' ? dalNome : nota
+}
 
 export const UNITA_PRODOTTO = ['l', 'ml'] as const
 export type UnitaProdotto = (typeof UNITA_PRODOTTO)[number]
@@ -19,6 +46,9 @@ export const FORMATI_PROPOSTI: readonly { quantita: number; unita: UnitaProdotto
 ]
 
 export type StatoProdotto = 'ok' | 'ordina' | 'finito'
+
+/** Ml di concentrato per un cane di quella taglia. */
+export type ConsumoPerTaglia = Record<DogSize, number>
 
 export interface Movimento {
   at: number
@@ -94,11 +124,11 @@ export function prodottoDaDoc(id: string, data: Record<string, unknown>): Prodot
   const prodotto: Prodotto = {
     id,
     nome: testoDa(data.nome),
-    categoria: data.categoria as CategoriaProdotto,
+    categoria: categoriaDaDoc(data),
     // I prodotti salvati prima dei pezzi contano come uno, senza avviso.
     pezzi: interoDa(data.pezzi, 1),
     quantita: typeof data.quantita === 'number' ? data.quantita : null,
-    unita: data.unita as UnitaProdotto,
+    unita: UNITA_PRODOTTO.find((unita) => unita === data.unita) ?? 'l',
     ditta: testoDa(data.ditta),
     telefono: testoDa(data.telefono),
     email: testoDa(data.email),

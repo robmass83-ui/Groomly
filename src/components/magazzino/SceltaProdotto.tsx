@@ -3,7 +3,7 @@ import { useState, type CSSProperties } from 'react'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { CATALOGO_PRODOTTI, type VoceProdotto } from '../../lib/catalogoProdotti'
 import { normalizeSearch } from '../../lib/normalizza'
-import { CATEGORIE_PRODOTTO, type CategoriaProdotto, type Prodotto } from '../../lib/prodotti'
+import { CATEGORIE_SCELTA, type CategoriaProdotto, type Prodotto } from '../../lib/prodotti'
 import { USER_TEXT } from '../../theme/text'
 import { Sheet } from '../layout/Sheet'
 import { Button } from '../ui/Button'
@@ -23,14 +23,15 @@ export function SceltaProdotto({ prodotti, onClose, onCatalogo, onLibero, onEsis
 }) {
   const frasi = useFrasi()
   const [testo, setTesto] = useState('')
-  const [categoria, setCategoria] = useState<CategoriaProdotto>('shampoo')
+  const [categoria, setCategoria] = useState<CategoriaProdotto>('lavaggio')
   const cercato = normalizeSearch(testo)
   const voci = CATALOGO_PRODOTTI.filter((voce) => (cercato ? normalizeSearch(frasi[voce.frase]).includes(cercato) : voce.categoria === categoria))
   const ricompra = [...prodotti].sort((a, b) => a.pezzi - b.pezzi).slice(0, RICOMPRA)
 
   function scegli(voce: VoceProdotto) {
-    const nome = normalizeSearch(frasi[voce.frase])
-    const esistente = prodotti.find((prodotto) => normalizeSearch(prodotto.nome) === nome)
+    // «Shampoo neutro» è già «Shampoo neutro / universale».
+    const nomi = [frasi[voce.frase], frasi[voce.frase].split(' / ')[0]].map(normalizeSearch)
+    const esistente = prodotti.find((prodotto) => nomi.includes(normalizeSearch(prodotto.nome)))
     if (esistente) onEsistente(esistente)
     else onCatalogo(voce)
   }
@@ -59,7 +60,7 @@ export function SceltaProdotto({ prodotti, onClose, onCatalogo, onLibero, onEsis
               </section>
             ) : null}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {CATEGORIE_PRODOTTO.map((item) => (
+              {CATEGORIE_SCELTA.map((item) => (
                 <button key={item} type="button" aria-pressed={categoria === item} onClick={() => setCategoria(item)} style={chipMagazzino(categoria === item)}>{frasi[ETICHETTA_CATEGORIA[item]]}</button>
               ))}
             </div>

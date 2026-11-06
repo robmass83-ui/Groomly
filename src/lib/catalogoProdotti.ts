@@ -1,66 +1,80 @@
-import type { CategoriaProdotto, UnitaProdotto } from './prodotti'
+import type { CategoriaProdotto, ConsumoPerTaglia, UnitaProdotto } from './prodotti'
 
 interface VoceCatalogo<F extends string = string> {
   frase: F
   categoria: CategoriaProdotto
   quantita: number | null
   unita: UnitaProdotto
+  diluizione: number | null
+  mlPerCane: ConsumoPerTaglia | null
 }
 
-function voce<F extends string>(frase: F, categoria: CategoriaProdotto, quantita: number | null, unita: UnitaProdotto = 'l'): VoceCatalogo<F> {
-  return { frase, categoria, quantita, unita }
+const SHAMPOO_CONCENTRATO: ConsumoPerTaglia = { piccola: 15, media: 30, grande: 50 }
+const BALSAMO_CONCENTRATO: ConsumoPerTaglia = { piccola: 10, media: 20, grande: 35 }
+const PROFUMO: ConsumoPerTaglia = { piccola: 2, media: 3, grande: 5 }
+const SPRAY_DISTRICANTE: ConsumoPerTaglia = { piccola: 5, media: 10, grande: 20 }
+
+function voce<F extends string>(frase: F, categoria: CategoriaProdotto, quantita: number | null, unita: UnitaProdotto = 'l', diluizione: number | null = null, mlPerCane: ConsumoPerTaglia | null = null): VoceCatalogo<F> {
+  return { frase, categoria, quantita, unita, diluizione, mlPerCane }
 }
 
 export const CATALOGO_PRODOTTI = [
-  voce('catShNeutro', 'shampoo', 5),
-  voce('catShBianco', 'shampoo', 5),
-  voce('catShNero', 'shampoo', 5),
-  voce('catShRosso', 'shampoo', 5),
-  voce('catShLungo', 'shampoo', 5),
-  voce('catShDuro', 'shampoo', 5),
-  voce('catShVolume', 'shampoo', 5),
-  voce('catShIdratante', 'shampoo', 5),
-  voce('catShSensibile', 'shampoo', 5),
-  voce('catShCuccioli', 'shampoo', 1),
-  voce('catShParassiti', 'shampoo', 1),
-  voce('catShOdore', 'shampoo', 5),
-  voce('catShSgrassante', 'shampoo', 5),
-  voce('catShSecco', 'shampoo', 250, 'ml'),
-  voce('catBaDistricante', 'balsami', 5),
-  voce('catBaIdratante', 'balsami', 5),
-  voce('catBaLungo', 'balsami', 5),
-  voce('catBaBianco', 'balsami', 1),
-  voce('catBaSpray', 'balsami', 500, 'ml'),
-  voce('catMaNutriente', 'balsami', 1),
-  voce('catMaRistrutturante', 'balsami', 1),
-  voce('catBaOlio', 'balsami', 250, 'ml'),
-  voce('catPrTalco', 'profumi', 250, 'ml'),
-  voce('catPrFiorito', 'profumi', 250, 'ml'),
-  voce('catPrAgrumi', 'profumi', 250, 'ml'),
-  voce('catPrFresco', 'profumi', 250, 'ml'),
-  voce('catPrCuccioli', 'profumi', 250, 'ml'),
-  voce('catSpNodi', 'profumi', 500, 'ml'),
-  voce('catSpLucidante', 'profumi', 500, 'ml'),
-  voce('catSpStatico', 'profumi', 500, 'ml'),
-  voce('catSpOdore', 'profumi', 500, 'ml'),
+  voce('catShNeutro', 'lavaggio', 5, 'l', 10, SHAMPOO_CONCENTRATO),
+  voce('catShSgrassante', 'lavaggio', 5, 'l', 10, SHAMPOO_CONCENTRATO),
+  voce('catShBianco', 'lavaggio', 5, 'l', 10, SHAMPOO_CONCENTRATO),
+  voce('catShScuro', 'lavaggio', 5, 'l', 10, SHAMPOO_CONCENTRATO),
+  voce('catShVolume', 'lavaggio', 5),
+  voce('catShLungoIdra', 'lavaggio', 5),
+  voce('catShSensibile', 'lavaggio', 1),
+  voce('catShCuccioli', 'lavaggio', 1),
+  voce('catShParassiti', 'lavaggio', 1),
+  voce('catShMuta', 'lavaggio', 5),
+  voce('catShOdore', 'lavaggio', 5),
+  voce('catShSecco', 'lavaggio', 250, 'ml'),
+  voce('catBaDistricante', 'lavaggio', 5, 'l', 10, BALSAMO_CONCENTRATO),
+  voce('catBaNutriente', 'lavaggio', 1),
+  voce('catBaBianco', 'lavaggio', 1),
+  voce('catPrProfumo', 'finitura', 250, 'ml', null, PROFUMO),
+  voce('catSpNodi', 'finitura', 500, 'ml', null, SPRAY_DISTRICANTE),
+  voce('catSpLucidante', 'finitura', 500, 'ml'),
+  voce('catSpStatico', 'finitura', 500, 'ml'),
+  voce('catBaSpray', 'finitura', 500, 'ml'),
   voce('catCuOrecchie', 'cura', 250, 'ml'),
   voce('catCuPolvere', 'cura', null),
   voce('catCuOcchi', 'cura', 250, 'ml'),
-  voce('catCuZampe', 'cura', 250, 'ml'),
   voce('catCuEmostatico', 'cura', null),
-  voce('catCuDenti', 'cura', 250, 'ml'),
+  voce('catCuDenti', 'cura', null),
+  voce('catCuCotone', 'cura', null),
+  voce('catCuGarze', 'cura', null),
   voce('catCuSalviette', 'cura', null),
-  voce('catCuDisinfettante', 'cura', 1),
-  voce('catAlLame', 'altro', null),
-  voce('catAlOlio', 'altro', 250, 'ml'),
-  voce('catAlRefrigerante', 'altro', 500, 'ml'),
-  voce('catAlAsciugamani', 'altro', null),
-  voce('catAlVasca', 'altro', 5),
-  voce('catAlGuanti', 'altro', null),
+  voce('catAlOlio', 'macchinette', 250, 'ml'),
+  voce('catAlRefrigerante', 'macchinette', 500, 'ml'),
+  voce('catAlLame', 'macchinette', null),
+  voce('catMaNastri', 'macchinette', null),
+  voce('catCuDisinfettante', 'pulizia', 1),
+  voce('catAlVasca', 'pulizia', 5),
+  voce('catAlGuanti', 'pulizia', null),
+  voce('catPuCarta', 'pulizia', null),
+  voce('catPuSacchi', 'pulizia', null),
+  voce('catPuDetersivo', 'pulizia', null),
+  voce('catToFiocchetti', 'tocchi', null),
+  voce('catToBandane', 'tocchi', null),
+  voce('catToBiscotti', 'tocchi', null),
 ] as const
 
 export type VoceProdotto = (typeof CATALOGO_PRODOTTI)[number]
 
 export const KIT_BASE: readonly VoceProdotto['frase'][] = [
-  'catShNeutro', 'catShBianco', 'catShNero', 'catBaDistricante', 'catPrTalco', 'catSpNodi', 'catCuOrecchie', 'catCuOcchi',
+  'catShNeutro', 'catShSgrassante', 'catShBianco', 'catBaDistricante', 'catPrProfumo', 'catSpNodi', 'catCuOrecchie', 'catCuOcchi',
+  'catCuEmostatico', 'catCuCotone', 'catAlOlio', 'catCuDisinfettante', 'catAlGuanti', 'catPuCarta',
 ]
+
+/** I nomi con cui il vecchio catalogo salvava queste voci, nelle 5 lingue: restano così anche se la frase cambia. */
+export const NOMI_VECCHI: Partial<Record<CategoriaProdotto, readonly string[]>> = {
+  pulizia: ['Disinfettante per attrezzi', 'Tool disinfectant', 'Desinfectante para utensilios', 'Désinfectant pour outils', 'Werkzeugdesinfektion'],
+  macchinette: [
+    'Lame per tosatrice', 'Clipper blades', 'Cuchillas para esquiladora', 'Lames de tondeuse', 'Scherköpfe',
+    'Olio per tosatrice', 'Clipper oil', 'Aceite para esquiladora', 'Huile pour tondeuse', 'Schermaschinenöl',
+    'Spray refrigerante lame', 'Blade cooling spray', 'Spray refrigerante para cuchillas', 'Spray refroidissant pour lames', 'Kühlspray für Scherköpfe',
+  ],
+}

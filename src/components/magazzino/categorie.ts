@@ -1,13 +1,6 @@
 import type { CSSProperties } from 'react'
-import type { CategoriaProdotto } from '../../lib/prodotti'
 
-export const ETICHETTA_CATEGORIA = {
-  shampoo: 'magCatShampoo',
-  balsami: 'magCatBalsami',
-  profumi: 'magCatProfumi',
-  cura: 'magCatCura',
-  altro: 'magCatAltro',
-} as const satisfies Record<CategoriaProdotto, string>
+export { ETICHETTA_CATEGORIA } from '../../lib/prodotti'
 
 /** Icona e testo sulla stessa riga dentro un `Button`. */
 export const conIcona: CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }

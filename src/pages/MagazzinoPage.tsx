@@ -117,7 +117,7 @@ export function MagazzinoPage() {
               <button type="button" aria-pressed={filtro === 'daOrdinare'} onClick={() => setFiltro('daOrdinare')} style={{ ...chipMagazzino(filtro === 'daOrdinare'), flex: 'none' }}>{frasi.magStatoOrdina}</button>
               {CATEGORIE_PRODOTTO.map((categoria) => (
                 <button key={categoria} type="button" aria-pressed={filtro === categoria} onClick={() => setFiltro(categoria)} style={{ ...chipMagazzino(filtro === categoria), flex: 'none' }}>
-                  {frasi[ETICHETTA_CATEGORIA[categoria]]}
+                  {categoria === 'cura' ? frasi.magCatCura : frasi[ETICHETTA_CATEGORIA[categoria]]}
                 </button>
               ))}
             </div>
@@ -163,7 +163,7 @@ export function MagazzinoPage() {
           prodotti={prodotti}
           onClose={() => setAperto(null)}
           onCatalogo={(voce) => setAperto({ tipo: 'dati', bozza: { nome: frasi[voce.frase], categoria: voce.categoria, quantita: voce.quantita, unita: voce.unita, libero: false } })}
-          onLibero={(nome) => setAperto({ tipo: 'dati', bozza: { nome, categoria: 'shampoo', quantita: null, unita: 'l', libero: true } })}
+          onLibero={(nome) => setAperto({ tipo: 'dati', bozza: { nome, categoria: 'lavaggio', quantita: null, unita: 'l', libero: true } })}
           onEsistente={(prodotto) => setAperto({ tipo: 'movimento', id: prodotto.id, modo: 'arrivati' })}
         />
       ) : null}

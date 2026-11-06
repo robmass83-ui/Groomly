@@ -3,7 +3,7 @@ import { useState, type CSSProperties } from 'react'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
 import { normalizeSearch } from '../../lib/normalizza'
-import { CATEGORIE_PRODOTTO, FORMATI_PROPOSTI, fornitori, leggiQuantita, misura, muoviProdotto, type CategoriaProdotto, type Prodotto, type UnitaProdotto } from '../../lib/prodotti'
+import { CATEGORIE_SCELTA, FORMATI_PROPOSTI, fornitori, leggiQuantita, misura, muoviProdotto, type CategoriaProdotto, type Prodotto, type UnitaProdotto } from '../../lib/prodotti'
 import { SIZES } from '../../theme/sizes'
 import { Dialog } from '../layout/Dialog'
 import { Sheet } from '../layout/Sheet'
@@ -145,7 +145,7 @@ export function DatiProdotto({ bozza, esistente, prodotti, onClose, save, onSalv
           <>
             <Input label={frasi.magCampoProdotto} value={nome} onChange={(event) => setNome(event.target.value)} error={erroreNome} maxLength={120} />
             <div role="radiogroup" aria-label={frasi.magCampoCategoria} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {CATEGORIE_PRODOTTO.map((item) => (
+              {(categoria === 'varie' ? [...CATEGORIE_SCELTA, categoria] : CATEGORIE_SCELTA).map((item) => (
                 <button key={item} type="button" role="radio" aria-checked={categoria === item} onClick={() => setCategoria(item)} style={chipMagazzino(categoria === item)}>{frasi[ETICHETTA_CATEGORIA[item]]}</button>
               ))}
             </div>

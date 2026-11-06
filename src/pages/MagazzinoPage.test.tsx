@@ -11,7 +11,7 @@ import type { Prodotto } from '../lib/prodotti'
 const data = new Date('2026-11-05T10:00:00.000Z')
 
 function prodotto(over: Partial<Prodotto> = {}): Prodotto {
-  return { id: 'p1', nome: 'Shampoo manto bianco', categoria: 'shampoo', pezzi: 10, quantita: 5, unita: 'l', ditta: 'Ditta Alfa', telefono: '', email: '', codice: 'SH-120', soglia: 3, inArrivo: 0, ordinatoIl: null, movimenti: [], createdAt: data, updatedAt: data, ...over }
+  return { id: 'p1', nome: 'Shampoo manto bianco', categoria: 'lavaggio', pezzi: 10, quantita: 5, unita: 'l', ditta: 'Ditta Alfa', telefono: '', email: '', codice: 'SH-120', soglia: 3, inArrivo: 0, ordinatoIl: null, movimenti: [], createdAt: data, updatedAt: data, ...over }
 }
 
 async function entra(role?: string) {
@@ -40,14 +40,14 @@ describe('magazzino', () => {
     const account = await entra()
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/altro/magazzino" />)
-    await user.click(await screen.findByRole('checkbox', { name: 'Lozione occhi' }))
-    await user.click(screen.getByRole('button', { name: 'Continua con 7' }))
-    const riga = screen.getByRole('group', { name: 'Shampoo neutro' })
+    await user.click(await screen.findByRole('checkbox', { name: 'Lozione occhi / macchie lacrimali' }))
+    await user.click(screen.getByRole('button', { name: 'Continua con 13' }))
+    const riga = screen.getByRole('group', { name: 'Shampoo neutro / universale' })
     await user.click(within(riga).getByRole('button', { name: 'Più' }))
     await user.click(screen.getByRole('button', { name: 'Aggiungi al magazzino' }))
-    expect(await screen.findByText('7 prodotti')).toBeInTheDocument()
-    expect(listProdotti(account.uid).find((item) => item.nome === 'Shampoo neutro')).toMatchObject({ pezzi: 2, quantita: 5, unita: 'l', soglia: 2 })
-    expect(listProdotti(account.uid).some((item) => item.nome === 'Lozione occhi')).toBe(false)
+    expect(await screen.findByText('13 prodotti')).toBeInTheDocument()
+    expect(listProdotti(account.uid).find((item) => item.nome === 'Shampoo neutro / universale')).toMatchObject({ pezzi: 2, quantita: 5, unita: 'l', soglia: 2 })
+    expect(listProdotti(account.uid).some((item) => item.nome.startsWith('Lozione occhi'))).toBe(false)
   })
 
   it('aggiunge un prodotto dalla lista con pezzi, formato, fornitore e codice', async () => {
@@ -57,7 +57,7 @@ describe('magazzino', () => {
     render(<App memory isDev={false} initialPath="/altro/magazzino" />)
     await user.click(await screen.findByRole('button', { name: 'Aggiungi' }))
     const lista = await screen.findByRole('dialog', { name: 'Aggiungi prodotto' })
-    await user.click(within(lista).getByRole('button', { name: 'Balsami' }))
+    await user.click(within(lista).getByRole('button', { name: 'Lavaggio' }))
     await user.click(within(lista).getByRole('button', { name: 'Balsamo districante' }))
     const scheda = await screen.findByRole('dialog', { name: 'Balsamo districante' })
     const pezzi = within(scheda).getByRole('group', { name: 'Quanti pezzi' })
@@ -67,7 +67,7 @@ describe('magazzino', () => {
     await user.type(within(scheda).getByLabelText('Codice prodotto'), 'BL-205')
     await user.click(within(scheda).getByRole('button', { name: 'Aggiungi 3 pezzi' }))
     const salvato = listProdotti(account.uid).find((item) => item.nome === 'Balsamo districante')
-    expect(salvato).toMatchObject({ categoria: 'balsami', pezzi: 3, quantita: 7, unita: 'l', ditta: 'Ditta Alfa', codice: 'BL-205' })
+    expect(salvato).toMatchObject({ categoria: 'lavaggio', pezzi: 3, quantita: 7, unita: 'l', ditta: 'Ditta Alfa', codice: 'BL-205' })
     expect(salvato?.movimenti[0]).toMatchObject({ delta: 3, dopo: 3 })
   })
 
@@ -98,7 +98,7 @@ describe('magazzino', () => {
     await user.click(await screen.findByRole('button', { name: 'Aggiungi' }))
     const lista = await screen.findByRole('dialog', { name: 'Aggiungi prodotto' })
     await user.type(within(lista).getByRole('textbox'), 'neutro')
-    await user.click(within(lista).getByRole('button', { name: 'Shampoo neutro' }))
+    await user.click(within(lista).getByRole('button', { name: 'Shampoo neutro / universale' }))
     const movimento = await screen.findByRole('dialog', { name: 'Shampoo neutro' })
     await user.click(within(movimento).getByRole('button', { name: '5' }))
     await user.click(within(movimento).getByRole('button', { name: 'Carica 5' }))
@@ -134,7 +134,7 @@ describe('magazzino', () => {
   it('a zero il − è spento e lo stato si legge a parole', async () => {
     const account = await entra()
     saveProdottoLocal(account.uid, prodotto({ pezzi: 0 }))
-    saveProdottoLocal(account.uid, prodotto({ id: 'p2', nome: 'Profumo talco', pezzi: 2, categoria: 'profumi' }))
+    saveProdottoLocal(account.uid, prodotto({ id: 'p2', nome: 'Profumo talco', pezzi: 2, categoria: 'finitura' }))
     render(<App memory isDev={false} initialPath="/altro/magazzino" />)
     expect(await screen.findByRole('button', { name: 'Togli un pezzo di Shampoo manto bianco' })).toBeDisabled()
     expect(screen.getByText('Finito')).toBeInTheDocument()
@@ -144,11 +144,11 @@ describe('magazzino', () => {
   it('cerca, filtra e dice quando non trova nulla', async () => {
     const account = await entra()
     saveProdottoLocal(account.uid, prodotto())
-    saveProdottoLocal(account.uid, prodotto({ id: 'p2', nome: 'Profumo talco', categoria: 'profumi', codice: 'PR-018' }))
+    saveProdottoLocal(account.uid, prodotto({ id: 'p2', nome: 'Profumo talco', categoria: 'finitura', codice: 'PR-018' }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath="/altro/magazzino" />)
     expect(await screen.findByText('2 prodotti')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Profumi' }))
+    await user.click(screen.getByRole('button', { name: 'Finitura' }))
     expect(screen.queryByRole('link', { name: /Shampoo manto/ })).toBeNull()
     await user.click(screen.getByRole('button', { name: 'Cerca per nome, ditta o codice' }))
     await user.type(screen.getByRole('textbox'), 'sh-120')
