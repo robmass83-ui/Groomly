@@ -670,12 +670,12 @@ export const TITOLO_RISPOSTA: Record<Lingua, string> = {
   de: 'Antwort von Groomly',
 }
 
-export const PER_CONTINUARE: Record<Lingua, string> = {
-  it: 'Per continuare, scrivi a info@groomlyapp.it',
-  en: 'To continue, write to info@groomlyapp.it',
-  es: 'Para continuar, escribe a info@groomlyapp.it',
-  fr: 'Pour continuer, écrivez à info@groomlyapp.it',
-  de: 'Für Rückfragen schreiben Sie an info@groomlyapp.it',
+export const PIEDE_RISPOSTA: Record<Lingua, string> = {
+  it: 'In caso di ulteriori informazioni e chiarimenti contattaci via mail: info@groomlyapp.it',
+  en: 'For further information or clarification, contact us by email: info@groomlyapp.it',
+  es: 'Si necesitas más información o aclaraciones, contáctanos por correo: info@groomlyapp.it',
+  fr: 'Pour toute information ou précision complémentaire, contactez-nous par e-mail : info@groomlyapp.it',
+  de: 'Für weitere Informationen und Rückfragen erreichen Sie uns per E-Mail: info@groomlyapp.it',
 }
 
 export function fraseDisiscriviti(lingua: Lingua): string {

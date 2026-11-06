@@ -1,5 +1,5 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
-import { PER_CONTINUARE, TITOLO_RISPOSTA } from '../../../src/i18n/emailHtml'
+import { PIEDE_RISPOSTA, TITOLO_RISPOSTA } from '../../../src/i18n/emailHtml'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import {
   FONTI_ASSISTENZA,
@@ -99,7 +99,7 @@ export async function rispondiAssistenzaPer(input: {
       aggiornato: adesso.toISOString(),
       risposte: [...risposte, { id, testo, quando: adesso.toISOString(), email: null }],
     }, { merge: true })
-    tx.set(avvisoRef, { tipo: 'novita', titolo: TITOLO_RISPOSTA[lingua], testo: `${testo}\n\n${PER_CONTINUARE[lingua]}`, origine: 'assistenza', creato: adesso })
+    tx.set(avvisoRef, { tipo: 'novita', titolo: TITOLO_RISPOSTA[lingua], testo: `${testo}\n\n${PIEDE_RISPOSTA[lingua]}`, origine: 'assistenza', creato: adesso })
     return null
   })
   if (gia) return { ok: true, email: gia.email }
@@ -119,7 +119,7 @@ async function mandaRisposta(db: Firestore, to: unknown, lingua: Lingua, testo: 
   const titolo = TITOLO_RISPOSTA[lingua]
   const posta: Posta = input.posta ?? ((a, oggettoMail, html) => postBrevoHtml(input.apiKey ?? '', a, oggettoMail, html, fetch, { email: 'info@groomlyapp.it', name: 'Groomly' }))
   try {
-    await posta(to, titolo, emailConsole({ titolo, testo, piede: PER_CONTINUARE[lingua] }))
+    await posta(to, titolo, emailConsole({ titolo, testo, piede: PIEDE_RISPOSTA[lingua] }))
     return 'inviata'
   } catch {
     await liberaEmail(db, adesso, 1)

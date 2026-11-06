@@ -104,7 +104,7 @@ Una casella sola con suggerimenti e feedback beta. Le segnalazioni sono i sugger
 - **Stato.** Nuove, In corso, Risolte. Aprire una richiesta non cambia lo stato: lo cambi tu. Le richieste arrivate prima del primo accesso alla nuova Console valgono Risolte.
 - **Filtri.** Stato, fonte, categoria, salone. **Esporta** salva in PDF o Excel ciò che vedi.
 - **Rispondere.** Apri la richiesta, scrivi o scegli una risposta rapida, tocca **Invia la risposta**.
-  - La risposta arriva **solo a chi ha scritto**, negli Avvisi di sistema dell'app, con l'invito a scrivere a `info@groomlyapp.it` per continuare. Non è una conversazione.
+  - La risposta arriva **solo a chi ha scritto**, negli Avvisi di sistema dell'app, con sotto la frase «In caso di ulteriori informazioni e chiarimenti contattaci via mail: `info@groomlyapp.it`». Non è una conversazione.
   - Con **Invia anche via email** parte anche un'email di servizio, senza «Disiscriviti». Mittente `noreply@`, le risposte vanno a `info@`.
   - Se l'account non esiste più la risposta non parte e la Console lo dice.
   - Una risposta inviata non si modifica. La richiesta passa a Risolte, ma puoi riaprirla.
