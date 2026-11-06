@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { useEffect, useRef, type ReactNode } from 'react'
 import { BetaProvider } from '../components/beta/BetaProvider'
+import { AvvisiDaLeggereProvider } from '../hooks/useAvvisiDaLeggere'
 import { ToastProvider, useToast } from '../components/layout/Toast'
 import { firebaseEnabled, notifySaveFailed, readsLocal, subscribeSaveFailed } from '../data/firebase/enabled'
 import { readJson, storageKeys } from '../data/local/storage'
@@ -169,7 +170,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <BetaProvider>
               <RaccoltaMetriche />
               <DailyBackup />
-              {children}
+              <AvvisiDaLeggereProvider>{children}</AvvisiDaLeggereProvider>
             </BetaProvider>
           </PianoProvider>
         </ToastProvider>

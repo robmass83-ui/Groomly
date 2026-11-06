@@ -35,7 +35,7 @@ export function BrandBar({ as: Tag = 'div' }: { as?: 'div' | 'h1' }) {
       <Tag data-testid="brand-bar" style={{ flex: 1, margin: 0, display: 'flex', alignItems: 'center', minWidth: 0 }}>
         <img alt="Groomly" src={logoTestataPer(livelloNome, dark)} height={height} style={{ display: 'block', height, width: 'auto', maxWidth: '100%' }} />
       </Tag>
-      {profilo ? <ProfiloTestata avviso={profilo.avviso} /> : null}
+      {profilo ? <ProfiloTestata {...profilo} /> : null}
     </div>
   )
 }

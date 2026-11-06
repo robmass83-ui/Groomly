@@ -72,6 +72,7 @@ vi.mock('../hooks/usePiano', () => ({
 }))
 vi.mock('../components/beta/BetaProvider', () => ({
   BetaProvider: ({ children }: { children: unknown }) => children,
+  useBeta: () => ({ nonLetti: 0 }),
 }))
 vi.mock('../i18n/LinguaContext', () => ({
   LinguaProvider: ({ children }: { children: unknown }) => children,

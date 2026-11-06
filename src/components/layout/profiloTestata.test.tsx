@@ -10,11 +10,11 @@ import { LinguaProvider } from '../../i18n/LinguaContext'
 import { BrandBar } from './BrandBar'
 import { ProfiloContext } from './ProfiloTestata'
 
-function testata(path: string, avviso = false) {
+function testata(path: string, fiscale = false, n = 0) {
   return render(
     <LinguaProvider>
       <MemoryRouter initialEntries={[path]}>
-        <ProfiloContext.Provider value={{ avviso }}><BrandBar /></ProfiloContext.Provider>
+        <ProfiloContext.Provider value={{ fiscale, avvisi: { n, ultimo: null } }}><BrandBar /></ProfiloContext.Provider>
       </MemoryRouter>
     </LinguaProvider>,
   )
@@ -52,7 +52,13 @@ describe('icona del profilo in testata', () => {
   it('il bollino fiscale sta dentro il link e il nome lo dice', () => {
     testata('/', true)
     const link = screen.getByRole('link', { name: 'Impostazioni, dati da completare' })
-    expect(within(link).getByTestId('tax-dot')).toBeInTheDocument()
+    expect(within(link).getByTestId('profilo-dot')).toBeInTheDocument()
+  })
+
+  it('un avviso da leggere accende il bollino e il nome dice perché', () => {
+    testata('/', false, 2)
+    const link = screen.getByRole('link', { name: 'Impostazioni, Avvisi: 2 da leggere' })
+    expect(within(link).getByTestId('profilo-dot')).toBeInTheDocument()
   })
 
   it('in Home il link non sta dentro il titolo', async () => {
@@ -65,14 +71,14 @@ describe('icona del profilo in testata', () => {
   it('il titolare con i dati mancanti vede il bollino', async () => {
     await entra()
     render(<App memory isDev={false} initialPath="/mensili" />)
-    expect(await screen.findByTestId('tax-dot')).toBeInTheDocument()
+    expect(await screen.findByTestId('profilo-dot')).toBeInTheDocument()
   })
 
   it('il collaboratore non vede il bollino, che non potrebbe togliere', async () => {
     await entra('collaboratore')
     render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByRole('link', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.queryByTestId('tax-dot')).toBeNull()
+    expect(screen.queryByTestId('profilo-dot')).toBeNull()
   })
 
   it('con i dati fiscali salvati il bollino non c’è', async () => {
@@ -81,6 +87,6 @@ describe('icona del profilo in testata', () => {
     writeJson(storageKeys.settings(account.uid), { ...settings, business: { ...settings.business, taxCode: 'RSSMRA85T10A562S' } })
     render(<App memory isDev={false} initialPath="/mensili" />)
     expect(await screen.findByRole('link', { name: 'Impostazioni' })).toBeInTheDocument()
-    expect(screen.queryByTestId('tax-dot')).toBeNull()
+    expect(screen.queryByTestId('profilo-dot')).toBeNull()
   })
 })

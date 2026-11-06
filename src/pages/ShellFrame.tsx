@@ -6,6 +6,7 @@ import { servizioEmailAcceso } from '../lib/serviziEmail'
 import { serviziPerStato } from '../lib/serviziPiano'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppointments } from '../hooks/useAppointments'
+import { useAvvisiDaLeggere } from '../hooks/useAvvisiDaLeggere'
 import { useDogs } from '../hooks/useDogs'
 import { useOpenSheet } from '../hooks/useOpenSheet'
 import { useSession } from '../hooks/useSession'
@@ -51,7 +52,8 @@ export function ShellFrame({ fill = false, showFab = true, children }: { fill?: 
   // Prima che arrivino le impostazioni del salone i campi sono vuoti: il bollino non deve lampeggiare.
   // Il collaboratore non può completare i dati fiscali: come in Home, niente avviso.
   const tax = ready && creaChiusure && fiscalNoticeVisible(settings.business.vatNumber, settings.business.taxCode)
-  const profilo = useMemo(() => ({ avviso: tax }), [tax])
+  const avvisi = useAvvisiDaLeggere()
+  const profilo = useMemo(() => ({ fiscale: tax, avvisi }), [tax, avvisi])
   const openSheet = useOpenSheet()
   const { pathname } = useLocation()
   const [searchParams] = useSearchParams()

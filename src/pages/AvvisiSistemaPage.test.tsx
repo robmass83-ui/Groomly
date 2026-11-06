@@ -63,6 +63,25 @@ describe('Avvisi di sistema', () => {
     expect(link).toHaveAttribute('href', '/impostazioni/avvisi')
   })
 
+  it('Da fare dice quanti avvisi ci sono e qual è l’ultimo, e ci porta', async () => {
+    finto.avvisi = [
+      { id: 'a', tipo: 'aggiornamento', titolo: 'Versione nuova', testo: '', creato: giorno(29) },
+      { id: 'c', tipo: 'manutenzione', titolo: 'Manutenzione', testo: '', creato: giorno(28) },
+    ]
+    finto.lettiFino = giorno(25)
+    await apri('/impostazioni')
+    const riga = await screen.findByRole('link', { name: 'Avvisi: 2 da leggere Versione nuova' })
+    expect(riga).toHaveAttribute('href', '/impostazioni/avvisi')
+  })
+
+  it('con tutto letto Da fare non c’è', async () => {
+    finto.avvisi = [{ id: 'a', tipo: 'novita', titolo: 'Grazie', testo: '', creato: giorno(20) }]
+    finto.lettiFino = giorno(25)
+    await apri('/impostazioni')
+    expect(await screen.findByRole('link', { name: 'Avvisi' })).toBeInTheDocument()
+    expect(screen.queryByText(/da leggere/)).not.toBeInTheDocument()
+  })
+
   it('all’apertura gli importanti nuovi stanno in alto e prendono la spunta di lettura', async () => {
     finto.avvisi = [
       { id: 'prezzi', tipo: 'importante', titolo: 'Cambiano i prezzi', testo: 'Dal 1° dicembre.', creato: giorno(29) },

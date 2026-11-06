@@ -11,8 +11,8 @@ import { Button } from '../components/ui/Button'
 import { Info as InfoButton } from '../components/ui/Info'
 import { Card, Row } from '../components/ui/Card'
 import { Anello } from '../components/impostazioni/Anello'
+import { DaFare } from '../components/impostazioni/DaFare'
 import { SchedaAbbonamento } from '../components/abbonamento/SchedaAbbonamento'
-import { useBeta } from '../components/beta/BetaProvider'
 import { RigaFeedbackBeta } from '../components/beta/RigaFeedbackBeta'
 import { IconTile } from '../components/ui/IconTile'
 import { Input } from '../components/ui/Input'
@@ -30,8 +30,7 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDogs } from '../hooks/useDogs'
 import { usePushPrefs } from '../hooks/usePushPrefs'
 import { useServices } from '../hooks/useServices'
-import { useAvvisiSistema } from '../hooks/useAvvisiSistema'
-import { nonLetti } from '../lib/avvisiSistema'
+import { useAvvisiDaLeggere } from '../hooks/useAvvisiDaLeggere'
 import { usePassiSalone } from '../hooks/usePassiSalone'
 import { useCollegaDrive } from '../hooks/useCollegaDrive'
 import { useSession } from '../hooks/useSession'
@@ -250,9 +249,7 @@ export function SettingsPage() {
   const toast = useToast()
   const { prefs: pushPrefs } = usePushPrefs(uid ?? '')
   const { services } = useServices(uid ?? '')
-  const sistema = useAvvisiSistema(uid ?? '')
-  // Gli avvisi della beta (invito, promemoria, fine) li calcola l'app e contano nella campanella.
-  const avvisiDaLeggere = nonLetti(sistema.avvisi, sistema.lettiFino) + useBeta().nonLetti
+  const avvisiDaLeggere = useAvvisiDaLeggere().n
   const { passi, driveEmail, aggiornaDrive } = usePassiSalone()
   const drive = useCollegaDrive(aggiornaDrive)
   const { busy: driveBusy, busyRef: driveBusyRef, proposta: driveProposta } = drive
@@ -775,6 +772,7 @@ export function SettingsPage() {
     <ShellFrame>
       <Header title={frasi.navImpostazioni} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
+        <DaFare />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
@@ -852,7 +850,8 @@ export function SettingsPage() {
                 <div style={{ fontWeight: 700 }}>{anello.completo ? frasi.hubCompletato : frasi.hubCompleta}</div>
                 {anello.completo ? null : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    {passi.filter((passo) => !passo.fatto).map((passo) => (
+                    {/* La partita IVA che manca sta già in Da fare, in cima alla pagina. */}
+                    {passi.filter((passo) => !passo.fatto && passo.id !== 'fiscale').map((passo) => (
                       <button key={passo.id} type="button" onClick={() => vaiPasso(passo.id)} style={{ border: '1px solid var(--line)', background: 'var(--surf)', color: 'var(--pri)', borderRadius: 999, font: 'inherit', fontWeight: 650, fontSize: 12, padding: '0 12px', minHeight: 44 }}>
                         {etichettaPasso[passo.id]}
                       </button>
