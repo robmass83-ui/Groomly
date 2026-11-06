@@ -15,18 +15,18 @@
 - Signed in as titolare
 
 ## Test data
-- Librerie attese: React MIT, Capacitor MIT, Firebase Apache-2.0, Lucide ISC.
+- Elenco completo generato: ogni riga mostra nome, versione e licenza; fra le righe ci sono react, @capacitor/core, firebase e lucide-react.
 
 ## Steps
 
 ### TC-01: Happy path - la pagina mostra le licenze
 1. Sign in as titolare. Navigate to `/impostazioni/licenze`.
 2. Assert: titolo "Licenze open source" e testo che inizia con "Groomly usa librerie open source".
-3. Assert: tabella con colonne Libreria e Licenza e quattro righe: React / MIT, Capacitor / MIT, Firebase / Apache-2.0, Lucide / ISC.
+3. Assert: elenco con molte righe (`nome versione` a sinistra, licenza a destra), compresi react, @capacitor/core, firebase e lucide-react.
 4. Assert: nessun form, nessun pulsante di azione.
 
 ### TC-02: Persistenza
-1. Reload. Assert: lo stesso elenco di quattro righe.
+1. Reload. Assert: lo stesso elenco.
 
 ### TC-03: Negative & edge cases
 - Ridimensionare la finestra a 360 px di larghezza. Assert: le righe restano leggibili, nessun testo tagliato.

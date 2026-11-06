@@ -30,7 +30,7 @@
 
 ### TC-02: Navigazione
 1. Click **Indietro**. Assert: URL `/impostazioni`.
-2. Torna a `/impostazioni/piano`, click **Home**, **Animali**, **Agenda**, **Mensili**, **Listino**, **Impostazioni** in sequenza (tornando ogni volta). Assert: URL `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/impostazioni`.
+2. Torna a `/impostazioni/piano`, click **Home**, **Animali**, **Agenda**, **Mensili**, **Listino**, **Altro** in sequenza (tornando ogni volta). Assert: URL `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/altro`.
 3. Click **Aggiungi** (FAB). Assert: si apre il menu nuovo.
 
 ### TC-03: Persistenza

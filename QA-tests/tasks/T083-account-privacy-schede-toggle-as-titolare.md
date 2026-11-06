@@ -4,7 +4,7 @@
 |---|---|
 | Route | `/impostazioni/account` |
 | Source | `src/pages/AccountPage.tsx` |
-| Flow | Navigare tra le schede; attivare/disattivare promozioni e metriche; cambiare logo |
+| Flow | Navigare tra le schede; attivare/disattivare promozioni e statistiche; cambiare logo |
 | Requires auth | yes |
 | Required role | titolare |
 | Destructive | no |
@@ -26,13 +26,13 @@
 2. Click **Info personali**. Assert: URL contiene `?scheda=personali`.
 3. Click **Indietro**. Assert: home account con tre riquadri.
 4. Click **Sicurezza**. Assert: URL contiene `?scheda=sicurezza`; visibili Password, Cambia email, **Esci da tutti gli altri dispositivi**.
-5. Click **Indietro**, poi **Privacy e dati**. Assert: URL contiene `?scheda=privacy`; visibili toggle "Email promozionali" e "Metriche", link **Centro privacy**, **Scarica i miei dati**, **Elimina account**.
+5. Click **Indietro**, poi **Privacy e dati**. Assert: URL contiene `?scheda=privacy`; visibile toggle "Email promozionali" (sul telefono anche "Statistiche d’uso e crash"), link **Centro privacy**, **Scarica i miei dati**, **Elimina account**.
 
-### TC-02: Toggle promozioni e metriche
+### TC-02: Toggle promozioni e statistiche
 1. In Privacy e dati annotare lo stato di **Email promozionali (toggle)**.
 2. Click il toggle. Assert: lo stato cambia (aria-checked invertito).
 3. Reload `?scheda=privacy`. Assert: lo stato persiste. Ripristinare lo stato originale.
-4. Ripetere per **Metriche (toggle)**.
+4. Ripetere per **Statistiche d’uso e crash (toggle)**, solo sul telefono e solo per il titolare con i documenti in vigore; nel browser la riga non compare, quindi saltare il passo.
 
 ### TC-03: Cambia logo
 1. Click **Cambia logo** e caricare `logo.png`. Assert: il logo nella testata aggiorna l'immagine (upload immediato), nessun errore.

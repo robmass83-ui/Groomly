@@ -21,13 +21,13 @@
 
 ### TC-01: Redirect
 1. Sign in as titolare. Navigate to `/impostazioni/utenti`.
-2. Assert: URL finale è `/impostazioni` e non `/impostazioni/utenti`.
+2. Assert: URL finale è `/` (il vecchio link va in `/admin`, che rimanda alla Home chi non è admin) e non `/impostazioni/utenti`.
 3. Assert: nessun elemento della UI operatore visibile (`Toelettature`, `Suggerimenti`, `Esporta`, `Elimina toelettatura`).
 4. Clicca **Indietro** del browser. Assert: non si riapre `/impostazioni/utenti` (redirect con replace; si esce dalla sessione di navigazione precedente).
 
 ### TC-02: Query string
-1. Navigate to `/impostazioni/utenti?zona=saloni`. Assert: URL finale `/impostazioni`.
-2. Navigate to `/impostazioni/utenti?zona=salone&id=inesistente`. Assert: URL finale `/impostazioni`.
+1. Navigate to `/impostazioni/utenti?zona=saloni`. Assert: URL finale `/`.
+2. Navigate to `/impostazioni/utenti?zona=salone&id=inesistente`. Assert: URL finale `/`.
 
 ## Assertions
 - [ ] Un titolare non operatore atterra su /impostazioni

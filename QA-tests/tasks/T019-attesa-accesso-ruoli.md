@@ -31,7 +31,7 @@
 1. Sign out; sign in as titolare. Navigate to `/animali/attesa`.
 2. Assert: titolo `Lista d’attesa` visibile.
 3. Clicca **`Indietro`**. Assert: URL è `/animali`.
-4. Torna alla pagina e clicca ciascun link della barra: `Home` (`/`), `Animali` (`/animali`), `Agenda` (`/calendario`), `Mensili` (`/mensili`), `Listino` (`/listino`), `Impostazioni` (`/impostazioni`). Assert: URL corrispondente per ognuno.
+4. Torna alla pagina e clicca ciascun link della barra: `Home` (`/`), `Animali` (`/animali`), `Agenda` (`/calendario`), `Mensili` (`/mensili`), `Listino` (`/listino`), `Altro` (`/altro`). Assert: URL corrispondente per ognuno.
 
 ### TC-04: Anonimo
 1. Sign out. Navigate to `/animali/attesa`.

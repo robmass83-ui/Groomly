@@ -5,7 +5,7 @@ Sorgente: `src/app/router.tsx`
 ```json
 {
   "route": "/impostazioni/utenti",
-  "sourceFile": "src/app/router.tsx",
+  "sourceFile": "src/pages/UsersPage.tsx",
   "title": "Utenti (solo operatore)",
   "requiresAuth": true,
   "authFailed": false,

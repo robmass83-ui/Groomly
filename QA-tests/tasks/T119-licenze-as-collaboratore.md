@@ -15,18 +15,18 @@
 - Signed in as collaboratore
 
 ## Test data
-- Librerie attese: React MIT, Capacitor MIT, Firebase Apache-2.0, Lucide ISC.
+- Elenco completo generato: ogni riga mostra nome, versione e licenza; fra le righe ci sono react, @capacitor/core, firebase e lucide-react.
 
 ## Steps
 
 ### TC-01: Happy path - il collaboratore legge le licenze
 1. Sign in as collaboratore. Navigate to `/impostazioni/licenze`.
 2. Assert: URL resta `/impostazioni/licenze` (nessun redirect).
-3. Assert: titolo "Licenze open source" e le quattro righe React MIT, Capacitor MIT, Firebase Apache-2.0, Lucide ISC.
+3. Assert: titolo "Licenze open source" e lo stesso elenco completo visto dal titolare.
 4. Click **Indietro**. Assert: URL is `/impostazioni/legale`.
 
 ### TC-02: Negative & edge cases
-- Assert: il link React ha href `https://github.com/facebook/react`.
+- Assert: le righe non sono link.
 - Reload su `/impostazioni/licenze`. Assert: stessa pagina, nessun redirect.
 
 ## Assertions

@@ -1,48 +1,70 @@
 # Da fare per Roberto
 
-Aggiornato il 29 ottobre 2026. `mostraPiani` e `abbonamentiAttivi` restano spenti. La versione pubblicata è la **1.1.127**: tag GitHub `v1.1.127` e `hosting/release.json` con `https://groomlyapp.it/groomly.apk`. La 1.1.97 non è mai uscita. L’APK resta firmato con la chiave debug.
+Aggiornato il 6 novembre 2026. La versione pubblicata è la **1.1.194**, firmata con la chiave Groomly. L’APK si scarica dalla release GitHub `v1.1.194`: `hosting/release.json` punta lì e il sito non ospita più il file. `mostraPiani` e `abbonamentiAttivi` restano spenti. L’app è in cinque lingue e la Console admin è su `/admin`.
+
+## Scadenze
+
+- **1 dicembre 2026: nuovi documenti.** Da quel giorno chi ha già un account riaccetta Privacy, Termini e accordo dati (`RIACCETTA_DAL` in `src/lib/versioneLegale.ts`). L’avviso è stato mandato a Laura, dalla Console. Lei dovrà toccare «Accetto» con almeno la 1.1.193. Nessuno può accettare al suo posto: l’accettazione è una riga legale nel suo account.
+
+## Decisioni già prese
+
+- **Lingua dell’app.** Vale la lingua del telefono. Se l’utente la cambia in Impostazioni, quella scelta vince.
+- **Avviso legale.** Solo al salone di Laura, perché gli altri account sono di prova. Prima di un altro invio legale, controlla in Saloni se ce ne sono di veri.
+- **Firma dell’APK.** Dalla 1.1.130 è la chiave Groomly. La chiave debug non si usa più.
+- **Scritta «TOELETTATURA».** Tolta per tutti da sito, email, logo di avvio e logo VIP. Resta solo nei file originali di `Icon and logo`.
 
 ## Già fatto
 
-- **Template Brevo 5–12.** Il 5 (invito) è attivo. I 6–11 (prenotazioni) e il 12 (promemoria) esistono. Parametri e ID in `docs/brevo/BREVO-TEMPLATE-GROOMLY.md`.
 - **Dominio.** `groomlyapp.it` è collegato a Firebase Hosting. Risponde come `groomly-3128b.web.app`.
-- **Email.** `info@groomlyapp.it` è attiva.
-- **Scheda Google Play.** In bozza. Manca solo la sezione screenshot.
-- **Pagine legali online.** Privacy, Termini 1.1, DPA ed elimina account sono su `groomlyapp.it`. I Termini dicono che oggi l’app è gratuita, che l’IVA la applica Google e che c’è il recesso.
-- **Laura.** Omaggio Salone già scritto sul suo `pro/main`. Non è stato toccato altro del suo salone, né `salon/shared`, né Troddioni.
-- **Functions.** Online, Node.js 22, `europe-west1`. La cleanup degli artifact è a 1 giorno. `eliminaAccount` libera il posto del collaboratore.
-- **Regole e indici.** Pubblicati. Ruleset attuale: `b349498c-a55b-4654-abac-94bad11cd418`. Per tornare indietro: prima `312ca6bd-e8cf-4a8b-8489-1d6f5b9135e3`, poi `89cb4014-30e4-45f8-959e-94a20f524aa5`.
-- **APK pubblico fuori da GitHub.** `https://groomlyapp.it/groomly.apk` è il file della 1.1.127, ancora firmato debug, e `release.json` online dice 1.1.127. GitHub Releases resta la riserva. Il file non è nel commit.
+- **Email.** `info@groomlyapp.it` arriva a `service.groomlyapp@gmail.com` tramite ImprovMX. Brevo serve solo per l’invio.
+- **Email in cinque lingue.** Partono tutte dal codice. I template Brevo non si usano, quindi non vanno tradotti.
+- **Pagine legali online.** Privacy 3, Termini 2 e DPA 2 in cinque lingue, più la pagina per eliminare l’account. Stato voce per voce in `docs/legal/STATO-CONFORMITA.md`.
+- **Laura.** Omaggio Salone già scritto sul suo `pro/main`. Il suo salone vero è `salons/{uid di Laura}`: `salon/shared` è un resto in sola lettura.
+- **Console admin.** Pubblicata, con home Oggi, tasto + e ricerca. Guida in `docs/GUIDA-ADMIN-MANAGER.md`.
+- **Accessi admin.** Passaggio chiuso il 6 novembre: la hotmail entra solo in `/admin`, robmass83 è socio di I Pelosetti.
+- **Google Analytics.** Collegato a `groomly-3128b`, con conservazione a 2 mesi, segnali Google spenti e personalizzazione degli annunci spenta.
+- **Crashlytics.** Non ha un pulsante da attivare: parte al primo avvio di una build con l’SDK.
+- **Storage.** Non è attivo, quindi non c’è nessuna regola da copiare.
+- **Altro e Magazzino.** Impostazioni si apre dall’icona del profilo, e la barra in basso ha la voce Altro con il Magazzino.
 - **Variante `play`.** Stesso `applicationId` `it.groomly.app`, senza aggiornamento APK e senza `REQUEST_INSTALL_PACKAGES`. L’AAB compila ed è firmato con la chiave di upload. Non è stato caricato su Play.
 - **App Check.** Codice pronto e spento. I passi di console sono più sotto.
-
-## Fatto da Roberto
-
-1. **Copia del keystore.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` sono al sicuro. I dettagli restano nella sezione «Firma di release».
-
-## Google Play DA FARE
-
-In attesa. Non fanno parte dell’aggiornamento corrente. Si riprendono quando si decide di aprire Play.
-
-- Screenshot del Salone Demo in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude.
-- Repository GitHub privato, dopo aver visto che l’aggiornamento arriva dal sito. Oggi il repository resta pubblico.
-- App Check in console. I tre flag nel codice restano spenti. I passi sono più sotto. Non imporre l’enforcement prima.
-- Test chiuso: 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`.
-- **Scheda in francese e tedesco (T6 del 5/11/2026).** In Play Console, sotto «Scheda dello Store principale», aggiungi le traduzioni `fr-FR` e `de-DE` e incolla titolo, descrizione breve e descrizione lunga da `docs/play/scheda-fr.md` e `docs/play/scheda-de.md`. Nelle schede it, en, es cambia la riga «Lingua»: ora dice cinque lingue. Da fare dopo la release con le cinque lingue.
-- Pagamenti, solo quando si accendono gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. Lista in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. `abbonamentiAttivi` resta false.
-- **Beta Plus/Salon (pubblicata con la 1.1.189).** Guida all’uso in `docs/GUIDA-ADMIN-MANAGER.md`.
-- **Abbonamenti (codice pronto e spento, B4 del 4/11/2026).** I due segreti e l’ID progetto ci sono già. Resta il webhook in RevenueCat: URL `https://rcwebhook-nyt2jddsxa-ew.a.run.app`, Authorization header uguale al segreto `REVENUECAT_WEBHOOK_AUTH`. Per cambiare un segreto:
-  `npx firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH` e `npx firebase functions:secrets:set REVENUECAT_API_KEY`.
-  Poi, quando vuoi (gratis): account RevenueCat, chiave segreta V2, ID progetto in `functions/.env` (`REVENUECAT_PROJECT_ID`), chiave `goog_…` nell'Admin Manager, webhook con «Send test event». Il giorno dei pagamenti: annuncio 15 giorni prima, pannello di accensione tutto verde, ACCENDI. Passi completi in `docs/legal/PRIMA-DEI-PAGAMENTI.md` §3.
+- **Copia del keystore.** `%USERPROFILE%\.groomly\upload.jks` e `keystore.properties` sono al sicuro.
 
 ## Ti resta, fuori da Play
 
-- **Provare l’ultimo aggiornamento sul telefono.** L’APK resta firmato con la chiave debug finché non avvisi Laura.
-- **Spegnere i template Brevo 3–12**, solo dopo «Spedisci il campione delle email» (Impostazioni, solo Roberto) e dopo aver visto le 30 email su `info@groomlyapp.it`. Il template 5 dell’invito resta acceso.
-- **Custom claim admin**, facoltativo. `scripts/imposta-admin.ts` non è stato lanciato.
-- **Scheda nido.** Il confronto è in `docs/archive/confronto-scheda-nido.html`. Il ramo non è unito.
+**Sul telefono.**
 
-WhatsApp automatico è in app, con la scritta «Da sviluppare». Non invia nulla. I crediti restano fuori. Il canale automatico di oggi è l’email. Prima di un APK firmato con la chiave nuova, avvisa Laura.
+- Prova l’ultimo aggiornamento. Email e push vere non sono mai state provate in francese e in tedesco.
+- Controlla se qualche evento automatico di Analytics parte prima dello spegnimento delle statistiche.
+
+**Facoltativo.**
+
+- Spegnere i template Brevo ancora attivi, solo in italiano. Lasciarli accesi non cambia nulla.
+- Scheda nido: il confronto è in `docs/archive/confronto-scheda-nido.html`. Il ramo non è unito.
+
+WhatsApp automatico è in app, con la scritta «Da sviluppare». Non invia nulla. I crediti restano fuori. Il canale automatico di oggi è l’email.
+
+## Prima di accendere Plus e Salon
+
+- Fai rileggere Termini, Privacy e DPA a un professionista. Le traduzioni fr e de le ha scritte Claude, senza revisione legale.
+- Fai confermare che gli inviti alla beta possano restare email dirette, senza consenso promozionale.
+- Passa a Trader e segui `docs/legal/PRIMA-DEI-PAGAMENTI.md`.
+
+## Google Play DA FARE
+
+In attesa. Si riprendono quando si decide di aprire Play.
+
+- Screenshot del Salone Demo in `D:\Groomly\Icon and logo\play-store\screenshot\`. Li carica Claude. Controlla che non mostrino nomi o loghi di saloni veri.
+- Scheda sicurezza dati: compilala da `docs/play/scheda-sicurezza-dati.md`.
+- Repository GitHub privato: oggi resta pubblico, perché l’APK si scarica dalle sue release. Prima di renderlo privato serve un altro posto per l’APK.
+- App Check in console. I tre flag nel codice restano spenti. I passi sono più sotto. Non imporre l’enforcement prima.
+- Test chiuso: 12–15 tester per 14 giorni con l’AAB `play`. La scheda in inglese e spagnolo è in `docs/play/`.
+- **Scheda in francese e tedesco.** In Play Console, sotto «Scheda dello Store principale», aggiungi le traduzioni `fr-FR` e `de-DE` e incolla titolo, descrizione breve e descrizione lunga da `docs/play/scheda-fr.md` e `docs/play/scheda-de.md`. Nelle schede it, en, es cambia la riga «Lingua»: ora dice cinque lingue.
+- Pagamenti, solo quando si accendono gli abbonamenti. Partita IVA, profilo pagamenti, prodotti, RevenueCat, prove di acquisto, offerta fondatori. Lista in `docs/legal/PRIMA-DEI-PAGAMENTI.md`. `abbonamentiAttivi` resta false.
+- **Beta Plus/Salon (pubblicata con la 1.1.189).** Guida all’uso in `docs/GUIDA-ADMIN-MANAGER.md`.
+- **Abbonamenti (codice pronto e spento).** I due segreti e l’ID progetto ci sono già. Resta il webhook in RevenueCat: URL `https://rcwebhook-nyt2jddsxa-ew.a.run.app`, Authorization header uguale al segreto `REVENUECAT_WEBHOOK_AUTH`. Per cambiare un segreto:
+  `npx firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH` e `npx firebase functions:secrets:set REVENUECAT_API_KEY`.
+  Poi, quando vuoi (gratis): account RevenueCat, chiave segreta V2, ID progetto in `functions/.env` (`REVENUECAT_PROJECT_ID`), chiave `goog_…` nella Console, webhook con «Send test event». Il giorno dei pagamenti: annuncio 15 giorni prima, pannello di accensione tutto verde, ACCENDI. Passi completi in `docs/legal/PRIMA-DEI-PAGAMENTI.md` §3.
 
 ## App Check (codice pronto, spento)
 
@@ -57,20 +79,22 @@ Quando vuoi accenderlo, in console, in quest’ordine:
 5. Nel codice: `APP_CHECK_ATTIVO = true` e `APP_CHECK_ENABLED true`, poi rifai l’AAB `play`. Play Integrity risponde solo se l’app arriva da Play, non da un APK installato a mano.
 6. Solo dopo, in App Check, «Enforce» su Functions e Firestore. Fino ad allora le metriche si vedono senza bloccare nessuno.
 
-## Firma di release (25/10/2026 sera)
+## Firma di release
 
-Gli APK pubblicati 1.1.93 e 1.1.94 sono firmati con la chiave **debug** di Android (`CN=Android Debug`, SHA-256 `1aa1211e900e794873ea1632ed09f5ce116e20f87010d96a9ecbf699c9d68fe2`). La stessa. Non è stata cambiata: Laura ha quell’app e un APK firmato con un’altra chiave non si installa sopra. Bisogna disinstallare. Avvisala prima di qualsiasi APK GitHub firmato con la chiave nuova.
+Dalla 1.1.130 (30 ottobre) l’APK del sito è `assembleGithubRelease`, firmato con la chiave Groomly. Android rifiuta un aggiornamento con una firma diversa, quindi la chiave non va cambiata. Chi aveva un APK firmato debug, fino alla 1.1.129, ha dovuto disinstallare una volta.
 
-Il keystore di upload per Google Play è **fuori dal repository**:
+Il keystore è **fuori dal repository**:
 
 - file: `%USERPROFILE%\.groomly\upload.jks`
 - proprietà (percorso, password, alias): `%USERPROFILE%\.groomly\keystore.properties`
 - alias: `groomly-upload`
 - certificato: `CN=Groomly, OU=Groomly, O=Groomly, L=Cagliari, ST=CA, C=IT`
 
-Copia il `.jks` e il file delle proprietà in un posto tuo (password manager o disco di backup). Se li perdi, dopo la prima pubblicazione con Play App Signing Google tiene la chiave dell’app, ma senza la chiave di upload non carichi gli aggiornamenti. Non committarli. Non mandarli in chat.
+Se li perdi, dopo la prima pubblicazione con Play App Signing Google tiene la chiave dell’app, ma senza la chiave di upload non carichi gli aggiornamenti. Senza quel file, poi, gli APK del sito non si aggiornano più sopra quelli installati. Non committarli. Non mandarli in chat.
 
-La variante `play` usa questo keystore da sola, se il file delle proprietà c’è. La variante `github` resta sulla chiave debug. Per rifare l’AAB, da `android`, con il JDK 21:
+Il collegamento a Drive funziona solo se lo SHA-1 dell’APK ha un client OAuth Android in Google Cloud: se la chiave cambia, va aggiunto anche lì.
+
+Per rifare l’AAB, da `android`, con il JDK 21:
 
 ```powershell
 $env:JAVA_HOME = "$env:LOCALAPPDATA\jdk21\jdk-21.0.12.1+1"
@@ -78,13 +102,3 @@ $env:JAVA_HOME = "$env:LOCALAPPDATA\jdk21\jdk-21.0.12.1+1"
 ```
 
 L’AAB esce in `android/app/build/outputs/bundle/playRelease/app-play-release.aab`. Non usarlo al posto dell’APK che scarica Laura.
-
-## Brevo e cinque lingue (5 novembre)
-
-**Non devi fare niente per le lingue.** Tutte le email partono dal codice, già in cinque lingue. I template Brevo non vengono usati, nemmeno il 5 (invito nel salone), quindi tradurli non servirebbe.
-
-Facoltativo, per ordine: i template 1-5 sono ancora attivi, solo in italiano, e si possono spegnere nel pannello Brevo. Lasciarli accesi non cambia nulla.
-
-## Logo con «TOELETTATURA» (5 novembre)
-
-Deciso: la parola è tolta per tutti da sito, email, logo di avvio e logo VIP. Resta solo nei file originali di `Icon and logo`.

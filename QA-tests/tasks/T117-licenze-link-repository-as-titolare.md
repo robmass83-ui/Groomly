@@ -1,4 +1,4 @@
-# T117-licenze-link-repository-as-titolare: Licenze - link ai repository
+# T117-licenze-link-repository-as-titolare: Licenze — le righe sono testo, senza link
 
 | Field | Value |
 |---|---|
@@ -25,16 +25,13 @@
 
 ## Steps
 
-### TC-01: Happy path - i link puntano ai repository
+### TC-01: Happy path - niente link
 1. Sign in as titolare. Navigate to `/impostazioni/licenze`.
-2. Per ogni riga della tabella Test data, assert che il link della libreria ha l'`href` indicato.
-3. Assert: i link esterni si aprono in una nuova scheda (`target="_blank"`) con `rel` contenente `noopener`.
-4. Click sul link React. Assert: si apre una nuova scheda con URL che inizia con `https://github.com/facebook/react`; chiuderla.
-5. Assert: la scheda originale è ancora su `/impostazioni/licenze`.
+2. Assert: le righe dell’elenco non sono link (nessun `<a>` nella lista): l’elenco completo ha sostituito le quattro voci con il repository.
+3. Assert: la pagina resta su `/impostazioni/licenze` toccando una riga.
 
 ### TC-02: Negative & edge cases
-- Navigazione da tastiera: Tab raggiunge ogni link e Invio lo attiva. Assert: focus visibile su ogni link.
-- Assert: nessun link ha `href` vuoto o `#`.
+- Assert: nome e versione lunghi vanno a capo senza uscire a 360 px.
 
 ## Assertions
 - [ ] Quattro link con href corretto.

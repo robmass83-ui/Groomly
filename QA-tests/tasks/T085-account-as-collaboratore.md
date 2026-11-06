@@ -32,7 +32,7 @@
 2. Chiudere il dialog.
 
 ### TC-03: Privacy
-1. Click **Privacy e dati**. Assert: i toggle "Email promozionali" e "Metriche" sono disabilitati.
+1. Click **Privacy e dati**. Assert: il toggle "Email promozionali" è disabilitato; **Scarica i miei dati** è disponibile; la riga "Statistiche d’uso e crash" non compare: è solo del titolare, sul telefono.
 2. Click un toggle. Assert: lo stato non cambia.
 
 ### TC-04: Negative & edge cases

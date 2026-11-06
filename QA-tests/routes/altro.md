@@ -1,0 +1,27 @@
+# /altro
+
+Sorgente: `src/pages/AltroPage.tsx`
+
+```json
+{
+  "route": "/altro",
+  "sourceFile": "src/pages/AltroPage.tsx",
+  "title": "Altro",
+  "requiresAuth": true,
+  "authFailed": false,
+  "rolesAllowed": [
+    "titolare",
+    "titolare-go",
+    "collaboratore"
+  ],
+  "analyzedAsRole": "titolare",
+  "note": "Analisi statica dal codice, non rilevata in browser (6/11/2026). Voce della barra in basso con le funzioni in più del salone: Magazzino e la proposta di una funzione.",
+  "elements": {
+    "links": [
+      "Magazzino → /altro/magazzino",
+      "Manca qualcosa? Proponilo → /impostazioni/suggerimenti (state.da=/altro)"
+    ]
+  }
+}
+
+```

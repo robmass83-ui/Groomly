@@ -46,7 +46,7 @@
 | `Aggiungi` (FAB) | click | `/appuntamenti/nuovo` |
 | `Home` | click | `/` |
 | `Agenda` | click | `/calendario` |
-| `Impostazioni` | click | `/impostazioni` |
+| `Altro` | click | `/altro` |
 
 ## Assertions
 - [ ] Heading and three cards visible (label, value, subtitle), euro amounts with `€`.

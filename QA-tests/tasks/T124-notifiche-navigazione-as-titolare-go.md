@@ -26,7 +26,7 @@
 
 ### TC-02: Navigazione
 1. Clicca **`Indietro`**. Assert: URL `/impostazioni`.
-2. Torna alla pagina; clicca `Home`, `Animali`, `Agenda`, `Mensili`, `Listino`, `Impostazioni`. Assert: URL `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/impostazioni`.
+2. Torna alla pagina; clicca `Home`, `Animali`, `Agenda`, `Mensili`, `Listino`, `Altro`. Assert: URL `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/altro`.
 
 ### TC-03: Anonimo
 1. Sign out; navigate to `/impostazioni/notifiche`. Assert: reindirizzo alla schermata di accesso.

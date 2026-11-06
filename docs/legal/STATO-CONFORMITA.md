@@ -16,9 +16,9 @@ La colonna **Dove si fa** dice cosa resta e chi lo fa.
 | 6 | DPA per i saloni | ✅ | `hosting/dpa/` (versione 2), `src/pages/LoginPage.tsx`, `src/components/legale/RiaccettaDocumenti.tsx` | Fa parte dei Termini e la casella lo cita. Lo accetta solo il titolare: soci e collaboratori accettano Privacy e Termini. | Professionista |
 | 7 | Elenco sub-responsabili | ✅ | `hosting/privacy/` (sezione 4), `hosting/dpa/` (sezione 5) | Nella Privacy tutti i fornitori con scopo e luogo, compresi Analytics, Crashlytics, Google Places, Hostinger, ImprovMX e GitHub. Nel DPA solo chi tocca dati dei clienti del salone. | Professionista: confermare i luoghi |
 | 8 | Nessun training AI | ✅ | `package.json`, `functions/package.json`, `hosting/privacy/` | Nessun servizio AI nel codice, e la Privacy ora lo dice. | Nulla |
-| 9 | Regole sicurezza / chiavi | ⚠️ | `firestore.rules`, `src/lib/firestoreRules.emulator.test.ts`, `functions/src/index.ts:92` | Firestore: ogni salone è separato e `shared` è in sola lettura. Chiavi solo in `defineSecret`; l'`AIza` in `hosting/azione/` è la chiave web pubblica di Firebase. Test delle regole Firestore verdi (24/24). **Storage:** per scelta del 13/10/2026 foto e listino stanno in Firestore e Storage non si pubblica; la build non ha un bucket configurato, quindi i tentativi di copia in `users/{uid}/` non arrivano a destinazione. `storage.rules` è ora nel repository con 4 test verdi, pronto se Storage si attiverà, ma `firebase.json` continua a non pubblicarlo. | A mano (controllo in Console) |
+| 9 | Regole sicurezza / chiavi | ⚠️ | `firestore.rules`, `src/lib/firestoreRules.emulator.test.ts`, `functions/src/index.ts:92` | Firestore: ogni salone è separato e `shared` è in sola lettura. Chiavi solo in `defineSecret`; l'`AIza` in `hosting/azione/` è la chiave web pubblica di Firebase. Test delle regole Firestore verdi (24/24). **Storage:** per scelta del 13/10/2026 foto e listino stanno in Firestore e Storage non si pubblica; la build non ha un bucket configurato, quindi i tentativi di copia in `users/{uid}/` non arrivano a destinazione. `storage.rules` è ora nel repository con 4 test verdi, pronto se Storage si attiverà, ma `firebase.json` continua a non pubblicarlo. | Nulla: Storage non è attivo, controllato il 6/11/2026 |
 | 10 | Disiscriviti nelle email | ✅ | `functions/src/piano/silenzioEmail.ts`, `inviaCoda.ts`, `src/i18n/emailHtml.ts:100`, `hosting/azione/`, `src/pages/DogPage.tsx:1537` | La disiscrizione vale per indirizzo in tutto il salone, con interruttore nella scheda e link anche nel posto libero. Dopo la disiscrizione dal link il salone non può riaccendere: torna solo il cliente, con «Ho cambiato idea» sulla stessa pagina. Consenso promozionale chiesto nel tour, spento di default, con «Disiscriviti». Resta una lacuna: i clienti del salone `shared`, vedi sotto. | Fatto nel blocco 2 |
-| 11 | Tracker solo dopo consenso / banner cookie | ✅ | `android/app/src/main/AndroidManifest.xml`, `src/lib/metriche.ts`, `src/lib/metricheNative.ts`, `src/components/legale/DomandaStatistiche.tsx` | Analytics e Crashlytics spenti nel manifest, accesi solo col sì del titolare e solo sui suoi telefoni. Esclusi admin, VIP, I Pelosetti e account di test. `AD_ID` tolto. Sito senza tracker, quindi niente banner. reCAPTCHA è spento: se si accende va rivisto. | A mano: collegare Analytics e attivare Crashlytics |
+| 11 | Tracker solo dopo consenso / banner cookie | ✅ | `android/app/src/main/AndroidManifest.xml`, `src/lib/metriche.ts`, `src/lib/metricheNative.ts`, `src/components/legale/DomandaStatistiche.tsx` | Analytics e Crashlytics spenti nel manifest, accesi solo col sì del titolare e solo sui suoi telefoni. Esclusi admin, VIP, I Pelosetti e account di test. `AD_ID` tolto. Sito senza tracker, quindi niente banner. reCAPTCHA è spento: se si accende va rivisto. | Nulla: Analytics collegato il 6/11/2026, Crashlytics parte al primo avvio di una build con l'SDK |
 | 12 | Rinnovo automatico dichiarato | ✅ | `src/components/abbonamento/Vetrina.tsx:197`, `src/pages/PianoPagine.tsx`, `src/i18n/it.ts:1479` | Riepilogo vicino al pulsante di acquisto, con prezzo, rinnovo e disdetta. La prova dichiara data di fine, niente carta e ritorno a Go. Invisibile a piani spenti. | Fatto nel blocco 2 |
 | 13 | Disdetta online | ✅ | `src/lib/abbonamento.ts:65`, `src/pages/AbbonamentoPage.tsx:68`, `src/pages/EliminaAccountPage.tsx:21` | Pulsante «Gestisci o disdici su Google Play» per il titolare con abbonamento Play, con link diretto e riga sul ritorno a Go. | Fatto nel blocco 2 |
 | 14 | Niente SLA/certificazioni false | ✅ | Ricerca in `src/i18n`, `hosting`, `docs/play` | Nessuna percentuale di uptime o certificazione. Tolto «al sicuro» da `vetrinaFoto` e `pwCopieCloudTesto`. | Fatto nel blocco 2 |
@@ -38,7 +38,6 @@ Nel salone `shared` non si scrive mai, quindi la disiscrizione lì non può funz
 - **Domanda sulle statistiche.** Compare dopo la riaccettazione e nel tour. Con il tour spento o saltato un salone nuovo non la vede: resta l'interruttore in Account e la raccolta spenta.
 - **Eventi automatici di Analytics.** Chi spegne su un telefono ferma gli altri alla riapertura: da verificare sul telefono se qualche evento automatico parte prima dello spegnimento.
 - **Inviti alla beta.** Far confermare al professionista che possano restare email dirette, senza consenso promozionale.
-- **Conservazione di Analytics.** La Privacy dice 2 mesi: va impostato a mano in Google Analytics.
 
 ## Alzare la versione
 
@@ -46,10 +45,9 @@ Fatto in `src/lib/versioneLegale.ts`. La data è provvisoria: la sequenza del vi
 
 ## Da fare a mano
 
-- Google Analytics: collegarlo a `groomly-3128b`, conservazione 2 mesi, segnali Google e pubblicità spenti.
-- Firebase Console: attivare Crashlytics.
+Fatti il 6/11/2026: Google Analytics collegato a `groomly-3128b`, con conservazione a 2 mesi, segnali Google e personalizzazione degli annunci spenti. Crashlytics non ha un pulsante: parte al primo avvio di una build con l'SDK. Storage non è attivo, quindi non c'è nessuna regola da copiare.
+
 - Play Console: compilare la Scheda da `docs/play/scheda-sicurezza-dati.md`.
-- Firebase Console › Storage: controllare se Storage è attivo. Se lo è, copiare lì le regole di `storage.rules`.
 - Play Console: controllare che gli screenshot non mostrino nomi o loghi di saloni veri.
 - Prima dei pagamenti: passare a Trader e seguire `docs/legal/PRIMA-DEI-PAGAMENTI.md`.
 - Far rileggere Termini, Privacy e DPA a un professionista prima di accendere Plus e Salon.

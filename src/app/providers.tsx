@@ -48,6 +48,7 @@ function MonthlyReminderForAccount() {
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
   const { dogs } = useDogs(uid)
   const { appointments } = useAppointments(uid)
+  const { lingua } = useLingua()
   const { enabled, time, daysBefore } = settings.monthlyReminder
   const ticket = useRef(0)
 
@@ -65,6 +66,7 @@ function MonthlyReminderForAccount() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     const mine = ++ticket.current
+    // Il testo viene da frase(): lingua fra le dipendenze, così quello in coda si riscrive appena cambia.
     const text = uid ? reminderText(dueSoon(dogs, appointments, new Date(), daysBefore)) : null
     const at = reminderAt(time, new Date())
     void (async () => {
@@ -98,7 +100,7 @@ function MonthlyReminderForAccount() {
     return () => {
       ticket.current += 1
     }
-  }, [uid, dogs, appointments, enabled, time, daysBefore])
+  }, [uid, dogs, appointments, enabled, time, daysBefore, lingua])
 
   return null
 }

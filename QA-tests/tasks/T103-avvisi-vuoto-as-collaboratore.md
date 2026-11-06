@@ -27,8 +27,8 @@
 4. Click **`Indietro`**. Assert: URL `/impostazioni`.
 
 ### TC-02: Tab bar
-1. Click `Home`, `Animali`, `Agenda`, `Mensili`, `Listino`, `Impostazioni` in sequence.
-2. Assert: URLs `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/impostazioni`.
+1. Click `Home`, `Animali`, `Agenda`, `Mensili`, `Listino`, `Altro` in sequence.
+2. Assert: URLs `/`, `/animali`, `/calendario`, `/mensili`, `/listino`, `/altro`.
 
 ## Assertions
 - [ ] Page accessible to collaboratore with active plan.

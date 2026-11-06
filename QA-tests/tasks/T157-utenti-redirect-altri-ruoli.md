@@ -21,11 +21,11 @@
 
 ### TC-01: Collaboratore
 1. Sign in as collaboratore. Navigate to `/impostazioni/utenti`.
-2. Assert: URL finale `/impostazioni`; nessuna UI operatore.
+2. Assert: URL finale `/`; nessuna UI operatore.
 
 ### TC-02: Titolare-go
 1. Sign out; sign in as titolare-go. Navigate to `/impostazioni/utenti`.
-2. Assert: URL finale `/impostazioni`; nessuna UI operatore.
+2. Assert: URL finale `/`; nessuna UI operatore.
 
 ### TC-03: Anonimo
 1. Sign out. Navigate to `/impostazioni/utenti`.
