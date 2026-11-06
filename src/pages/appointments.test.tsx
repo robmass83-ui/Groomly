@@ -146,10 +146,10 @@ describe('agenda', () => {
     const start = new Date(2026, 9, 3, 9, 0, 0, 0)
     render(
       <MemoryRouter>
-        <AppointmentRow appointment={appointment(start)} dog={undefined} services={[]} />
+        <AppointmentRow appointment={appointment(start)} dog={undefined} services={[]} dalServer />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('button', { name: 'Apri Cane assente' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Apri Cane eliminato' })).toBeDisabled()
   })
 
   it('l’ospite senza profilo resta apribile e mostra che è da confermare', () => {
@@ -174,10 +174,10 @@ describe('agenda', () => {
     cleanup()
     render(
       <MemoryRouter>
-        <AppointmentRow appointment={appointment(start, { dogId: '' })} dog={undefined} services={[]} />
+        <AppointmentRow appointment={appointment(start, { dogId: '' })} dog={undefined} services={[]} dalServer />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('button', { name: 'Apri Cane assente' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Apri Cane eliminato' })).toBeDisabled()
   })
 
   it('con onOpen non naviga al dettaglio', async () => {
@@ -2001,6 +2001,7 @@ describe('calendario disegnato', () => {
     await user.type(within(sheet).getByLabelText('Titolo'), 'Dentista')
     fireEvent.change(within(sheet).getByLabelText('Data'), { target: { value: '2026-10-21' } })
     fireEvent.change(within(sheet).getByLabelText('Ora di inizio'), { target: { value: '18:00' } })
+    fireEvent.change(within(sheet).getByLabelText('Ora di fine'), { target: { value: '19:00' } })
     await user.click(within(sheet).getByRole('button', { name: 'Salva' }))
     const saved = Object.values(storedAppointments(account.uid))
     expect(saved).toHaveLength(1)

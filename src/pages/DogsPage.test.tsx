@@ -39,7 +39,7 @@ function write(partial: Partial<DogWrite> & Pick<DogWrite, 'name'>): DogWrite {
     size: 'piccola',
     temperament: 'bravo',
     clientType: 'occasionale',
-    contact: { name: '', phone: '333' },
+    contact: { name: '', phone: '3331234' },
     ...partial,
   }
 }
@@ -318,17 +318,17 @@ describe('scheda cane', () => {
     expect(screen.getByRole('radio', { name: 'Femmina' })).toHaveAttribute('aria-checked', 'false')
     await user.type(screen.getByLabelText('Nome'), 'Bobi')
     await user.type(screen.getByLabelText('Proprietario'), 'Lea')
-    await user.type(screen.getByLabelText('Telefono'), '333')
+    await user.type(screen.getByLabelText('Telefono'), '3331234')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Bobi salvato')
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
     expect(screen.getByText('Bobi')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:333')
-    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', hrefChat('333'))
+    expect(screen.getByRole('link', { name: 'Chiama' })).toHaveAttribute('href', 'tel:3331234')
+    expect(screen.getByRole('link', { name: 'WhatsApp' })).toHaveAttribute('href', hrefChat('3331234'))
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!) as Record<string, { species: string; sex?: string; size: string; temperament: string; clientType: string; ageCategory: string; searchKey: string }>
     const saved = Object.values(stored)[0]
     expect(saved).toMatchObject({ species: 'cane', size: 'piccola', temperament: 'bravo', clientType: 'occasionale', ageCategory: 'adulto', isSenior: false })
-    expect(saved.searchKey).toMatch(/^bobi .*lea.* 333$/)
+    expect(saved.searchKey).toMatch(/^bobi .*lea.* 3331234$/)
     expect(saved.sex).toBeUndefined()
     view.unmount()
     render(<App memory isDev={false} initialPath="/animali" />)
@@ -342,7 +342,7 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath="/animali/nuovo" />)
     await user.type(screen.getByLabelText('Nome'), 'Bobi')
     await user.type(screen.getByLabelText('Proprietario'), 'Lea')
-    await user.type(screen.getByLabelText('Telefono'), '333')
+    await user.type(screen.getByLabelText('Telefono'), '3331234')
     vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
       throw new Error('quota')
     })
@@ -357,7 +357,7 @@ describe('scheda cane', () => {
   it('un id sconosciuto non è una scheda vuota', async () => {
     await createAccount('maria@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali/id-che-non-c-e" />)
-    expect(await screen.findByText('Cane assente')).toBeInTheDocument()
+    expect(await screen.findByText('Cane eliminato')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Torna agli animali' })).toHaveAttribute('href', '/animali')
     expect(screen.queryByTestId('back-bar')).toBeNull()
     expect(screen.queryByRole('link', { name: 'Home' })).toBeNull()
@@ -378,7 +378,7 @@ describe('scheda cane', () => {
     try {
       await createAccount('maria@salone.it', 'segretissimo')
       render(<App memory isDev={false} initialPath="/animali/id-che-non-c-e" />)
-      expect(await screen.findByText('Cane assente')).toBeInTheDocument()
+      expect(await screen.findByText('Cane eliminato')).toBeInTheDocument()
       const scroll = screen.getByTestId('scheda-scroll')
       const scheda = screen.getByTestId('scheda')
       expect(scroll.contains(scheda)).toBe(true)
@@ -656,16 +656,26 @@ describe('scheda cane', () => {
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).toContain('Bobi')
   })
 
-  it('spezza l’avviso e toglie il cane insieme agli appuntamenti', async () => {
+  it('spezza l’avviso e toglie il cane con le visite future, lo storico resta', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi', criticalNote: 'Morde. Museruola' }))
-    const start = new Date()
-    start.setHours(10, 0, 0, 0)
-    createAppointment(account.uid, {
+    const domani = new Date()
+    domani.setDate(domani.getDate() + 1)
+    domani.setHours(10, 0, 0, 0)
+    const ieri = new Date()
+    ieri.setDate(ieri.getDate() - 1)
+    ieri.setHours(10, 0, 0, 0)
+    const futura = createAppointment(account.uid, {
       dogId: created.id,
-      start,
+      start: domani,
       services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
     })
+    const passata = createAppointment(account.uid, {
+      dogId: created.id,
+      start: ieri,
+      services: [{ serviceId: 'bagno', name: 'Bagno', durationMin: 30, price: 20 }],
+    })
+    completeAppointment(account.uid, passata.id)
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
@@ -691,18 +701,20 @@ describe('scheda cane', () => {
     expect(await screen.findByRole('heading', { name: 'Animali' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Apri Bobi' })).not.toBeInTheDocument()
     expect(localStorage.getItem(storageKeys.dogs(account.uid))).not.toContain(created.id)
-    expect(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '').not.toContain(created.id)
+    const visite = localStorage.getItem(storageKeys.appointments(account.uid)) ?? ''
+    expect(visite).not.toContain(futura.id)
+    expect(visite).toContain(passata.id)
     await user.click(screen.getByRole('link', { name: 'Home' }))
     expect(await screen.findByRole('heading', { name: 'Groomly' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Apri Cane assente' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Apri Cane eliminato' })).not.toBeInTheDocument()
     expect(screen.queryByText('Bobi')).not.toBeInTheDocument()
   })
 
-  it('un appuntamento rimasto di un cane già cancellato sparisce da home', async () => {
+  it('un appuntamento rimasto di un cane già cancellato resta in Home da chiudere', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({ name: 'Bobi' }))
     const start = new Date()
-    start.setDate(start.getDate() + 1)
+    start.setDate(start.getDate() - 1)
     start.setHours(10, 0, 0, 0)
     createAppointment(account.uid, {
       dogId: created.id,
@@ -712,10 +724,9 @@ describe('scheda cane', () => {
     deleteDog(account.uid, created.id)
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
-    await waitFor(() => {
-      expect(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '').not.toContain(created.id)
-    })
-    expect(screen.queryByRole('button', { name: 'Apri Cane assente' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Apri Cane eliminato' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Rimuovi dalla lista' })).toBeInTheDocument()
+    expect(localStorage.getItem(storageKeys.appointments(account.uid)) ?? '').toContain(created.id)
   })
 
   it('Salva tiene contatti, tag, galleria e lo scostamento che la scheda non azzera', async () => {
@@ -724,9 +735,9 @@ describe('scheda cane', () => {
     const created = createDog(account.uid, write({
       name: 'Bobi',
       breed: 'Barboncino',
-      contact: { name: 'Lea', phone: '333' },
+      contact: { name: 'Lea', phone: '3331234' },
       contacts: [
-        { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true },
+        { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '3331234', isPrimary: true },
         { id: 'b', name: 'Marco', role: 'Co-proprietario', phone: '444', isPrimary: false },
       ],
       birthYear: 2015,
@@ -749,7 +760,7 @@ describe('scheda cane', () => {
     const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
     expect(stored.name).toBe('Rex')
     expect(stored.contacts).toEqual([
-      { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true },
+      { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '3331234', isPrimary: true },
       { id: 'b', name: 'Marco', role: 'Co-proprietario', phone: '444', isPrimary: false },
     ])
     expect(stored.birthYear).toBe(2015)
@@ -768,9 +779,9 @@ describe('scheda cane', () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
-    expect(screen.queryByLabelText('Foto')).not.toBeInTheDocument()
     expect(screen.queryByText('Foto')).not.toBeInTheDocument()
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    expect(screen.getByLabelText('Foto')).toBe(input)
     expect(input).not.toBeVisible()
     const spy = vi.spyOn(input, 'click')
     await user.click(screen.getByRole('button', { name: 'Foto del cane' }))
@@ -819,7 +830,7 @@ describe('scheda cane', () => {
     const created = createDog(account.uid, write({
       name: 'Bobi',
       breed: 'Alano',
-      contact: { name: 'Laura', phone: '333' },
+      contact: { name: 'Laura', phone: '3331234' },
     }))
     const photo = await import('../lib/dogPhoto')
     const spy = vi.spyOn(photo, 'prepareDogPhoto')
@@ -857,7 +868,7 @@ describe('scheda cane', () => {
       const stored = JSON.parse(localStorage.getItem(storageKeys.dogs(account.uid))!)[created.id]
       expect(stored.gallery).toEqual([expect.objectContaining({ photo: 'data:image/jpeg;base64,gal' })])
       expect(stored.photo).toBe('data:image/jpeg;base64,def')
-      expect(stored.contact).toEqual({ name: 'Laura', phone: '333' })
+      expect(stored.contact).toEqual({ name: 'Laura', phone: '3331234' })
     })
     expect(screen.getByRole('button', { name: 'Modifica' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Salva' })).not.toBeInTheDocument()
@@ -1048,7 +1059,7 @@ describe('scheda cane', () => {
 
   it('un contatto aggiunto in modifica compare dopo Salva e entra nella searchKey', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, write({ name: 'Bobi', breed: 'Barboncino', contact: { name: 'Lea', phone: '333' } }))
+    const created = createDog(account.uid, write({ name: 'Bobi', breed: 'Barboncino', contact: { name: 'Lea', phone: '3331234' } }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Modifica' }))
@@ -1148,7 +1159,7 @@ describe('scheda cane', () => {
       ageCategory: 'giovane',
       birthYear: 2024,
       isSenior: false,
-      contact: { name: 'Lea', phone: '333' },
+      contact: { name: 'Lea', phone: '3331234' },
     }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
@@ -1247,7 +1258,7 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath="/animali/nuovo" />)
     await user.type(screen.getByLabelText('Nome'), 'Fido')
     await user.type(screen.getByLabelText('Proprietario'), 'Usai')
-    await user.type(screen.getByLabelText('Telefono'), '333')
+    await user.type(screen.getByLabelText('Telefono'), '3331234')
     await user.click(screen.getByRole('button', { name: 'Altri dettagli' }))
     expect(screen.queryByLabelText(/frequenza/i)).toBeNull()
     await user.click(screen.getByRole('radio', { name: 'Mensile' }))
@@ -1272,7 +1283,7 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath="/animali/nuovo" />)
     await user.type(screen.getByLabelText('Nome'), 'Fido')
     await user.type(screen.getByLabelText('Proprietario'), 'Usai')
-    await user.type(screen.getByLabelText('Telefono'), '333')
+    await user.type(screen.getByLabelText('Telefono'), '3331234')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByText('Fido salvato')).toBeInTheDocument()
     const first = listDogs(account.uid)[0]
@@ -1306,7 +1317,7 @@ describe('scheda cane', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
       name: 'Fido',
-      contact: { name: 'Usai', phone: '333' },
+      contact: { name: 'Usai', phone: '3331234' },
       hiddenServiceIds: ['bagno', 'dermatologico'],
       servicePrices: [
         { serviceId: 'bagno', price: 25 },
@@ -1350,7 +1361,7 @@ describe('scheda cane', () => {
     render(<App memory isDev={false} initialPath="/animali/nuovo" />)
     await user.type(screen.getByLabelText('Nome'), 'Fido')
     await user.type(screen.getByLabelText('Proprietario'), 'Usai')
-    await user.type(screen.getByLabelText('Telefono'), '333')
+    await user.type(screen.getByLabelText('Telefono'), '3331234')
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(await screen.findByText('Fido salvato')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
@@ -1371,7 +1382,7 @@ describe('scheda cane', () => {
         { serviceId: 'stripping', price: 40, durationMin: 90 },
       ],
     }))
-    createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '333' } }))
+    createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '3331234' } }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Prezzi personalizzati' })).toBeInTheDocument()
@@ -1392,19 +1403,19 @@ describe('scheda cane', () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const created = createDog(account.uid, write({
       name: 'Bobi',
-      contact: { name: 'Lea', phone: '333' },
+      contact: { name: 'Lea', phone: '3331234' },
       contacts: [
-        { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '333', isPrimary: true },
+        { id: 'a', name: 'Lea', role: 'Proprietaria', phone: '3331234', isPrimary: true },
         { id: 'b', name: 'Marco', role: 'Co-proprietario', phone: '444', isPrimary: false },
       ],
     }))
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
-    const primary = screen.getByText('333 · Proprietaria · Principale')
+    const primary = screen.getByText('3331234 · Proprietaria · Principale')
     expect(primary.getAttribute('style')).toContain('font-size: 11px')
     expect(primary.previousElementSibling?.getAttribute('style')).toContain('font-size: 12px')
     expect(screen.getByText('444 · Co-proprietario').getAttribute('style')).toContain('font-size: 11px')
-    expect(screen.getByRole('link', { name: 'Chiama Lea' })).toHaveAttribute('href', 'tel:333')
+    expect(screen.getByRole('link', { name: 'Chiama Lea' })).toHaveAttribute('href', 'tel:3331234')
     expect(screen.getByRole('link', { name: 'Chiama Marco' })).toHaveAttribute('href', 'tel:444')
   })
 
@@ -1415,7 +1426,7 @@ describe('scheda cane', () => {
       breed: 'Barboncino',
       criticalNote: 'Morde. Museruola',
       weightKg: 8.5,
-      contact: { name: 'Lea', phone: '333' },
+      contact: { name: 'Lea', phone: '3331234' },
     }))
     const older = createAppointment(account.uid, {
       dogId: created.id,
@@ -1435,7 +1446,7 @@ describe('scheda cane', () => {
     completeAppointment(account.uid, older.id)
     completeAppointment(account.uid, newer.id)
     completeAppointment(account.uid, down.id)
-    const solo = createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '333' } }))
+    const solo = createDog(account.uid, write({ name: 'Nina', contact: { name: 'Lea', phone: '3331234' } }))
     completeAppointment(account.uid, createAppointment(account.uid, {
       dogId: solo.id,
       start: new Date(2026, 8, 2, 9, 0, 0, 0),
@@ -1453,7 +1464,7 @@ describe('scheda cane', () => {
     expect(screen.queryByRole('button', { name: 'Salva' })).toBeNull()
     const call = screen.getByRole('link', { name: 'Chiama' })
     const whats = screen.getByRole('link', { name: 'WhatsApp' })
-    expect(call).toHaveAttribute('href', 'tel:333')
+    expect(call).toHaveAttribute('href', 'tel:3331234')
     expect(call.parentElement).toBe(screen.getByTestId('riga-contatto'))
     expect(call.getAttribute('style')).toContain('width: 44px')
     expect(whats.getAttribute('style')).toContain('height: 44px')
@@ -1808,12 +1819,12 @@ describe('scheda cane', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
     const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined)
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '333' } }))
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '3331234' } }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Messaggi pronti' }))
     await user.click(await screen.findByRole('link', { name: 'Apri WhatsApp' }))
-    expect(assign).toHaveBeenCalledWith(expect.stringMatching(/^whatsapp:\/\/send\?phone=39333&text=/))
+    expect(assign).toHaveBeenCalledWith(expect.stringMatching(/^whatsapp:\/\/send\?phone=393331234&text=/))
     assign.mockImplementation(() => {
       throw new Error('manca')
     })
@@ -1825,19 +1836,19 @@ describe('scheda cane', () => {
     vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
     const assign = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined)
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '333' } }))
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '3331234' } }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('link', { name: 'WhatsApp' }))
     expect(assign).toHaveBeenCalledTimes(1)
-    expect(assign.mock.calls[0][0]).toMatch(/^whatsapp:\/\/send\?phone=39333/)
+    expect(assign.mock.calls[0][0]).toMatch(/^whatsapp:\/\/send\?phone=393331234/)
     expect(assign.mock.calls[0][0]).not.toContain('text=')
     expect(screen.queryByRole('dialog', { name: 'Messaggi WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('un contatto nuovo parte senza ruolo', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
-    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '333' } }))
+    const created = createDog(account.uid, write({ name: 'Bobi', contact: { name: 'Lea', phone: '3331234' } }))
     const user = userEvent.setup()
     render(<App memory isDev={false} initialPath={`/animali/${created.id}`} />)
     await user.click(await screen.findByRole('button', { name: 'Modifica' }))
@@ -2027,6 +2038,6 @@ describe('scheda cane', () => {
     await createAccount('vuoto-scheda@salone.it', 'segretissimo')
     render(<App memory isDev={false} initialPath="/animali/assente" />)
     expect(await screen.findByRole('heading', { name: 'Record' })).toBeInTheDocument()
-    expect(screen.getByText('Dog missing')).toBeInTheDocument()
+    expect(screen.getByText('Deleted dog')).toBeInTheDocument()
   })
 })

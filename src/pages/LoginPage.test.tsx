@@ -78,7 +78,7 @@ describe('login', () => {
     expect(frame.getAttribute('style')).toContain('height: 104px')
     expect(frame.getAttribute('style')).toContain('overflow: hidden')
     const word = screen.getByText('Groomly')
-    const tag = screen.getByText('toelettatura')
+    const tag = screen.getByText('Toelettatura')
     expect(word.getAttribute('style')).toContain('font-size: 32px')
     expect(tag.getAttribute('style')).toContain('font-size: 15px')
     expect(word.compareDocumentPosition(tag)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
