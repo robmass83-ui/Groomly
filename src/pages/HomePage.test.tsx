@@ -705,7 +705,7 @@ describe('home', () => {
     expect(within(fiscal).getByRole('button', { name: 'Aggiungi' })).toBeInTheDocument()
     expect(fiscal.getAttribute('style')).toContain('background: var(--warn-s)')
     expect(fiscal.getAttribute('style')).toContain('color: var(--warn)')
-    expect(within(screen.getByRole('link', { name: 'Impostazioni, dati da completare' })).getByTestId('tax-dot')).toBeInTheDocument()
+    expect(within(screen.getByRole('link', { name: 'Impostazioni, dati da completare' })).getByTestId('profilo-dot')).toBeInTheDocument()
   })
 
   it('il collaboratore non vede gli incassi di oggi', async () => {
@@ -799,7 +799,7 @@ describe('home', () => {
     render(<App memory isDev={false} initialPath="/" />)
     await screen.findByRole('heading', { name: 'Oggi' })
     expect(screen.queryByRole('region', { name: 'Completa l\'attività' })).not.toBeInTheDocument()
-    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('profilo-dot')).not.toBeInTheDocument()
   })
 
   it('con il solo codice fiscale salvato la fascia e il bollino spariscono', async () => {
@@ -809,7 +809,7 @@ describe('home', () => {
     render(<App memory isDev={false} initialPath="/" />)
     await screen.findByRole('heading', { name: 'Oggi' })
     expect(screen.queryByRole('region', { name: 'Completa l\'attività' })).not.toBeInTheDocument()
-    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('profilo-dot')).not.toBeInTheDocument()
   })
 
   it('indirizzo e telefono da soli non tolgono la fascia', async () => {
@@ -818,7 +818,7 @@ describe('home', () => {
     writeJson(storageKeys.settings(account.uid), { ...settings, business: { ...settings.business, phone: '333', address: 'Via Roma 1' } })
     render(<App memory isDev={false} initialPath="/" />)
     expect(await screen.findByRole('region', { name: 'Completa l\'attività' })).toBeInTheDocument()
-    expect(screen.getByTestId('tax-dot')).toBeInTheDocument()
+    expect(screen.getByTestId('profilo-dot')).toBeInTheDocument()
   })
 
   it('Aggiungi porta in Impostazioni e apre il foglio Attività', async () => {

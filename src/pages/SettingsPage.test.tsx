@@ -366,7 +366,10 @@ describe('impostazioni', () => {
       active: true,
     })
     render(<App memory isDev={false} initialPath="/impostazioni" />)
-    expect(await screen.findByRole('button', { name: 'Partita IVA o codice fiscale' })).toBeInTheDocument()
+    const riga = await screen.findByRole('link', { name: /Aggiungi partita IVA o codice fiscale/ })
+    expect(riga).toHaveAttribute('href', '/impostazioni/account?scheda=personali&modifica=toelettatura')
+    expect(screen.getByRole('heading', { name: 'Da fare' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Partita IVA o codice fiscale' })).not.toBeInTheDocument()
     expect(document.body.textContent).toContain('5/6')
     expect(screen.queryByText('Profilo completato')).not.toBeInTheDocument()
     expect(screen.getByText('Completa il tuo salone')).toBeInTheDocument()
@@ -636,7 +639,7 @@ describe('impostazioni', () => {
     await user.click(screen.getByRole('button', { name: 'Salva' }))
     expect(screen.queryByRole('dialog', { name: 'Toelettatura' })).not.toBeInTheDocument()
     expect(getSettings(account.uid).business).toMatchObject({ vatNumber: '', taxCode: 'RSSMRA85T10A562S' })
-    expect(screen.queryByTestId('tax-dot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('profilo-dot')).not.toBeInTheDocument()
   })
 
   it('openBusiness apre il foglio una sola volta', async () => {
