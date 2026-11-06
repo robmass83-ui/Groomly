@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { chiaveEmail, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer, type ArchivioSilenzio } from './silenzioEmail'
+import { chiaveEmail, firmaSilenzio, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer, type ArchivioSilenzio } from './silenzioEmail'
+
+const CHIAVE = 'c'.repeat(64)
 import type { RigaCoda } from '../../../src/lib/codaEmail'
 
 const base: RigaCoda = {
@@ -143,7 +145,7 @@ describe('riattivaEmailPer', () => {
   it('il cliente che ha cambiato idea torna per tutti i suoi cani', async () => {
     const store = memoria(carta)
     await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
-    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32), firma: firmaSilenzio(CHIAVE, 's', 'a'.repeat(32)), chiave: CHIAVE }, store)
     expect(store.elenco.size).toBe(0)
     expect(store.sbloccati.sort()).toEqual(['s/d', 's/e'])
   })
@@ -151,22 +153,37 @@ describe('riattivaEmailPer', () => {
   it('dopo il ritorno il salone può di nuovo decidere dalla scheda', async () => {
     const store = memoria(carta)
     await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
-    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32), firma: firmaSilenzio(CHIAVE, 's', 'a'.repeat(32)), chiave: CHIAVE }, store)
     await expect(impostaEmailClientePer({ salonId: 's', ruolo: 'titolare', dogId: 'd', bloccata: false }, store)).resolves.toEqual({ ok: true })
   })
 
   it('vale anche per il token del posto libero', async () => {
     const store = memoria({ ...carta, offerta: { token: 'c'.repeat(32), email: 'i@s.it' } })
     await silenzioEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
-    await riattivaEmailPer({ salonId: 's', token: 'c'.repeat(32) }, store)
+    await riattivaEmailPer({ salonId: 's', token: 'c'.repeat(32), firma: firmaSilenzio(CHIAVE, 's', 'c'.repeat(32)), chiave: CHIAVE }, store)
     expect(store.elenco.size).toBe(0)
   })
 
   it('un token sbagliato o il salone shared non cambiano nulla', async () => {
     const store = memoria(carta)
     await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
-    await expect(riattivaEmailPer({ salonId: 's', token: 'b'.repeat(32) }, store)).rejects.toThrow()
-    await expect(riattivaEmailPer({ salonId: 'shared', token: 'a'.repeat(32) }, store)).rejects.toThrow()
+    await expect(riattivaEmailPer({ salonId: 's', token: 'b'.repeat(32), firma: firmaSilenzio(CHIAVE, 's', 'b'.repeat(32)), chiave: CHIAVE }, store)).rejects.toThrow()
+    await expect(riattivaEmailPer({ salonId: 'shared', token: 'a'.repeat(32), firma: firmaSilenzio(CHIAVE, 'shared', 'a'.repeat(32)), chiave: CHIAVE }, store)).rejects.toThrow()
+    expect(store.elenco.size).toBe(1)
+  })
+
+  it('il token letto nel salone non basta: senza la firma dell’email il blocco resta', async () => {
+    const store = memoria(carta)
+    await silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)
+    await expect(riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32), firma: '', chiave: CHIAVE }, store)).rejects.toThrow()
+    await expect(riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32), firma: 'f'.repeat(32), chiave: CHIAVE }, store)).rejects.toThrow()
+    await expect(riattivaEmailPer({ salonId: 's', token: 'a'.repeat(32), firma: firmaSilenzio(CHIAVE, 'altro', 'a'.repeat(32)), chiave: CHIAVE }, store)).rejects.toThrow()
+    expect(store.elenco.size).toBe(1)
+  })
+
+  it('un link spedito prima, senza firma, disiscrive ancora', async () => {
+    const store = memoria(carta)
+    await expect(silenzioEmailPer({ salonId: 's', token: 'a'.repeat(32) }, store)).resolves.toEqual({ ok: true })
     expect(store.elenco.size).toBe(1)
   })
 })

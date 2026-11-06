@@ -44,7 +44,7 @@ import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
-import { archivioDaDb, chiaveEmail, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
+import { archivioDaDb, chiaveEmail, chiaveSilenzio, impostaEmailClientePer, riattivaEmailPer, silenzioEmailPer } from './piano/silenzioEmail'
 import { archivioAccettazione, datiAccettazione, registraAccettazionePer } from './legale/registraAccettazione'
 import { archivioConsenso, impostaConsensoMetrichePer } from './legale/consensoMetriche'
 import { calcolaStatistiche, pulisciRegistroAdmin, salvaStatistiche } from './metriche/statisticheGiornaliere'
@@ -964,6 +964,8 @@ export const riattivaEmail = onCall(pianoCall, async (request) => {
   return riattivaEmailPer({
     salonId: text(field(request.data, 'salonId')),
     token: text(field(request.data, 'token')),
+    firma: text(field(request.data, 'firma')),
+    chiave: await chiaveSilenzio(getFirestore()),
   }, archivioDaDb(getFirestore()))
 })
 

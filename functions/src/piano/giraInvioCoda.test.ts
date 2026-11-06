@@ -28,6 +28,7 @@ function riga(id: string, email = `${id}@cliente.it`) {
 function salone(id: string, righe: unknown[]) {
   archivio.set(`salons/${id}/settings/main`, { serviziEmail: { pronto: { modo: 'automatico' } }, codaEmail: righe })
   archivio.set(`salons/${id}/pro/main`, { piano: 'pro', stato: 'attivo' })
+  archivio.set(`salons/${id}/dogs/d1`, { name: 'Rex', status: 'attivo', contact: { name: 'Ada', email: 'ada@cliente.it' } })
 }
 
 function brevo(ok = true) {
@@ -81,7 +82,22 @@ describe('il giro delle email', () => {
     const fetchImpl = brevo()
     const esito = await giraInvioCoda({ apiKey: 'k', adesso: ADESSO, fetchImpl: fetchImpl as typeof fetch })
     expect(esito.inviate).toBe(1)
-    expect(String(fetchImpl.mock.calls[0]?.[1]?.body)).toContain('pronto:r1@cliente.it')
+  })
+
+  it('una riga già chiusa nel registro non si riapre da settings, come dopo un ripristino', async () => {
+    salone('s1', [riga('pronto:r1')])
+    archivio.set('salons/s1/coda/pronto:r1', { ...riga('pronto:r1'), stato: 'inviata' })
+    const fetchImpl = brevo()
+    await giraInvioCoda({ apiKey: 'k', adesso: ADESSO, fetchImpl: fetchImpl as typeof fetch })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('una riga di un cane che non c’è più si chiude senza partire', async () => {
+    salone('s1', [{ ...riga('pronto:r1'), dogId: 'cancellato' }])
+    const fetchImpl = brevo()
+    await giraInvioCoda({ apiKey: 'k', adesso: ADESSO, fetchImpl: fetchImpl as typeof fetch })
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(archivio.get('salons/s1/settings/main')?.codaEmail).toMatchObject([{ stato: 'chiusa' }])
   })
 
   it('un salone che fallisce non ferma gli altri', async () => {

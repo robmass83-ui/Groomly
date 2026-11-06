@@ -1,6 +1,16 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { contaAperte, ingressoRichiestaPubblica } from '../../../src/lib/prenotazione'
+import { nomeCaneRicevuta } from './inviaRichiesta'
+
+describe('il nome del cane nella ricevuta', () => {
+  it('sta in una riga e non supera 80 caratteri, per un testo scritto da un anonimo', () => {
+    const nome = nomeCaneRicevuta(`${'x'.repeat(5000)}\nCompra qui`)
+    expect(nome).toHaveLength(80)
+    expect(nomeCaneRicevuta('Rex\r\nCompra qui')).toBe('Rex Compra qui')
+    expect(nomeCaneRicevuta(undefined)).toBe('')
+  })
+})
 
 describe('inviaRichiesta pubblica', () => {
   it('non scrive sul ramo inizio/fine e il posto usa la durata del servizio', () => {

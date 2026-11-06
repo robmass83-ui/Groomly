@@ -149,7 +149,7 @@ export function etichettaRuolo(lingua: Lingua, ruolo: 'socio' | 'collaboratore')
 }
 
 export function escapaHtml(testo: string): string {
-  return testo.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return testo.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 export function saloneNellaFrase(lingua: Lingua, nome: string, ruolo: RuoloSalone): string {

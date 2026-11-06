@@ -333,12 +333,14 @@
       }
     }
 
-    function bottoneRitorno(salonId, token) {
+    function bottoneRitorno(salonId, token, firma) {
+      // I link spediti prima non hanno la firma: disiscrivono ancora, ma non annullano.
+      if (!firma) return
       const button = document.createElement('button')
       button.className = 'secondary'
       button.type = 'button'
       button.textContent = COPY.comeback
-      button.addEventListener('click', () => { void spegni('riattivaEmail', { salonId, token }, COPY.comebackDoneBody, COPY.comeback, button, COPY.comebackDone) })
+      button.addEventListener('click', () => { void spegni('riattivaEmail', { salonId, token, firma }, COPY.comebackDoneBody, COPY.comeback, button, COPY.comebackDone) })
       card.append(button)
     }
 
@@ -347,6 +349,7 @@
     const oobCode = params.get('oobCode')
     const salon = params.get('salon') || ''
     const token = params.get('token') || ''
+    const firma = params.get('firma') || ''
     if (mode === 'promemoria') {
       showMessage(COPY.reminder, COPY.reminderBody, false)
       const box = document.createElement('div')
@@ -387,9 +390,9 @@
         button.className = 'primary'
         button.type = 'button'
         button.textContent = COPY.choices[2]
-        button.addEventListener('click', () => { void spegni('silenzioEmail', { salonId: salon, token }, COPY.silenceDoneBody, COPY.choices[2], button, COPY.silenceDone, () => bottoneRitorno(salon, token)) })
+        button.addEventListener('click', () => { void spegni('silenzioEmail', { salonId: salon, token }, COPY.silenceDoneBody, COPY.choices[2], button, COPY.silenceDone, () => bottoneRitorno(salon, token, firma)) })
         card.append(button)
-        bottoneRitorno(salon, token)
+        bottoneRitorno(salon, token, firma)
       }
     } else if (!oobCode || (mode !== 'resetPassword' && mode !== 'verifyEmail')) {
       showMessage(COPY.bad, EXPIRED, true)

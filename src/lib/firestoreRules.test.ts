@@ -55,7 +55,7 @@ describe('firestore.rules', () => {
   it('i permessi admin vengono solo dal claim, nessuna email', () => {
     expect(rules).not.toContain('tiscali')
     expect(rules).not.toContain('hotmail')
-    expect(rules).not.toContain('request.auth.token.email_verified')
+    expect(rules).not.toMatch(/function isOperator\(\) \{[^}]*email/)
     expect(rules).toContain('function isOperator()')
     expect(rules).toContain('request.auth.token.admin == true')
     expect(rules).not.toContain('function isLaura()')

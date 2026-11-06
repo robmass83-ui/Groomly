@@ -70,7 +70,15 @@ describe('archivi su Firestore', () => {
   })
 
   it('consenso, invio e disiscrizione lavorano sullo stesso account', async () => {
-    const archivio = archivioPromo(db)
+    // Qui c'è solo Firestore: l'indirizzo confermato arriverebbe da Auth.
+    const suFirestore = archivioPromo(db)
+    const archivio = {
+      ...suFirestore,
+      leggi: async (uid: string) => {
+        const letto = await suFirestore.leggi(uid)
+        return letto && { ...letto, email: 'titolare@test.it' }
+      },
+    }
     const adesso = new Date()
     await impostaEmailPromoPer({ uid: UID, attivo: true, fonte: 'tour' }, archivio, adesso)
     const inviate: string[] = []

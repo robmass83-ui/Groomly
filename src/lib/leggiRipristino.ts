@@ -213,5 +213,8 @@ export function impostazioniRipristino(dalFile: Record<string, unknown>, dalTele
   else delete copy.backup
   if (typeof dalTelefono.passwordHash === 'string') copy.passwordHash = dalTelefono.passwordHash
   else delete copy.passwordHash
+  // La coda è stato del server, non una scelta: quella del file riporterebbe email già spedite o fermate.
+  if (Array.isArray(dalTelefono.codaEmail)) copy.codaEmail = dalTelefono.codaEmail
+  else delete copy.codaEmail
   return copy
 }

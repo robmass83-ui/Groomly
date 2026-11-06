@@ -1,5 +1,5 @@
 import { normalizeEmail } from '../../../src/lib/salonPath'
-import { chiaveEmail } from './silenzioEmail'
+import { chiaveEmail, chiaveSilenzio, firmaSilenzio } from './silenzioEmail'
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import * as logger from 'firebase-functions/logger'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
@@ -58,6 +58,36 @@ function aRotazione<T>(voci: readonly T[], adesso: Date): T[] {
   if (voci.length === 0) return []
   const inizio = Math.floor(adesso.getTime() / 60_000) % voci.length
   return [...voci.slice(inizio), ...voci.slice(0, inizio)]
+}
+
+function aperta(riga: RigaInvio): boolean {
+  return riga.stato === 'in_coda' || riga.stato === 'non_inviata'
+}
+
+/** Solo un indirizzo https vero: un testo con virgolette non deve arrivare al bottone di un'email. */
+function linkRecensioniDi(settings: Record<string, unknown>): string {
+  if (typeof settings.linkRecensioni !== 'string') return ''
+  try {
+    const link = new URL(settings.linkRecensioni.trim())
+    return link.protocol === 'https:' ? link.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * settings.codaEmail lo scrive anche il client: destinatario, nomi e link di una riga aperta
+ * si riprendono sempre dalla scheda del cane e dalle impostazioni, mai dalla riga.
+ */
+function rigaVerificata(riga: RigaInvio, cane: CaneMinuto, link: string): RigaInvio {
+  const { url: _url, ...resto } = riga
+  return {
+    ...resto,
+    email: cane.email ?? '',
+    nomeCane: cane.nome,
+    nomeCliente: cane.nomeCliente ?? '',
+    ...(riga.tipo === 'recensione' && link !== '' ? { url: link } : {}),
+  }
 }
 
 function segnaInviate(posta: PostaGiorno, salonId: string, inviate: number): void {
@@ -352,8 +382,12 @@ export async function inviaSubitoRiga(input: {
   const settingsSnap = await settingsRef.get()
   const settings = settingsSnap.data() ?? {}
   const esistenti = righeDaImpostazioni(settings.codaEmail)
-  const riga = esistenti.find((item) => item.id === input.id)
-  if (!riga) return null
+  const salvata = esistenti.find((item) => item.id === input.id)
+  if (!salvata || salvata.dogId.includes('/')) return null
+  const caneSnap = await db.doc(`${radice}/dogs/${salvata.dogId}`).get()
+  const cane = caneDi(salvata.dogId, caneSnap.data() ?? {})
+  if (!cane) return null
+  const riga = rigaVerificata(salvata, cane, linkRecensioniDi(settings))
   const proSnap = await db.doc(`${radice}/pro/main`).get()
   if (!emailDelPiano(riga.tipo, proSnap.data() as ProMain | undefined, adesso)) return { stato: riga.stato, motivo: 'piano' }
   const business = settings.business && typeof settings.business === 'object' ? settings.business as Record<string, unknown> : {}
@@ -362,7 +396,8 @@ export async function inviaSubitoRiga(input: {
   const emailAccount = typeof accountSnap?.get('email') === 'string' ? accountSnap.get('email') : ''
   const replyTo = emailValida(emailAccount) ? { email: emailAccount.trim(), name: nome || 'Groomly' } : undefined
   const lingua: Lingua = linguaValida(settings.linguaClienti) ?? 'it'
-  const linguaCane = linguaValida((await db.doc(`${radice}/dogs/${riga.dogId}`).get()).data()?.lingua)
+  const linguaCane = cane.lingua
+  const chiave = await chiaveSilenzio(db)
   const posta = await postaOggi(db, adesso)
   const blocco = await db.doc(`${radice}/emailBloccate/${chiaveEmail(riga.email)}`).get()
   const bloccate = new Set(blocco.data() ? [normalizeEmail(riga.email)] : [])
@@ -378,6 +413,7 @@ export async function inviaSubitoRiga(input: {
     fetchImpl: input.fetchImpl,
     subito: true,
     bloccate,
+    firma: (token) => firmaSilenzio(chiave, input.salonId, token),
     prenota: () => prenotaEmailSalone(db, adesso, input.salonId),
     libera: () => liberaEmailSalone(db, adesso, input.salonId),
   })
@@ -440,10 +476,12 @@ async function giroDeiSaloni(
   let saloni = 0
   let inviate = 0
   accesi.sort((a, b) => (a.salonId < b.salonId ? -1 : 1))
+  const chiave = await chiaveSilenzio(db)
   for (const { salonId, settings, servizi } of aRotazione(accesi, adesso)) {
     if (Date.now() >= finoA) break
     const prenota = () => prenotaEmailSalone(db, adesso, salonId)
     const libera = () => liberaEmailSalone(db, adesso, salonId)
+    const firma = (token: string) => firmaSilenzio(chiave, salonId, token)
     try {
       const radice = salonCollection(salonId).join('/')
 
@@ -479,18 +517,26 @@ async function giroDeiSaloni(
       })
       const dalleImpostazioni = righeDaImpostazioni(settings.codaEmail)
       const presenti = new Set(dalleImpostazioni.flatMap((riga) => [riga.id, riga.evento]))
-      const esistenti = [
+      const salvate = [
         ...dalRegistro.filter((riga) => !presenti.has(riga.id) && !presenti.has(riga.evento)),
         ...dalleImpostazioni,
       ]
+      const link = linkRecensioniDi(settings)
+      // Una riga chiusa nel registro non si riapre da settings: un ripristino riporterebbe la coda vecchia.
+      const chiuse = new Map(dalRegistro.filter((riga) => !aperta(riga)).flatMap((riga) => [[riga.id, riga], [riga.evento, riga]] as const))
+      const perCane = new Map(cani.map((cane) => [cane.id, cane]))
+      const esistenti = salvate.map((riga) => {
+        if (!aperta(riga)) return riga
+        const chiusa = chiuse.get(riga.id) ?? chiuse.get(riga.evento)
+        if (chiusa) return chiusa
+        const cane = perCane.get(riga.dogId)
+        return cane ? rigaVerificata(riga, cane, link) : { ...riga, stato: 'chiusa' as const, motivo: 'cane_assente' }
+      })
       const business = settings.business && typeof settings.business === 'object' ? settings.business as Record<string, unknown> : {}
       const nome = typeof business.salonName === 'string' ? business.salonName.trim() : ''
       const emailAccount = typeof accountSnap?.get('email') === 'string' ? accountSnap.get('email') : ''
       const replyTo = emailValida(emailAccount) ? { email: emailAccount.trim(), name: nome || 'Groomly' } : undefined
       const lingua: Lingua = linguaValida(settings.linguaClienti) ?? 'it'
-      const link = typeof settings.linkRecensioni === 'string' && settings.linkRecensioni.trim().startsWith('https://')
-        ? settings.linkRecensioni.trim()
-        : ''
       const nate = righeDelMinuto({
         adesso,
         servizi,
@@ -517,13 +563,14 @@ async function giroDeiSaloni(
         fetchImpl: input.fetchImpl,
         adesso,
         bloccate,
+        firma,
         prenota,
         libera,
         finoA,
       })
       const dopo = applicaEsito(nate.righe, esito)
-      await scriviRighe(db, radice, esistenti, dopo)
-      await scriviCodaImpostazioni(db, `${radice}/settings/main`, esistenti, dopo)
+      await scriviRighe(db, radice, salvate, dopo)
+      await scriviCodaImpostazioni(db, `${radice}/settings/main`, salvate, dopo)
       segnaInviate(posta, salonId, esito.inviate)
       inviate += esito.inviate
       const dopoOfferte = new Map(offerteSalvate.map((offerta) => [offerta.id, offerta]))
@@ -544,6 +591,7 @@ async function giroDeiSaloni(
           fetchImpl: input.fetchImpl,
           adesso,
           salva: scrivi,
+          firma,
           prenota,
           libera,
           finoA,

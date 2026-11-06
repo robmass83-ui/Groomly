@@ -231,6 +231,12 @@ describe('leggiRipristino', () => {
 })
 
 describe('impostazioniRipristino', () => {
+  it('tiene la coda email di adesso, non quella del file', () => {
+    const adesso = [{ id: 'nuova' }]
+    expect(impostazioniRipristino({ codaEmail: [{ id: 'vecchia' }] }, { codaEmail: adesso }).codaEmail).toEqual(adesso)
+    expect(impostazioniRipristino({ codaEmail: [{ id: 'vecchia' }] }, {})).not.toHaveProperty('codaEmail')
+  })
+
   it('tiene il salone del file e il backup del telefono', () => {
     const risultato = impostazioniRipristino(
       { business: { salonName: 'Dal file' }, tagSuggestions: ['ipo'], backup: { autoDaily: true, lastAt: '1999-01-01T00:00:00.000Z' }, passwordHash: 'dal-file' },

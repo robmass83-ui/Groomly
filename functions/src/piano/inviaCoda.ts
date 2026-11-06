@@ -121,8 +121,8 @@ function haSilenzio(salonId: string | undefined): salonId is string {
   return Boolean(salonId) && salonId !== 'shared'
 }
 
-function linkSilenzio(salonId: string, token: string, lingua: Lingua): string {
-  const query = new URLSearchParams({ mode: 'silenzio', salon: salonId, token, lang: lingua })
+function linkSilenzio(salonId: string, token: string, lingua: Lingua, firma?: (token: string) => string): string {
+  const query = new URLSearchParams({ mode: 'silenzio', salon: salonId, token, lang: lingua, ...(firma ? { firma: firma(token) } : {}) })
   return `https://groomlyapp.it/azione?${query.toString()}`
 }
 
@@ -153,6 +153,8 @@ export async function inviaCoda(input: {
   subito?: boolean
   /** Gli indirizzi che hanno chiesto di non ricevere più nulla da questo salone. */
   bloccate?: ReadonlySet<string>
+  /** Firma il link di disiscrizione: solo chi riceve l'email può poi annullarla. */
+  firma?: (token: string) => string
   /** Prenota il posto prima di spedire: falso vuol dire tetto raggiunto, e il giro si ferma. */
   prenota?: () => Promise<boolean>
   /** Restituisce il posto di un'email che Brevo non ha preso. */
@@ -199,10 +201,10 @@ export async function inviaCoda(input: {
       quando,
       rispondi: Boolean(replyTo),
       url: riga.url,
-      silenzio: haSilenzio(input.salonId) ? linkSilenzio(input.salonId, assegnato, linguaRiga) : undefined,
+      silenzio: haSilenzio(input.salonId) ? linkSilenzio(input.salonId, assegnato, linguaRiga, input.firma) : undefined,
     })
     try {
-      const uscita = haSilenzio(input.salonId) ? { 'List-Unsubscribe': `<${linkSilenzio(input.salonId, assegnato, linguaRiga)}>` } : undefined
+      const uscita = haSilenzio(input.salonId) ? { 'List-Unsubscribe': `<${linkSilenzio(input.salonId, assegnato, linguaRiga, input.firma)}>` } : undefined
       await postBrevoHtml(input.apiKey, riga.email, mail.oggetto, mail.html, input.fetchImpl ?? fetch, replyTo, uscita)
       inviate += 1
       spedite.push(riga.id)
@@ -234,6 +236,7 @@ export async function inviaOfferteAttesa(input: {
   salva?: (offerta: OffertaAttesaDoc) => Promise<void>
   salonId?: string
   bloccate?: ReadonlySet<string>
+  firma?: (token: string) => string
   prenota?: () => Promise<boolean>
   libera?: () => Promise<void>
   finoA?: number
@@ -266,7 +269,7 @@ export async function inviaOfferteAttesa(input: {
       url,
     })
     margine -= 1
-    const uscita = haSilenzio(input.salonId) && offerta.token ? linkSilenzio(input.salonId, offerta.token, linguaIscritto) : ''
+    const uscita = haSilenzio(input.salonId) && offerta.token ? linkSilenzio(input.salonId, offerta.token, linguaIscritto, input.firma) : ''
     try {
       await postBrevoHtml(
         input.apiKey,
@@ -467,13 +470,14 @@ export function righeDelMinuto(input: {
     const tokenDi = input.tokenDi ?? (() => randomBytes(32).toString('hex'))
     for (const nuova of offerteDaCreare({ buchi, iscritti, esistenti: inviate, adesso: input.adesso })) {
       const nota = salvate.get(nuova.id)
-      const riuso = nota && typeof nota.token === 'string' && TOKEN.test(nota.token) && typeof nota.url === 'string' && nota.url !== ''
+      const riuso = nota && typeof nota.token === 'string' && TOKEN.test(nota.token)
       const token = riuso ? nota.token as string : tokenDi()
       offerteAttesa.push({
         ...nuova,
         token,
         inviataIl: null,
-        url: riuso ? nota.url as string : `https://groomlyapp.it/s/${input.slug}?attesa=${token}`,
+        // Il link si ricostruisce sempre: quello salvato non si riusa per il bottone di un'email.
+        url: `https://groomlyapp.it/s/${input.slug}?attesa=${token}`,
       })
     }
   }

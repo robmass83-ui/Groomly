@@ -131,13 +131,14 @@ export async function inviaRichiestaPer(input: {
   const business = impostazioni.business && typeof impostazioni.business === 'object' ? impostazioni.business as Record<string, unknown> : {}
   const salone = typeof business.salonName === 'string' ? business.salonName.trim() : ''
   const telefono = typeof business.phone === 'string' ? business.phone.trim() : ''
+  const nomeCane = nomeCaneRicevuta(input.cane)
   let emailStato: 'inviata' | 'non_inviata' = 'non_inviata'
   if (apiKey) {
     try {
       const lingua = linguaCliente(linguaPagina, impostazioni.linguaClienti)
       const scheda = riepilogoRicevuta(lingua, {
         nome: ingresso.nome,
-        cane: (input.cane ?? '').trim(),
+        cane: nomeCane,
         razza,
         specie: input.specie,
         taglia,
@@ -151,7 +152,7 @@ export async function inviaRichiestaPer(input: {
       const replyTo = await replyToDelSalone(input.salonId, salone)
       await spedisciHtml(apiKey, tipoEmailPrenotazione('nuova'), lingua, ingresso.email, {
         cliente: ingresso.nome,
-        cane: (input.cane ?? '').trim(),
+        cane: nomeCane,
         rispondi: Boolean(replyTo),
         ...(salone ? { salone } : {}),
         scheda,
@@ -163,6 +164,11 @@ export async function inviaRichiestaPer(input: {
     }
   }
   return { ok: true, id: ref.id, emailStato }
+}
+
+/** La ricevuta va a un indirizzo non ancora confermato: lo stesso limite della richiesta, e niente a capo. */
+export function nomeCaneRicevuta(valore: string | undefined): string {
+  return (valore ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, 80)
 }
 
 function campiRichiesta(

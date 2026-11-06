@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { archivio } = vi.hoisted(() => ({ archivio: new Map<string, Record<string, unknown>>() }))
 vi.mock('firebase-admin/firestore', async () => (await import('../piano/firestoreFinto.testutil')).firestoreFinto(archivio))
 
+vi.mock('firebase-admin/auth', () => ({
+  getAuth: () => ({
+    getUser: async (uid: string) => ({ uid, email: archivio.get(`accounts/${uid}`)?.email, emailVerified: uid !== 'nonconfermato' }),
+  }),
+}))
+
 import { getFirestore, type Firestore } from 'firebase-admin/firestore'
 import {
   anteprimaComunicazionePer,
@@ -141,6 +147,13 @@ describe('inviaComunicazionePer', () => {
     expect(html).toContain('Sonntag')
     expect(html).toContain('mode=promo')
     expect(headers['List-Unsubscribe']).toContain('mode=promo')
+  })
+
+  it('la promozionale non parte verso un indirizzo mai confermato, anche col consenso', async () => {
+    archivio.set('accounts/nonconfermato', { salonId: 's2', role: 'titolare', email: 'estraneo@a.it', emailPromo: { attivo: true, at: 'x', fonte: 'account' } })
+    await invia({ email: 'promozionale' })
+    const chiamate = posta.mock.calls as unknown as [string][]
+    expect(chiamate.map((c) => c[0])).not.toContain('estraneo@a.it')
   })
 
   it('quella di servizio va a tutti i titolari senza il link', async () => {

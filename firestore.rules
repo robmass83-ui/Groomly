@@ -87,12 +87,17 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.salonId == uid
         && request.resource.data.role == 'titolare'
-        && request.resource.data.legacy == false;
+        && request.resource.data.legacy == false
+        && request.resource.data.email == request.auth.token.email.lower()
+        && !request.resource.data.keys().hasAny(['emailPromo', 'consensoMetriche']);
       allow update: if signedIn() && request.auth.uid == uid
         && request.resource.data.salonId == resource.data.salonId
         && request.resource.data.role == resource.data.role
         && request.resource.data.legacy == resource.data.legacy
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['consensoMetriche']);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['consensoMetriche', 'emailPromo', 'termini'])
+        // L'email si allinea solo a quella di accesso confermata: il server la usa come recapito.
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email'])
+          || (request.resource.data.email == request.auth.token.email.lower() && request.auth.token.email_verified == true));
       allow delete: if signedIn() && request.auth.uid == uid && resource.data.legacy == false && resource.data.salonId == uid;
     }
 
@@ -303,8 +308,10 @@ service cloud.firestore {
     match /salons/{salonId}/attesa/{id} {
       allow read, write: if canUse(salonId);
     }
+    // Token e link delle offerte: li usano solo le functions, l'app non le legge.
+    // Le regole si sommano: anche quella generica qui sotto deve escludere questa raccolta.
     match /salons/{salonId}/offerteAttesa/{id} {
-      allow read, write: if canUse(salonId);
+      allow read, write: if false;
     }
     match /salons/{salonId}/avvisiAttesa/{id} {
       allow read, write: if canUse(salonId);
@@ -315,11 +322,11 @@ service cloud.firestore {
       allow write: if false;
     }
     match /salons/{salonId}/{kind}/{id} {
-      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta');
+      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta') && kind != 'offerteAttesa';
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
     match /salons/{salonId}/{kind}/{id}/{rest=**} {
-      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta');
+      allow read: if canUse(salonId) && !(kind == 'avvisi' && id == 'beta') && kind != 'offerteAttesa';
       allow write: if ownerRank(salonId) && salonKindWritable(kind);
     }
 

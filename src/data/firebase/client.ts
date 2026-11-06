@@ -2468,12 +2468,14 @@ async function resolveSalon(user: User): Promise<void> {
  * Dopo il cambio email Firebase aggiorna user.email solo a link aperto: da lì l'email dell'account
  * (accounts/<uid>) si allinea, e solo se verificata. Un errore non blocca nulla: si riprova al prossimo accesso.
  */
-export async function allineaEmailAccount(user: { uid: string; email: string | null; emailVerified: boolean }): Promise<void> {
+export async function allineaEmailAccount(user: { uid: string; email: string | null; emailVerified: boolean; getIdToken?: (forza: boolean) => Promise<string> }): Promise<void> {
   if (!user.emailVerified || !user.email) return
   try {
     const email = normalizeEmail(user.email)
     const { data, esito } = await readAccount(user.uid)
     if (esito !== 'letto' || !data || docText(data, 'email') === email) return
+    // Le regole guardano il token: quello vecchio ha ancora l'email di prima.
+    await user.getIdToken?.(true)
     const { doc, updateDoc } = await loadFirestore()
     await updateDoc(doc(await database(), 'accounts', user.uid), { email })
     if (accountDoc?.uid === user.uid) accountDoc = { uid: user.uid, data: { ...accountDoc.data, email } }

@@ -61,6 +61,7 @@ describe('invia subito secondo il piano', () => {
   beforeEach(() => {
     archivio.clear()
     archivio.set('salons/s1/settings/main', { serviziEmail: { pronto: { modo: 'manuale' } }, codaEmail: [riga] })
+    archivio.set('salons/s1/dogs/d1', { name: 'Rex', contact: { name: 'Ada', email: 'ada@cliente.it' } })
   })
 
   it('in Go non spedisce una email Plus e non tocca la coda', async () => {
@@ -125,10 +126,57 @@ describe('il conto del tetto', () => {
 
   it('sale prima di spedire, così una scrittura fallita dopo non lo azzera', async () => {
     archivio.set('salons/s1/settings/main', { codaEmail: [riga] })
+    archivio.set('salons/s1/dogs/d1', { name: 'Rex', contact: { name: 'Ada', email: 'ada@cliente.it' } })
     archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'attivo' })
     archivio.set('sistema/postaGiorno', { giorno: oggi(), n: 300, perSalone: { s1: 300 }, accesi: ['s1'] })
     const fetchImpl = vi.fn(async () => new Response('{}', { status: 201 }))
     await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'k', fetchImpl: fetchImpl as typeof fetch })
     expect(fetchImpl).not.toHaveBeenCalled()
+  })
+})
+
+describe('una riga scritta dal client', () => {
+  const brevo = () => vi.fn(async (_url: string, _init?: RequestInit) => new Response('{}', { status: 201 }))
+
+  beforeEach(() => {
+    archivio.clear()
+    archivio.set('salons/s1/pro/main', { piano: 'pro', stato: 'attivo' })
+    archivio.set('salons/s1/dogs/d1', { name: 'Rex', contact: { name: 'Ada', email: 'ada@cliente.it' } })
+  })
+
+  it('parte verso l’indirizzo del cane, non verso quello scritto nella riga', async () => {
+    archivio.set('salons/s1/settings/main', { codaEmail: [{ ...riga, email: 'estraneo@altro.it', nomeCane: 'Compra qui' }] })
+    const fetchImpl = brevo()
+    await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'k', fetchImpl: fetchImpl as unknown as typeof fetch })
+    const corpo = String(fetchImpl.mock.calls[0]?.[1]?.body)
+    expect(corpo).toContain('ada@cliente.it')
+    expect(corpo).not.toContain('estraneo@altro.it')
+    expect(corpo).not.toContain('Compra qui')
+  })
+
+  it('senza il cane non parte', async () => {
+    archivio.set('salons/s1/settings/main', { codaEmail: [{ ...riga, dogId: 'inventato' }] })
+    const fetchImpl = brevo()
+    expect(await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'k', fetchImpl: fetchImpl as unknown as typeof fetch })).toBeNull()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('una recensione usa il link delle impostazioni, non quello della riga', async () => {
+    archivio.set('salons/s1/settings/main', {
+      linkRecensioni: 'https://recensioni.example/salone',
+      codaEmail: [{ ...riga, tipo: 'recensione', url: 'https://truffa.example/' }],
+    })
+    const fetchImpl = brevo()
+    await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'k', fetchImpl: fetchImpl as unknown as typeof fetch })
+    const corpo = String(fetchImpl.mock.calls[0]?.[1]?.body)
+    expect(corpo).toContain('recensioni.example')
+    expect(corpo).not.toContain('truffa.example')
+  })
+
+  it('il link di disiscrizione è firmato', async () => {
+    archivio.set('salons/s1/settings/main', { codaEmail: [riga] })
+    const fetchImpl = brevo()
+    await inviaSubitoRiga({ salonId: 's1', id: 'r1', apiKey: 'k', fetchImpl: fetchImpl as unknown as typeof fetch })
+    expect(String(fetchImpl.mock.calls[0]?.[1]?.body)).toMatch(/firma=[0-9a-f]{32}/)
   })
 })

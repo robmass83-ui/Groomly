@@ -285,6 +285,36 @@ describe('regole Firestore sull’emulatore', () => {
       await assertFails(setDoc(doc(db, 'salons', LAURA_UID, 'members', 'uid-nuovo'), { uid: 'uid-nuovo', role: 'socio', status: 'attivo', accessWithoutPro: true }))
     })
 
+    it('l’account non si crea con un’email non propria né con consensi già scritti', async () => {
+      const db = env.authenticatedContext('uid-reg', { email: 'nuova@test.it', email_verified: false }).firestore()
+      const ref = doc(db, 'accounts', 'uid-reg')
+      const base = { salonId: 'uid-reg', role: 'titolare', legacy: false }
+      await assertFails(setDoc(ref, { ...base, email: 'estraneo@test.it' }))
+      await assertFails(setDoc(ref, { ...base, email: 'nuova@test.it', emailPromo: { attivo: true } }))
+      await assertFails(setDoc(ref, { ...base, email: 'nuova@test.it', consensoMetriche: { attivo: true } }))
+      await assertSucceeds(setDoc(ref, { ...base, email: 'nuova@test.it', lingua: 'it', termini: { accettati: true } }))
+    })
+
+    it('l’email dell’account si allinea solo a quella di accesso confermata', async () => {
+      await env.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), 'accounts', 'uid-mail'), { salonId: 'uid-mail', role: 'titolare', legacy: false, email: 'vecchia@test.it' })
+      })
+      const ref = (token: { email: string; email_verified: boolean }) => doc(env.authenticatedContext('uid-mail', token).firestore(), 'accounts', 'uid-mail')
+      const confermata = { email: 'nuova@test.it', email_verified: true }
+      await assertFails(updateDoc(ref(confermata), { email: 'estraneo@test.it' }))
+      await assertFails(updateDoc(ref({ ...confermata, email_verified: false }), { email: 'nuova@test.it' }))
+      await assertFails(updateDoc(ref(confermata), { emailPromo: { attivo: true } }))
+      await assertFails(updateDoc(ref(confermata), { termini: { versione: 'finta' } }))
+      await assertSucceeds(updateDoc(ref({ ...confermata, email_verified: false }), { lingua: 'de', firstName: 'Ada' }))
+      await assertSucceeds(updateDoc(ref(confermata), { email: 'nuova@test.it' }))
+    })
+
+    it('le offerte della lista d’attesa non si leggono e non si scrivono dal client', async () => {
+      const db = env.authenticatedContext(ALTRO).firestore()
+      await assertFails(getDoc(doc(db, 'salons', SALON, 'offerteAttesa', 'o1')))
+      await assertFails(setDoc(doc(db, 'salons', SALON, 'offerteAttesa', 'o1'), { url: 'https://truffa.example' }))
+    })
+
     it('l’admin senza account non scrive nel salone di Laura', async () => {
       await assertFails(setDoc(doc(admin(), 'salons', LAURA_UID, 'services', 'finto'), { name: 'Finto' }))
     })

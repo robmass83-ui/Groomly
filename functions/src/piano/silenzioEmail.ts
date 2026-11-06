@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import type { Firestore } from 'firebase-admin/firestore'
 import { bloccaCane, emailValida, type RigaCoda, type StatoCoda, type TipoCoda } from '../../../src/lib/codaEmail'
 import { normalizeEmail } from '../../../src/lib/salonPath'
@@ -12,6 +12,33 @@ export type FonteBlocco = 'link' | 'scheda'
 
 export function chiaveEmail(email: string): string {
   return createHash('sha256').update(normalizeEmail(email)).digest('hex')
+}
+
+let chiaveLink: string | null = null
+
+/** La chiave dei link di disiscrizione: sta solo sul server, in una raccolta che il client non legge. */
+export async function chiaveSilenzio(db: Firestore): Promise<string> {
+  if (chiaveLink) return chiaveLink
+  const ref = db.doc('sistema/silenzio')
+  chiaveLink = await db.runTransaction(async (tx) => {
+    const letta = (await tx.get(ref)).data()?.chiave
+    if (typeof letta === 'string' && letta.length >= 32) return letta
+    const nuova = randomBytes(32).toString('hex')
+    tx.set(ref, { chiave: nuova })
+    return nuova
+  })
+  return chiaveLink
+}
+
+/** La firma sta solo nel link spedito: chi legge il token nel salone non può calcolarla. */
+export function firmaSilenzio(chiave: string, salonId: string, token: string): string {
+  return createHmac('sha256', chiave).update(`${salonId}\n${token}`).digest('hex').slice(0, 32)
+}
+
+function firmaValida(chiave: string, salonId: string, token: string, firma: string): boolean {
+  const attesa = Buffer.from(firmaSilenzio(chiave, salonId, token))
+  const ricevuta = Buffer.from(firma)
+  return ricevuta.length === attesa.length && timingSafeEqual(ricevuta, attesa)
 }
 
 export interface ArchivioSilenzio {
@@ -163,10 +190,12 @@ export async function silenzioEmailPer(
 }
 
 // Il ritorno è del cliente: chi ha il link della sua email toglie il blocco, chiunque l'abbia messo.
+// Il token da solo non basta, perché il salone lo legge: serve la firma, che esiste solo nell'email.
 export async function riattivaEmailPer(
-  input: { salonId: string; token: string },
+  input: { salonId: string; token: string; firma: string; chiave: string },
   archivio: ArchivioSilenzio,
 ): Promise<{ ok: true }> {
+  if (!firmaValida(input.chiave, input.salonId, input.token, input.firma)) throw erroreServer('not-found', 'link_non_valido')
   const { email, dogId } = await destinatarioDelLink(input, archivio)
   const cani = new Set(dogId ? [dogId] : [])
   if (emailValida(email)) {

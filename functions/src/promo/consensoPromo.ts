@@ -1,3 +1,4 @@
+import { getAuth } from 'firebase-admin/auth'
 import type { Firestore } from 'firebase-admin/firestore'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { leggiEmailPromo, type EmailPromo } from '../../../src/lib/versioneLegale'
@@ -11,14 +12,23 @@ export interface ArchivioPromo {
   scrivi(uid: string, emailPromo: EmailPromo, riga?: Record<string, unknown>): Promise<void>
 }
 
+/** Le promozioni vanno solo all'indirizzo di accesso confermato, non a quello scritto nell'account. */
+async function emailConfermata(uid: string): Promise<string> {
+  try {
+    const utente = await getAuth().getUser(uid)
+    return utente.emailVerified === true ? utente.email ?? '' : ''
+  } catch {
+    return ''
+  }
+}
+
 export function archivioPromo(db: Firestore): ArchivioPromo {
   return {
     async leggi(uid) {
       const snap = await db.doc(`accounts/${uid}`).get()
       if (!snap.exists) return null
-      const email = snap.get('email')
       return {
-        email: typeof email === 'string' ? email : '',
+        email: await emailConfermata(uid),
         lingua: linguaValida(snap.get('lingua')) ?? undefined,
         emailPromo: leggiEmailPromo(snap.get('emailPromo')),
       }
