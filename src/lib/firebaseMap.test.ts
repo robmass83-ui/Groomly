@@ -392,3 +392,14 @@ function appointment(partial: Partial<Appointment> = {}): Appointment {
     ...partial,
   }
 }
+
+describe('servizio senza bagno', () => {
+  const base = { id: 's', name: 'Unghie', kind: 'principale', durationMin: { piccola: 1, media: 1, grande: 1 }, price: { piccola: 1, media: 1, grande: 1 }, order: 0, active: true, createdAt: new Date(0), updatedAt: new Date(0) } as const
+
+  it('si scrive solo se acceso e si rilegge', () => {
+    expect(serviceToDoc({ ...base })).not.toHaveProperty('senzaBagno')
+    expect(serviceToDoc({ ...base, senzaBagno: false })).not.toHaveProperty('senzaBagno')
+    expect(serviceFromDoc('s', serviceToDoc({ ...base, senzaBagno: true })).senzaBagno).toBe(true)
+    expect(serviceFromDoc('s', serviceToDoc({ ...base })).senzaBagno).toBeUndefined()
+  })
+})

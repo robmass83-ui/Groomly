@@ -25,6 +25,8 @@ export interface Service {
   price: SizeTriple
   order: number
   active: boolean
+  /** Servizio principale che non conta nelle stime del magazzino. */
+  senzaBagno?: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -35,6 +37,7 @@ export interface ServiceInput {
   durationMin: SizeTriple
   price: SizeTriple
   active: boolean
+  senzaBagno?: boolean
 }
 
 export interface ServicePatch {
@@ -42,6 +45,7 @@ export interface ServicePatch {
   durationMin?: SizeTriple
   price?: SizeTriple
   active?: boolean
+  senzaBagno?: boolean
 }
 
 export const SERVICE_ICON_KEYS: ServiceIconKey[] = [

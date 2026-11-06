@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DETTAGLI_VUOTI, arrivatoProdotto, daOrdinare, dosaggio, filtraProdotti, fornitori, leggiQuantita, misuraProdotto, muoviProdotto, prodottoDaDoc, prodottoValido, quantitaProposta, statoProdotto, tacche, totaleProdotto, type Prodotto } from './prodotti'
+import { DETTAGLI_VUOTI, arrivatoProdotto, daButtare, daOrdinare, dosaggio, scadenzaProdotto, filtraProdotti, fornitori, leggiQuantita, misuraProdotto, muoviProdotto, prodottoDaDoc, prodottoValido, quantitaProposta, statoProdotto, tacche, totaleProdotto, type Prodotto } from './prodotti'
 import { CATALOGO_PRODOTTI, KIT_BASE } from './catalogoProdotti'
 import { de } from '../i18n/de'
 import { en } from '../i18n/en'
@@ -191,6 +191,51 @@ describe('prodotti', () => {
       expect(muoviProdotto(aperto, -1, data).apertoIl).toBeNull()
       expect(muoviProdotto(aperto, 2, data).apertoIl).toBe(123)
       expect(arrivatoProdotto({ ...aperto, inArrivo: 2 }, data).apertoIl).toBe(123)
+    })
+  })
+
+  describe('salone e vendita', () => {
+    const elenco = [prodotto({ id: 's' }), prodotto({ id: 'v', uso: 'vendita' }), prodotto({ id: 'f', uso: 'vendita', pezzi: 0 }), prodotto({ id: 'o', pezzi: 1 })]
+
+    it('Vendita mostra solo uso vendita, le categorie solo il salone', () => {
+      expect(filtraProdotti(elenco, '', 'vendita').map((item) => item.id)).toEqual(['v', 'f'])
+      expect(filtraProdotti(elenco, '', 'lavaggio').map((item) => item.id)).toEqual(['s', 'o'])
+    })
+
+    it('Tutti e Da ordinare li mostrano entrambi', () => {
+      expect(filtraProdotti(elenco, '', 'tutti')).toHaveLength(4)
+      expect(filtraProdotti(elenco, '', 'daOrdinare').map((item) => item.id)).toEqual(['f', 'o'])
+      expect(daOrdinare(elenco).map((item) => item.id)).toEqual(['f', 'o'])
+    })
+
+    it('la stima aggiunge prodotti a Da ordinare senza toccare gli altri', () => {
+      expect(daOrdinare(elenco, new Set(['s'])).map((item) => item.id)).toEqual(['s', 'f', 'o'])
+      expect(filtraProdotti(elenco, '', 'daOrdinare', new Set(['s'])).map((item) => item.id)).toEqual(['s', 'f', 'o'])
+    })
+  })
+
+  describe('scadenze', () => {
+    const aperto = new Date(2026, 9, 3).getTime()
+
+    it('somma i mesi alla data di apertura', () => {
+      expect(scadenzaProdotto(prodotto({ apertoIl: aperto, mesiDopoApertura: 6 }))).toEqual(new Date(2027, 3, 3))
+    })
+
+    it('a fine mese resta nel mese giusto', () => {
+      expect(scadenzaProdotto(prodotto({ apertoIl: new Date(2027, 0, 31).getTime(), mesiDopoApertura: 1 }))).toEqual(new Date(2027, 1, 28))
+    })
+
+    it('senza data o senza mesi non scade', () => {
+      expect(scadenzaProdotto(prodotto({ apertoIl: aperto }))).toBeNull()
+      expect(scadenzaProdotto(prodotto({ mesiDopoApertura: 12 }))).toBeNull()
+      expect(daButtare(prodotto({ apertoIl: 1 }), new Date(2030, 0, 1))).toBe(false)
+    })
+
+    it('è da buttare solo a tempo passato', () => {
+      const elenco = prodotto({ apertoIl: aperto, mesiDopoApertura: 6 })
+      expect(daButtare(elenco, new Date(2027, 3, 2))).toBe(false)
+      expect(daButtare(elenco, new Date(2027, 3, 3))).toBe(true)
+      expect(filtraProdotti([elenco], '', 'daButtare', new Set(), new Date(2027, 3, 3))).toHaveLength(1)
     })
   })
 

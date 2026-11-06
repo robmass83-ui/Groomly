@@ -1,11 +1,13 @@
-import { AlertTriangle, Check, ChevronRight, Minus, Plus, Search } from 'lucide-react'
+import { AlertTriangle, Check, ChevronRight, Minus, Plus, Search, Trash2 } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { useToast } from '../components/layout/Toast'
+import { ConfrontoTanica } from '../components/magazzino/ConfrontoTanica'
 import { DatiProdotto, type BozzaProdotto } from '../components/magazzino/DatiProdotto'
 import { KitBase } from '../components/magazzino/KitBase'
 import { MovimentoSheet, type ModoMovimento } from '../components/magazzino/MovimentoSheet'
+import { Riepilogo, RiepilogoBloccato } from '../components/magazzino/Riepilogo'
 import { SceltaProdotto } from '../components/magazzino/SceltaProdotto'
 import { Tacche } from '../components/magazzino/Tacche'
 import { ETICHETTA_CATEGORIA, chipMagazzino } from '../components/magazzino/categorie'
@@ -13,9 +15,11 @@ import { IconButton } from '../components/ui/IconButton'
 import { SearchBar } from '../components/ui/SearchBar'
 import { useProdotti } from '../hooks/useProdotti'
 import { useSession } from '../hooks/useSession'
+import { useStimeMagazzino } from '../hooks/useStimeMagazzino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
-import { CATEGORIE_PRODOTTO, daOrdinare, filtraProdotti, misuraProdotto, muoviProdotto, statoProdotto, type FiltroProdotti, type Prodotto, type StatoProdotto } from '../lib/prodotti'
+import { CATEGORIE_SCELTA, daButtare, daOrdinare, filtraProdotti, misuraProdotto, muoviProdotto, statoProdotto, type FiltroProdotti, type Prodotto, type StatoProdotto } from '../lib/prodotti'
+import { chiudiConfronto, correggiConsumo, fraseDurata, riepilogoMagazzino, type Confronto } from '../lib/stimeMagazzino'
 import { SIZES } from '../theme/sizes'
 import { USER_TEXT } from '../theme/text'
 import { TYPE } from '../theme/theme'
@@ -63,10 +67,20 @@ export function MagazzinoPage() {
   const { prodotti, save } = useProdotti(gate.kind === 'in' ? gate.account.uid : '')
   const [testo, setTesto] = useState('')
   const [cerca, setCerca] = useState(false)
-  const [filtro, setFiltro] = useState<FiltroProdotti>('tutti')
+  const [scelto, setFiltro] = useState<FiltroProdotti>('tutti')
   const [aperto, setAperto] = useState<Aperto>(null)
-  const trovati = filtraProdotti(prodotti, testo, filtro)
-  const mancano = daOrdinare(prodotti).length
+  const [domanda, setDomanda] = useState<{ id: string; confronto: Confronto } | null>(null)
+  const uid = gate.kind === 'in' ? gate.account.uid : ''
+  const stime = useStimeMagazzino(uid, prodotti)
+  const adesso = new Date()
+  const conAltro = prodotti.some((item) => item.uso === 'salone' && item.categoria === 'varie')
+  const daButtareConto = prodotti.filter((item) => daButtare(item, adesso)).length
+  // Un filtro rimasto senza il suo chip o la sua striscia non deve lasciare la pagina vuota.
+  const filtro = (scelto === 'varie' && !conAltro) || (scelto === 'daButtare' && daButtareConto === 0) ? 'tutti' : scelto
+  const trovati = filtraProdotti(prodotti, testo, filtro, stime.sotto, adesso)
+  const mancano = daOrdinare(prodotti, stime.sotto).length
+  const conCosto = prodotti.some((item) => item.uso === 'salone' && item.costo !== null)
+  const riepilogo = stime.accesso ? riepilogoMagazzino(prodotti, stime.incassi, adesso) : null
   const conto = prodotti.length === 1 ? frasi.magProdottoUno : t(lingua, 'magProdottiConto', { n: prodotti.length })
   const movimento = aperto?.tipo === 'movimento' ? prodotti.find((item) => item.id === aperto.id) : undefined
 
@@ -86,6 +100,14 @@ export function MagazzinoPage() {
       undefined,
       5000,
     )
+    const confronto = delta < 0 ? stime.confronto(dopo) : null
+    if (confronto) setDomanda({ id: dopo.id, confronto })
+  }
+
+  function rispondi(aggiorna: boolean) {
+    const prodotto = prodotti.find((item) => item.id === domanda?.id)
+    if (prodotto && domanda) salva(aggiorna ? correggiConsumo(prodotto, domanda.confronto, new Date()) : chiudiConfronto(prodotto, new Date()))
+    setDomanda(null)
   }
 
   return (
@@ -112,14 +134,27 @@ export function MagazzinoPage() {
                 <ChevronRight size={18} strokeWidth={2} aria-hidden />
               </Link>
             ) : null}
+            {daButtareConto > 0 ? (
+              <button type="button" aria-pressed={filtro === 'daButtare'} onClick={() => setFiltro(filtro === 'daButtare' ? 'tutti' : 'daButtare')} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, padding: '8px 12px', border: 0, borderRadius: 14, background: 'var(--bad-s)', color: 'var(--bad)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+                <Trash2 size={20} strokeWidth={2} aria-hidden />
+                <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <strong>{daButtareConto === 1 ? frasi.magDaButtareUno : t(lingua, 'magDaButtareConto', { n: daButtareConto })}</strong>
+                  <small style={{ fontSize: TYPE.meta }}>{frasi.magDaButtareDettaglio}</small>
+                </span>
+              </button>
+            ) : null}
+            {riepilogo ? <Riepilogo dati={riepilogo} /> : null}
+            {!stime.accesso && conCosto ? <RiepilogoBloccato onApri={stime.apri} /> : null}
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
               <button type="button" aria-pressed={filtro === 'tutti'} onClick={() => setFiltro('tutti')} style={{ ...chipMagazzino(filtro === 'tutti'), flex: 'none' }}>{frasi.magTutti}</button>
               <button type="button" aria-pressed={filtro === 'daOrdinare'} onClick={() => setFiltro('daOrdinare')} style={{ ...chipMagazzino(filtro === 'daOrdinare'), flex: 'none' }}>{frasi.magStatoOrdina}</button>
-              {CATEGORIE_PRODOTTO.map((categoria) => (
+              {CATEGORIE_SCELTA.map((categoria) => (
                 <button key={categoria} type="button" aria-pressed={filtro === categoria} onClick={() => setFiltro(categoria)} style={{ ...chipMagazzino(filtro === categoria), flex: 'none' }}>
                   {categoria === 'cura' ? frasi.magCatCura : frasi[ETICHETTA_CATEGORIA[categoria]]}
                 </button>
               ))}
+              <button type="button" aria-pressed={filtro === 'vendita'} onClick={() => setFiltro('vendita')} style={{ ...chipMagazzino(filtro === 'vendita'), flex: 'none' }}>{frasi.magCatVendita}</button>
+              {conAltro ? <button type="button" aria-pressed={filtro === 'varie'} onClick={() => setFiltro('varie')} style={{ ...chipMagazzino(filtro === 'varie'), flex: 'none' }}>{frasi.magCatAltro}</button> : null}
             </div>
             {trovati.length === 0 ? (
               <p style={{ margin: 0, padding: '20px 0', textAlign: 'center', color: 'var(--tx3)' }}>{frasi.magNessunRisultato}</p>
@@ -129,6 +164,8 @@ export function MagazzinoPage() {
                   const stato = statoProdotto(prodotto)
                   const Icona = stato === 'ok' ? Check : AlertTriangle
                   const misura = misuraProdotto(prodotto, lingua)
+                  const stima = prodotto.pezzi > 0 ? stime.stima(prodotto) : null
+                  const durata = stima ? fraseDurata(stima.giorni) : null
                   return (
                     <div key={prodotto.id} style={riga}>
                       <Link to={`/altro/magazzino/${prodotto.id}`} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, color: 'inherit', textDecoration: 'none' }}>
@@ -136,6 +173,8 @@ export function MagazzinoPage() {
                         <small style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0 6px', fontSize: TYPE.meta, color: 'var(--tx3)' }}>
                           {misura ? <span>{misura}</span> : null}
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: COLORE_STATO[stato], fontWeight: 700 }}><Icona size={12} strokeWidth={2.4} aria-hidden />{frasi[ETICHETTA_STATO[stato]]}</span>
+                          {daButtare(prodotto, adesso) ? <span style={{ color: 'var(--bad)', fontWeight: 700 }}>{frasi.magDaButtare}</span> : null}
+                          {durata ? <span>{t(lingua, durata.chiave, { n: durata.n })}</span> : null}
                         </small>
                         <span style={{ marginTop: 4 }}><Tacche pezzi={prodotto.pezzi} soglia={prodotto.soglia} stato={stato} /></span>
                       </Link>
@@ -170,6 +209,7 @@ export function MagazzinoPage() {
       {aperto?.tipo === 'dati' ? (
         <DatiProdotto bozza={aperto.bozza} prodotti={prodotti} onClose={() => setAperto(null)} save={save} onSalvato={() => setAperto(null)} />
       ) : null}
+      {domanda ? <ConfrontoTanica confronto={domanda.confronto} onRisposta={rispondi} /> : null}
       {movimento && aperto?.tipo === 'movimento' ? (
         <MovimentoSheet prodotto={movimento} modoIniziale={aperto.modo} onClose={() => setAperto(null)} onConferma={(delta) => { setAperto(null); muovi(movimento, delta) }} />
       ) : null}

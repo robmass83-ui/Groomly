@@ -1,3 +1,4 @@
+import { addMonths } from 'date-fns'
 import type { Lingua } from '../i18n/lingua'
 import type { DogSize } from '../types/models'
 import { NOMI_VECCHI } from './catalogoProdotti'
@@ -7,7 +8,7 @@ import { normalizeSearch } from './normalizza'
 export const CATEGORIE_PRODOTTO = ['lavaggio', 'finitura', 'cura', 'macchinette', 'pulizia', 'tocchi', 'varie'] as const
 export type CategoriaProdotto = (typeof CATEGORIE_PRODOTTO)[number]
 export const CATEGORIE_SCELTA = CATEGORIE_PRODOTTO.filter((categoria) => categoria !== 'varie')
-export type FiltroProdotti = CategoriaProdotto | 'tutti' | 'daOrdinare'
+export type FiltroProdotti = CategoriaProdotto | 'tutti' | 'daOrdinare' | 'vendita' | 'daButtare'
 
 export const ETICHETTA_CATEGORIA = {
   lavaggio: 'magCatLavaggio',
@@ -264,8 +265,18 @@ export function arrivatoProdotto(prodotto: Prodotto, adesso: Date): Prodotto {
   return { ...muoviProdotto(prodotto, prodotto.inArrivo, adesso), inArrivo: 0, ordinatoIl: null, updatedAt: adesso }
 }
 
-export function daOrdinare(prodotti: Prodotto[]): Prodotto[] {
-  return prodotti.filter((prodotto) => statoProdotto(prodotto) !== 'ok' && prodotto.inArrivo === 0)
+/** `sotto` sono i prodotti che la stima vede finire prima del prossimo ordine. */
+export function daOrdinare(prodotti: Prodotto[], sotto: ReadonlySet<string> = new Set()): Prodotto[] {
+  return prodotti.filter((prodotto) => (statoProdotto(prodotto) !== 'ok' && prodotto.inArrivo === 0) || sotto.has(prodotto.id))
+}
+
+export function scadenzaProdotto(prodotto: Prodotto): Date | null {
+  return prodotto.apertoIl === null || prodotto.mesiDopoApertura === null ? null : addMonths(new Date(prodotto.apertoIl), prodotto.mesiDopoApertura)
+}
+
+export function daButtare(prodotto: Prodotto, adesso: Date): boolean {
+  const scadenza = scadenzaProdotto(prodotto)
+  return scadenza !== null && scadenza.getTime() <= adesso.getTime()
 }
 
 /** Riporta il prodotto al doppio del minimo. */
@@ -292,8 +303,16 @@ export function fornitori(prodotti: Prodotto[]): Fornitore[] {
   return [...trovati.values()].sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
-export function filtraProdotti(prodotti: Prodotto[], testo: string, filtro: FiltroProdotti): Prodotto[] {
+function passaFiltro(prodotto: Prodotto, filtro: FiltroProdotti, sotto: ReadonlySet<string>, adesso: Date): boolean {
+  if (filtro === 'tutti') return true
+  if (filtro === 'daOrdinare') return statoProdotto(prodotto) !== 'ok' || sotto.has(prodotto.id)
+  if (filtro === 'daButtare') return daButtare(prodotto, adesso)
+  if (filtro === 'vendita') return prodotto.uso === 'vendita'
+  return prodotto.uso === 'salone' && prodotto.categoria === filtro
+}
+
+export function filtraProdotti(prodotti: Prodotto[], testo: string, filtro: FiltroProdotti, sotto: ReadonlySet<string> = new Set(), adesso = new Date()): Prodotto[] {
   const cercato = normalizeSearch(testo)
-  return prodotti.filter((prodotto) => (filtro === 'tutti' || prodotto.categoria === filtro || (filtro === 'daOrdinare' && statoProdotto(prodotto) !== 'ok'))
+  return prodotti.filter((prodotto) => passaFiltro(prodotto, filtro, sotto, adesso)
     && normalizeSearch(`${prodotto.nome} ${prodotto.ditta} ${prodotto.codice}`).includes(cercato))
 }

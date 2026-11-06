@@ -75,6 +75,7 @@ export function ServicesPage() {
           durationMin: input.durationMin,
           price: input.price,
           active: input.active,
+          senzaBagno: input.senzaBagno,
         })
         : false
     if (ok) {

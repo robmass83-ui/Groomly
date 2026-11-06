@@ -1,21 +1,26 @@
-import { AlertTriangle, ArrowDown, ArrowUp, Check, Minus, Pencil, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowDown, ArrowUp, Check, Minus, PackageOpen, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { useToast } from '../components/layout/Toast'
+import { ConfrontoTanica } from '../components/magazzino/ConfrontoTanica'
 import { DatiProdotto } from '../components/magazzino/DatiProdotto'
 import { MovimentoSheet, type ModoMovimento } from '../components/magazzino/MovimentoSheet'
 import { Tacche } from '../components/magazzino/Tacche'
 import { conIcona } from '../components/magazzino/categorie'
+import { SegnoPlus } from '../components/piano/SegnoPlus'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
 import { useProdotti } from '../hooks/useProdotti'
 import { useSession } from '../hooks/useSession'
+import { useStimeMagazzino } from '../hooks/useStimeMagazzino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
+import { euro } from '../i18n/format'
 import { t } from '../i18n/t'
-import { misuraProdotto, muoviProdotto, statoProdotto, totaleProdotto } from '../lib/prodotti'
+import { daButtare, dosaggio, misura, misuraProdotto, muoviProdotto, scadenzaProdotto, statoProdotto, totaleProdotto, type Prodotto } from '../lib/prodotti'
+import { chiudiConfronto, correggiConsumo, costoLavaggio, fraseDurata, type Confronto } from '../lib/stimeMagazzino'
 import { SIZES } from '../theme/sizes'
 import { TYPE } from '../theme/theme'
 import { COLORE_STATO, ETICHETTA_STATO } from './MagazzinoPage'
@@ -34,6 +39,8 @@ export function ProdottoPage() {
   const [movimento, setMovimento] = useState<ModoMovimento | null>(null)
   const [modifica, setModifica] = useState(false)
   const [conferma, setConferma] = useState(false)
+  const [domanda, setDomanda] = useState<Confronto | null>(null)
+  const stime = useStimeMagazzino(gate.kind === 'in' ? gate.account.uid : '', prodotti)
   const prodotto = prodotti.find((item) => item.id === id)
   if (!prodotto) return <Navigate to={ELENCO} replace />
   const elimina = !(gate.kind === 'in' && gate.account.role === 'collaboratore')
@@ -41,10 +48,32 @@ export function ProdottoPage() {
   const Icona = stato === 'ok' ? Check : AlertTriangle
   const totale = totaleProdotto(prodotto, lingua)
   const data = new Intl.DateTimeFormat(lingua, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const giorno = new Intl.DateTimeFormat(lingua, { day: 'numeric', month: 'short' })
+  const mese = new Intl.DateTimeFormat(lingua, { month: 'short', year: 'numeric' })
+  const scadenza = scadenzaProdotto(prodotto)
+  const stima = stime.stima(prodotto)
+  const durata = stima && prodotto.pezzi > 0 ? fraseDurata(stima.giorni) : null
+  const lavaggio = stime.accesso ? costoLavaggio(prodotto) : null
+  const conStima = prodotto.uso === 'salone' && prodotto.mlPerCane !== null && prodotto.quantita !== null
+  const consumoMese = stima ? (stima.consumoMese >= 1000 ? misura(Math.round(stima.consumoMese / 100) / 10, 'l', lingua) : misura(Math.round(stima.consumoMese), 'ml', lingua)) : ''
+  const dettagli = [
+    prodotto.diluizione === null ? null : `${t(lingua, 'magDiluizione', { n: prodotto.diluizione })} · ${t(lingua, 'magDosaggio', dosaggio(prodotto.diluizione))}`,
+    prodotto.costo === null ? null : t(lingua, 'magCostoPezzo', { importo: euro(lingua, prodotto.costo) }),
+    prodotto.uso === 'vendita' && prodotto.prezzoVendita !== null ? t(lingua, 'magPrezzoVendita', { importo: euro(lingua, prodotto.prezzoVendita) }) : null,
+  ].filter((riga) => riga !== null)
 
   // Senza aspettare il cloud: offline la scrittura parte quando torna la rete.
   function nonRiuscito() {
     toast.show(frasi.authSalvataggio, 'plain')
+  }
+
+  function salvaProdotto(aggiornato: Prodotto) {
+    void save(aggiornato).catch(nonRiuscito)
+  }
+
+  function rispondi(aggiorna: boolean) {
+    if (prodotto && domanda) salvaProdotto(aggiorna ? correggiConsumo(prodotto, domanda, new Date()) : chiudiConfronto(prodotto, new Date()))
+    setDomanda(null)
   }
 
   function onElimina() {
@@ -80,6 +109,36 @@ export function ProdottoPage() {
             </div>
           </div>
         </Card>
+        {dettagli.length > 0 || prodotto.apertoIl !== null || prodotto.pezzi > 0 ? (
+          <Card>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, fontSize: 13 }}>
+              {dettagli.map((riga) => <span key={riga}>{riga}</span>)}
+              {prodotto.apertoIl !== null ? (
+                <span style={{ color: daButtare(prodotto, new Date()) ? 'var(--bad)' : undefined, fontWeight: daButtare(prodotto, new Date()) ? 700 : undefined }}>
+                  {[t(lingua, 'magApertoIl', { data: giorno.format(new Date(prodotto.apertoIl)) }), scadenza ? t(lingua, 'magDaUsareEntro', { data: mese.format(scadenza) }) : ''].filter(Boolean).join(' · ')}
+                </span>
+              ) : null}
+              {prodotto.pezzi > 0 ? <Button type="button" variant="secondary" style={{ ...conIcona, width: '100%' }} onClick={() => { const adesso = new Date(); salvaProdotto({ ...prodotto, apertoIl: adesso.getTime(), updatedAt: adesso }) }}><PackageOpen size={16} strokeWidth={2} aria-hidden />{frasi.magHoAperto}</Button> : null}
+            </div>
+          </Card>
+        ) : null}
+        {conStima && !stime.accesso ? (
+          <button type="button" onClick={stime.apri} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: 12, border: '1px solid var(--line)', borderRadius: 14, background: 'var(--card)', color: 'var(--tx)', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontWeight: 650 }}>{frasi.magQuantoDura}<SegnoPlus feature="stimeMagazzino" /></span>
+            <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.magQuantoDuraAnteprima}</small>
+          </button>
+        ) : null}
+        {stime.accesso && (durata || lavaggio !== null) ? (
+          <Card aria-label={frasi.magQuantoDura}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: 12 }}>
+              <strong style={{ fontSize: 13 }}>{frasi.magQuantoDura}</strong>
+              {durata ? <span style={{ fontWeight: 650 }}>{t(lingua, durata.chiave, { n: durata.n })}</span> : null}
+              {consumoMese ? <small style={{ color: 'var(--tx2)' }}>{t(lingua, 'magConsumoMese', { quantita: consumoMese })}</small> : null}
+              {lavaggio !== null ? <small style={{ color: 'var(--tx2)' }}>{t(lingua, 'magCostoLavaggio', { importo: euro(lingua, lavaggio) })}</small> : null}
+              <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{frasi.magStimaNota}</small>
+            </div>
+          </Card>
+        ) : null}
         {prodotto.movimenti.length > 0 ? (
           <>
             <h2 style={{ margin: '4px 2px 0', fontSize: TYPE.section, letterSpacing: TYPE.sectionTracking, textTransform: 'uppercase', color: 'var(--tx2)' }}>{frasi.magStorico}</h2>
@@ -108,9 +167,15 @@ export function ProdottoPage() {
           prodotto={prodotto}
           modoIniziale={movimento}
           onClose={() => setMovimento(null)}
-          onConferma={(delta) => { setMovimento(null); void save(muoviProdotto(prodotto, delta, new Date())).catch(nonRiuscito) }}
+          onConferma={(delta) => {
+            setMovimento(null)
+            const dopo = muoviProdotto(prodotto, delta, new Date())
+            salvaProdotto(dopo)
+            if (delta < 0) setDomanda(stime.confronto(dopo))
+          }}
         />
       ) : null}
+      {domanda ? <ConfrontoTanica confronto={domanda} onRisposta={rispondi} /> : null}
       {modifica ? (
         <DatiProdotto
           bozza={{ nome: prodotto.nome, categoria: prodotto.categoria, quantita: prodotto.quantita, unita: prodotto.unita, libero: true }}

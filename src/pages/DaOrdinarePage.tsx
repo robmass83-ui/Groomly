@@ -10,6 +10,7 @@ import { Card } from '../components/ui/Card'
 import { useProdotti } from '../hooks/useProdotti'
 import { useSession } from '../hooks/useSession'
 import { useSettings } from '../hooks/useSettings'
+import { useStimeMagazzino } from '../hooks/useStimeMagazzino'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { t } from '../i18n/t'
 import { normalizeSearch } from '../lib/normalizza'
@@ -53,7 +54,8 @@ export function DaOrdinarePage() {
   const [tolti, setTolti] = useState<ReadonlySet<string>>(new Set())
   const [numeri, setNumeri] = useState<Record<string, number>>({})
   const [invio, setInvio] = useState<{ coda: Gruppo[]; testo: string } | null>(null)
-  const elenco = gruppi(daOrdinare(prodotti), prodotti, frasi.magSenzaFornitore)
+  const stime = useStimeMagazzino(gate.kind === 'in' ? gate.account.uid : '', prodotti)
+  const elenco = gruppi(daOrdinare(prodotti, stime.sotto), prodotti, frasi.magSenzaFornitore)
   const inArrivo = prodotti.filter((item) => item.inArrivo > 0)
   const quanti = (prodotto: Prodotto) => numeri[prodotto.id] ?? quantitaProposta(prodotto)
   const scelti = elenco.map((gruppo) => ({ ...gruppo, righe: gruppo.righe.filter((item) => !tolti.has(item.id)) })).filter((gruppo) => gruppo.righe.length > 0)
@@ -137,7 +139,7 @@ export function DaOrdinarePage() {
                     </button>
                     <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                       <span style={{ ...USER_TEXT, fontWeight: 650 }}>{item.nome}</span>
-                      <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{[misuraProdotto(item, lingua), item.pezzi === 0 ? frasi.magStatoFinito : t(lingua, 'magNeHai', { n: item.pezzi })].filter(Boolean).join(' · ')}</small>
+                      <small style={{ color: 'var(--tx3)', fontSize: TYPE.meta }}>{[misuraProdotto(item, lingua), item.pezzi === 0 ? frasi.magStatoFinito : t(lingua, 'magNeHai', { n: item.pezzi }), stime.sotto.has(item.id) ? frasi.magStaPerFinire : ''].filter(Boolean).join(' · ')}</small>
                     </span>
                     <Contatore etichetta={item.nome} valore={quanti(item)} onChange={(valore) => setNumeri({ ...numeri, [item.id]: valore })} min={1} />
                   </div>

@@ -132,6 +132,19 @@ describe('servizi', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   }, 20000)
 
+  it('un principale si può escludere dalle stime del magazzino, un extra no', async () => {
+    const user = userEvent.setup()
+    render(<App memory isDev={false} />)
+    await openServices(user)
+    await user.click(screen.getByRole('button', { name: 'Apri Bagno' }))
+    await user.click(screen.getByRole('switch', { name: 'Senza bagno' }))
+    await user.click(screen.getByRole('button', { name: 'Salva' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Salvato')
+    const uid = (JSON.parse(localStorage.getItem(storageKeys.auth) ?? '{}') as { uid: string }).uid
+    const salvati = Object.values(JSON.parse(localStorage.getItem(storageKeys.services(uid)) ?? '{}') as Record<string, { name: string; senzaBagno?: boolean }>)
+    expect(salvati.find((servizio) => servizio.name === 'Bagno')?.senzaBagno).toBe(true)
+  }, 20000)
+
   it('cambiare solo le maiuscole del servizio che si modifica salva', async () => {
     const user = userEvent.setup()
     render(<App memory isDev={false} />)

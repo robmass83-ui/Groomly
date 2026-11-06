@@ -3,9 +3,11 @@ import { useState, type CSSProperties } from 'react'
 import { usePlus } from '../../hooks/usePlus'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
+import { TAGLIE } from '../../lib/dogList'
 import { normalizeSearch } from '../../lib/normalizza'
 import { CATEGORIE_SCELTA, DETTAGLI_VUOTI, FORMATI_PROPOSTI, fornitori, leggiQuantita, misura, muoviProdotto, type CategoriaProdotto, type ConsumoPerTaglia, type Prodotto, type UnitaProdotto } from '../../lib/prodotti'
 import { SIZES } from '../../theme/sizes'
+import type { DogSize } from '../../types/models'
 import { Dialog } from '../layout/Dialog'
 import { Sheet } from '../layout/Sheet'
 import { Button } from '../ui/Button'
@@ -28,7 +30,6 @@ export interface BozzaProdotto {
 
 type Formato = { quantita: number; unita: UnitaProdotto } | null
 
-const TAGLIE = ['piccola', 'media', 'grande'] as const
 const ETICHETTA_TAGLIA = { piccola: 'servPiccola', media: 'servMedia', grande: 'servGrande' } as const
 
 function testoNumero(valore: number | null | undefined, lingua: string): string {
@@ -89,7 +90,7 @@ export function DatiProdotto({ bozza, esistente, prodotti, onClose, save, onSalv
   const [costo, setCosto] = useState(testoNumero(esistente?.costo, lingua))
   const [prezzo, setPrezzo] = useState(testoNumero(esistente?.prezzoVendita, lingua))
   const consumoIniziale = esistente ? esistente.mlPerCane : bozza.mlPerCane
-  const [consumo, setConsumo] = useState<Record<(typeof TAGLIE)[number], string>>({
+  const [consumo, setConsumo] = useState<Record<DogSize, string>>({
     piccola: testoNumero(consumoIniziale?.piccola, lingua),
     media: testoNumero(consumoIniziale?.media, lingua),
     grande: testoNumero(consumoIniziale?.grande, lingua),

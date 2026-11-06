@@ -121,6 +121,7 @@ export function serviceToDoc(service: Service): Record<string, unknown> {
     price: { ...service.price },
     order: service.order,
     active: service.active,
+    ...(service.senzaBagno ? { senzaBagno: true } : {}),
     createdAt: dateToMillis(service.createdAt),
     updatedAt: dateToMillis(service.updatedAt),
   })
@@ -140,6 +141,7 @@ export function serviceFromDoc(id: string, data: Record<string, unknown>): Servi
     updatedAt: dateValue(data.updatedAt, new Date()),
   }
   if (icon) service.iconKey = icon
+  if (data.senzaBagno === true) service.senzaBagno = true
   return service
 }
 

@@ -153,6 +153,7 @@ export const serviceFormSchema = z.discriminatedUnion('kind', [
     kind: z.literal('principale'),
     name: z.string().trim().refine((value) => value.length >= 1, messaggio('schedaNomeObbligatorio')),
     active: z.boolean(),
+    senzaBagno: z.boolean().optional(),
     durationMin: triple,
     price: priceTriple,
   }),

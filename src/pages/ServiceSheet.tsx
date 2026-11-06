@@ -34,6 +34,7 @@ function defaults(kind: ServiceKind, initial?: Service): ServiceFormValues {
     kind: 'principale' as const,
     name: initial?.name ?? '',
     active: initial?.active ?? true,
+    senzaBagno: initial?.senzaBagno,
     durationMin: {
       piccola: initial ? String(initial.durationMin.piccola) : '',
       media: initial ? String(initial.durationMin.media) : '',
@@ -117,6 +118,15 @@ export function ServiceSheet({ mode, initial, onSubmit, onRemove }: Props) {
         <span>{frasi.servAttivo}</span>
         <Toggle label={frasi.servAttivo} checked={Boolean(form.watch('active'))} onChange={(checked) => form.setValue('active', checked)} />
       </div>
+      {kind === 'principale' ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ display: 'flex', flexDirection: 'column' }}>
+            {frasi.servSenzaBagno}
+            <small style={{ color: 'var(--tx3)' }}>{frasi.servSenzaBagnoNota}</small>
+          </span>
+          <Toggle label={frasi.servSenzaBagno} checked={Boolean(form.watch('senzaBagno'))} onChange={(checked) => form.setValue('senzaBagno', checked)} />
+        </div>
+      ) : null}
       <Button type="submit">{frasi.servSalva}</Button>
       {mode === 'edit' && onRemove ? <Button variant="bad" onClick={onRemove}>{frasi.srvElimina}</Button> : null}
     </form>
