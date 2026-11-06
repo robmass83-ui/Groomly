@@ -109,7 +109,7 @@ describe('agenda', () => {
     expect(screen.getByLabelText('Avviso critico')).toBeInTheDocument()
     try {
       await user.click(screen.getByRole('button', { name: 'Apri Rex' }))
-      expect(await screen.findByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
+      expect(await screen.findByRole('dialog', { name: 'Appuntamento' })).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
     }
@@ -433,7 +433,9 @@ describe('agenda', () => {
     await user.click(screen.getByRole('button', { name: /^Bagno · / }))
     expect(screen.getByText('Si sovrappone a Luna 09:00–10:00')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Salva' }))
-    expect(screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })).toBeInTheDocument()
+    const avviso = screen.getByRole('dialog', { name: 'Gli appuntamenti si accavallano, inserire lo stesso?' })
+    expect(avviso.parentElement).toHaveStyle({ alignItems: 'center' })
+    expect(within(avviso).queryByTestId('sheet-grabber')).toBeNull()
     expect(Object.keys(JSON.parse(localStorage.getItem(storageKeys.appointments(account.uid))!) as object)).toHaveLength(1)
     await user.click(screen.getByRole('button', { name: 'Inserisci lo stesso' }))
     expect(await screen.findByRole('heading', { name: 'Ottobre 2026' })).toBeInTheDocument()

@@ -9,6 +9,7 @@ import { Header } from '../components/layout/Header'
 import { Dialog } from '../components/layout/Dialog'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card, Row } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { Input } from '../components/ui/Input'
@@ -78,6 +79,7 @@ export function AccountPage() {
   const [nuova, setNuova] = useState('')
   const [driveEmail, setDriveEmail] = useState<string | null>(null)
   const [occupato, setOccupato] = useState(false)
+  const [logoInCorso, setLogoInCorso] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
 
   const uid = session.gate.kind === 'in' ? session.gate.account.uid : null
@@ -149,11 +151,14 @@ export function AccountPage() {
     event.target.value = ''
     if (!file) return
     let nuovo: string
+    setLogoInCorso(true)
     try {
       nuovo = await prepareLogo(file)
     } catch {
       toast.show(frasi.schedaFotoGrande, 'plain')
       return
+    } finally {
+      setLogoInCorso(false)
     }
     const sheet = getPriceSheet(settings)
     const message = savePriceSheet(settings, { ...sheet, intestazione: { ...sheet.intestazione, logo: nuovo } }, save)
@@ -309,6 +314,7 @@ export function AccountPage() {
 
   return (
     <ShellFrame>
+      <AttesaZampe testo={occupato || logoInCorso ? frasi.relCaricamento : null} />
       {scheda === 'home'
         ? <Header title={frasi.hubGestisci} backTo="/impostazioni" />
         : <Header title={titoli[scheda]} onBack={() => apri('home')} />}

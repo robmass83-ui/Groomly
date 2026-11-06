@@ -10,6 +10,7 @@ import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog } from '../../types/models'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { dataDiCalendario, giornoRomaCorto } from './RigaRichieste'
 
 export type CaneRichiesta = Pick<Dog, 'id' | 'name' | 'breed' | 'status' | 'contact'>
@@ -205,6 +206,7 @@ export function RiquadroRichiesta({
 
   return (
     <Dialog open={aperta} title={frasi.richiestaTitolo} onClose={onChiudi} portal>
+      <AttesaZampe testo={inCorso ? frasi.authInvio : null} />
       {richiesta.foto.length > 0 ? (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {richiesta.foto.map((foto, indice) => (

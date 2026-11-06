@@ -213,6 +213,7 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
   const { lingua } = useLingua()
   const session = useSession()
   const schema = loginSchemaPer(lingua)
+  const [resetInCorso, setResetInCorso] = useState(false)
   const { register, handleSubmit, setError, clearErrors, getValues, formState: { errors, isSubmitting } } = useForm<EnterValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: initialEmail, password: '' },
@@ -238,6 +239,7 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
       setError('email', { message: parsed.error.issues[0]?.message ?? frasi.authEmailValida })
       return
     }
+    setResetInCorso(true)
     try {
       await session.sendReset(parsed.data.toLowerCase())
     } catch (error) {
@@ -247,6 +249,8 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
         setError('root', { message: loginFailureMessage(code, lingua) })
         return
       }
+    } finally {
+      setResetInCorso(false)
     }
     setResetSent(true)
   }
@@ -282,7 +286,7 @@ function EnterView({ initialEmail, onCreate }: { initialEmail: string; onCreate:
           <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting || undefined}>
             {isSubmitting ? frasi.authAccesso : frasi.authEntra}
           </Button>
-          <AttesaZampe testo={isSubmitting ? frasi.authAccesso : null} />
+          <AttesaZampe testo={isSubmitting ? frasi.authAccesso : resetInCorso ? frasi.authInvio : null} />
         </Card>
       </form>
       <button type="button" style={linkStyle} onClick={() => { void forgot() }}>{frasi.authDimenticata}</button>

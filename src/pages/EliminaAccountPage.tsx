@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { firebaseEnabled } from '../data/firebase/enabled'
@@ -93,6 +94,7 @@ export function EliminaAccountPage() {
 
   return (
     <ShellFrame>
+      <AttesaZampe testo={occupato ? frasi.relCaricamento : null} />
       <Header title={frasi.eliminaAccount} backTo="/impostazioni/account?scheda=privacy" />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {protetto ? (

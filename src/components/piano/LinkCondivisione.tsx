@@ -16,6 +16,7 @@ import { pubblicabile } from '../../lib/catalogoPrenotazione'
 import { linkPrenotazione, puoAccenderePrenotazioni, SPECIE_PRENOTABILI, specieAccettate, type SpeciePrenotabile } from '../../lib/prenotazionePubblica'
 import { slugAttuale } from '../../lib/slug'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { Card } from '../ui/Card'
 import { Toggle } from '../ui/Toggle'
 import { codiceErroreServer, fraseErrore } from '../../i18n/errori'
@@ -125,6 +126,7 @@ export function LinkCondivisione() {
   const account = session.gate.kind === 'in' ? session.gate.account : null
   const uid = account?.uid ?? ''
   const [copiato, setCopiato] = useState(false)
+  const [pubblicando, setPubblicando] = useState(false)
   const { acceso, decisione, mancanti, pubblica, errore, setErrore } = usePrenotazioniOnline()
   const visibile = haAccesso(piano.stato, 'prenotazioni')
   const collaboratore = account?.role === 'collaboratore'
@@ -170,10 +172,19 @@ export function LinkCondivisione() {
 
   if (!visibile || collaboratore || link === '') return null
 
+  async function pubblicaConAttesa(): Promise<string> {
+    setPubblicando(true)
+    try {
+      return await pubblica()
+    } finally {
+      setPubblicando(false)
+    }
+  }
+
   async function copia() {
     setErrore('')
     try {
-      const slug = await pubblica()
+      const slug = await pubblicaConAttesa()
       ricordaSlug(slug)
       await navigator.clipboard.writeText(linkPrenotazione(slug) || link)
       setCopiato(true)
@@ -187,7 +198,7 @@ export function LinkCondivisione() {
     setErrore('')
     let condiviso = link
     try {
-      const slug = await pubblica()
+      const slug = await pubblicaConAttesa()
       ricordaSlug(slug)
       condiviso = linkPrenotazione(slug) || link
     } catch (error) {
@@ -217,6 +228,7 @@ export function LinkCondivisione() {
 
   return (
     <Card id="prenotazioni-online">
+      <AttesaZampe testo={pubblicando ? frasi.authSalvataggioPunti : null} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 12 }}>
         <span style={{ fontWeight: 700 }}>{frasi.prenotazioniOnline}</span>
         <p style={{ margin: 0, padding: '10px 12px', borderRadius: 10, background: 'var(--pri-s)', color: 'var(--pri-ink)', fontWeight: 700, lineHeight: 1.35, overflowWrap: 'anywhere', userSelect: 'text' }}>{link}</p>

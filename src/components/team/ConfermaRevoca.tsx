@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { USER_TEXT } from '../../theme/text'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { rosterLabel, type SalonMember } from '../../lib/salonRoster'
@@ -36,6 +37,7 @@ export function ConfermaRevoca({ membro, onChiudi, onTolto }: { membro: SalonMem
   return (
     <Dialog open={membro !== null} title={frasi.teamTogli} onClose={occupato ? () => undefined : onChiudi}>
       <p style={{ margin: 0, ...USER_TEXT }}>{membro ? frasi.teamTogliDomanda.replace('{{nome}}', rosterLabel(membro)) : ''}</p>
+      <AttesaZampe testo={occupato ? frasi.authSalvataggioPunti : null} />
       {errore ? <p role="alert" style={{ margin: 0, color: 'var(--bad)', ...USER_TEXT }}>{errore}</p> : null}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
         <Button type="button" size="sm" variant="secondary" disabled={occupato} onClick={onChiudi}>{frasi.invitoAnnulla}</Button>

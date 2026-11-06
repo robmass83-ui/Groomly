@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { useFrasi } from '../../i18n/LinguaContext'
 import { livelloMinimo, type FeatureKey } from '../../lib/piano'
 import { TESTI_PAYWALL } from '../../lib/paywallTesti'
@@ -95,6 +96,7 @@ export function PaywallSheet({
       onClose={onClose}
     >
       {Icona && !messaggi ? <Icona data-testid="icona-paywall" aria-hidden size={32} color="var(--pri)" style={{ alignSelf: 'flex-start', flex: 'none' }} /> : null}
+      <AttesaZampe testo={inCorso ? frasi.relCaricamento : null} />
       {esitoProva === 'ok' ? (
         <>
           <p style={{ margin: 0, lineHeight: 1.4 }}>{frasi.provaAttiva}</p>

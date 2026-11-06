@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom'
 import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { firebaseEnabled } from '../data/firebase/enabled'
 import { useSession } from '../hooks/useSession'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
@@ -161,6 +162,7 @@ export function SuggerimentiPage() {
           {frasi.sugInvia}
         </Button>
       </Dialog>
+      <AttesaZampe testo={attesa ? frasi.authInvio : null} />
       <Dialog open={grazie} title={frasi.sugGrazie} onClose={() => setGrazie(false)}>
         <p style={{ margin: 0, lineHeight: 1.45 }}>{frasi.sugGrazieTesto}</p>
         <Button onClick={() => setGrazie(false)}>{frasi.chiudi}</Button>

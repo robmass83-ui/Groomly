@@ -13,6 +13,7 @@ import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { usePiano } from '../hooks/usePiano'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { COLORE_PIANO, COLORE_PIANO_SCURO } from '../lib/abbonamento'
@@ -163,6 +164,7 @@ export function BetaInvitoPage() {
           >
             {frasi.betaPartecipo}
           </button>
+          <AttesaZampe testo={attesa ? frasi.authInvio : null} />
           <button type="button" onClick={() => setRifiuto(true)} disabled={attesa} style={{ alignSelf: 'center', minHeight: 44, padding: '0 12px', border: 0, background: 'transparent', color: '#fff', font: 'inherit', fontWeight: 700, fontSize: 14, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             {frasi.betaNoGrazie}
           </button>
@@ -238,6 +240,7 @@ function DialogoRifiuto({ open, onClose }: { open: boolean; onClose: () => void 
       {errore ? <p role="alert" style={{ margin: 0, color: 'var(--bad)', fontSize: TYPE.rowSub }}>{errore}</p> : null}
       <div style={{ display: 'flex', gap: 8 }}>
         <Button variant="secondary" onClick={onClose} style={{ flex: 1 }}>{frasi.homeIndietro}</Button>
+        <AttesaZampe testo={attesa ? frasi.authInvio : null} />
         <Button variant="bad" onClick={() => { void rifiuta() }} disabled={!motivo || attesa} style={{ flex: 1 }}>{frasi.betaRifiuta}</Button>
       </div>
     </Dialog>

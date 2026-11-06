@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
-import { AttesaRiga } from './ui/Zampette'
+import { AttesaRiga, AttesaZampe } from './ui/Zampette'
 import { useLocalData } from '../hooks/useLocalData'
 import { useSession } from '../hooks/useSession'
 import { useEsci } from '../hooks/useEsci'
@@ -136,6 +136,7 @@ export function StaffLock({ children }: { children: ReactElement }) {
       {foglioEsci}
       <Dialog open={tornaOpen} title={frasi.impTornaSalone} onClose={() => { if (!tornandoRef.current) setTornaOpen(false) }}>
         <p style={{ margin: 0, overflowWrap: 'anywhere' }}>{nome ? frasi.impTornaSaloneTesto.replace('{{nome}}', nome) : frasi.impTornaSaloneTestoSenzaNome}</p>
+        <AttesaZampe testo={tornando ? frasi.authSalvataggioPunti : null} />
         {erroreTorna ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{erroreTorna}</p> : null}
         <Button variant="secondary" onClick={() => setTornaOpen(false)} disabled={tornando}>{frasi.invitoAnnulla}</Button>
         <Button onClick={() => { void tornaAlMioSalone() }} disabled={tornando} aria-busy={tornando || undefined}>{frasi.impTornaSalone}</Button>

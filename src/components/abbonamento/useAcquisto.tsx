@@ -5,6 +5,7 @@ import { useFrasi } from '../../i18n/LinguaContext'
 import { avviaAcquisto, ripristinaAcquisti } from '../../lib/billing'
 import { Dialog } from '../layout/Dialog'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 
 type Esito = 'beta' | 'attesa' | 'lenta' | 'attivo' | 'non-disponibile' | 'solo-play' | 'errore' | 'ripristinati' | 'ripristino-errore'
 
@@ -99,5 +100,5 @@ export function useAcquisto(piano: 'plus' | 'salone', onSpento: () => void): {
     </Dialog>
   ) : null
 
-  return { abbonati, ripristina: () => { void ripristina() }, inCorso, dialogo }
+  return { abbonati, ripristina: () => { void ripristina() }, inCorso, dialogo: <>{dialogo}<AttesaZampe testo={inCorso ? frasi.b4Attendi : null} /></> }
 }

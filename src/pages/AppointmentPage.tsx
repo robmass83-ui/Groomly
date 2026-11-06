@@ -18,6 +18,7 @@ import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { t } from '../i18n/t'
 import type { Lingua } from '../i18n/lingua'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { Chip } from '../components/ui/Chip'
 import { IconTile } from '../components/ui/IconTile'
@@ -787,6 +788,7 @@ export function AppointmentPage() {
   // Attesa di orari e piano prima di montare il modulo nuovo: limitata, perché offline o senza permessi possono non arrivare mai.
   const datiPronti = impostazioniPronte && piano.pronto !== false
   const [attesaScaduta, setAttesaScaduta] = useState(false)
+  const [fotoInCorso, setFotoInCorso] = useState(false)
   const moduloMostrato = useRef(false)
   useEffect(() => {
     if (datiPronti) return
@@ -1136,6 +1138,7 @@ export function AppointmentPage() {
 
   async function addPhoto(appointment: Appointment, file: File | undefined, kind: 'prima' | 'dopo' | 'auto') {
     if (!file) return
+    setFotoInCorso(true)
     try {
       const photo = await prepareDogPhoto(file)
       const current = appointment.photos ? appointment.photos.map((item) => ({ ...item })) : []
@@ -1153,6 +1156,8 @@ export function AppointmentPage() {
       }
     } catch (error) {
       toast.show(error instanceof PhotoTooLargeError ? frasi.schedaFotoGrande : frasi.schedaFotoNonUtile, 'plain')
+    } finally {
+      setFotoInCorso(false)
     }
   }
 
@@ -1212,6 +1217,7 @@ export function AppointmentPage() {
           onInvia={() => { void confermaPronto() }}
           onChiudi={() => setProntoChiesto(null)}
         />
+        <AttesaZampe testo={fotoInCorso ? frasi.relCaricamento : null} />
         <Dialog open={rhythm !== null} title={frasi.appCaneMensile} onClose={() => setRhythm(null)}>
           {rhythm ? (
             <>

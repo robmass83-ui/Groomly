@@ -17,6 +17,7 @@ import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { EmailCliente } from '../components/legale/EmailCliente'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { ExtraNoteList } from '../components/domain/ExtraNoteList'
 import { Chip } from '../components/ui/Chip'
@@ -768,6 +769,7 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
   const toast = useToast()
   const [limit, setLimit] = useState(4)
   const [zoom, setZoom] = useState<string | null>(null)
+  const [fotoInCorso, setFotoInCorso] = useState(false)
   const photos = gallery.slice(0, limit)
   const hiddenPhotos = gallery.length - photos.length
 
@@ -777,12 +779,15 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
       toast.show(frasi.schedaTroppeFoto, 'plain')
       return
     }
+    setFotoInCorso(true)
     try {
       const photo = await prepareDogPhoto(file)
       onGallery([...gallery, { id: crypto.randomUUID(), photo, takenAt: new Date() }])
     } catch (error) {
       if (error instanceof PhotoTooLargeError) toast.show(frasi.schedaFotoGrande, 'plain')
       else onError()
+    } finally {
+      setFotoInCorso(false)
     }
   }
 
@@ -790,6 +795,7 @@ function Gallery({ gallery, profilePhoto, editing, onGallery, onError }: { galle
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <AttesaZampe testo={fotoInCorso ? frasi.relCaricamento : null} />
       <SectionTitle>{frasi.schedaGalleria}</SectionTitle>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         {photos.map((item, index) => (
@@ -1034,6 +1040,7 @@ export function DogPage() {
   const [editing, setEditing] = useState(isNew || campoEmail)
   const [photo, setPhoto] = useState<string | undefined>(undefined)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [fotoInCorso, setFotoInCorso] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   // null finché l'agenda non è arrivata: il conto delle visite future sarebbe sbagliato.
@@ -1127,6 +1134,7 @@ export function DogPage() {
       toast.show(frasi.schedaTroppeFoto, 'plain')
       return
     }
+    setFotoInCorso(true)
     try {
       const prepared = await prepareDogPhoto(file)
       setPhotoError(null)
@@ -1141,6 +1149,8 @@ export function DogPage() {
         setPhotoError(null)
         toast.show(frasi.schedaFotoGrande, 'plain')
       } else setPhotoError(frasi.schedaFotoNonUtile)
+    } finally {
+      setFotoInCorso(false)
     }
   }
 
@@ -1289,6 +1299,7 @@ export function DogPage() {
   if (id && !dog) {
     return (
       <SchedaFrame>
+        <AttesaZampe testo={fotoInCorso ? frasi.relCaricamento : null} />
         <Header title={frasi.schedaTitolo} />
         <p style={{ padding: `0 ${SIZES.pagePadX}px`, color: 'var(--tx3)' }}>{nomeCaneVisita(undefined, '', api.dalServer, frasi)}</p>
       </SchedaFrame>
@@ -1450,6 +1461,7 @@ export function DogPage() {
 
   return (
     <SchedaFrame>
+      <AttesaZampe testo={fotoInCorso ? frasi.relCaricamento : null} />
       <Header title={dog ? frasi.schedaTitolo : frasi.schedaNuovo} action={headerAction} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 16px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {dog && !editing ? (

@@ -10,7 +10,7 @@ import { BrandBar } from '../components/layout/BrandBar'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
-import { AttesaRiga } from '../components/ui/Zampette'
+import { AttesaRiga, AttesaZampe } from '../components/ui/Zampette'
 import { Card, Row } from '../components/ui/Card'
 import { IconTile } from '../components/ui/IconTile'
 import { SearchBar } from '../components/ui/SearchBar'
@@ -675,7 +675,6 @@ export function HomePage() {
                     dog={dog}
                     services={services}
                     mark={dog ? dogMark(dog, dogs.filter((item) => item.status === 'attivo')) : null}
-                    onOpen={dog ? () => navigate(`/animali/${dog.id}`) : undefined}
                     active={next}
                     dalServer={dalServer}
                     aside={
@@ -851,6 +850,7 @@ export function HomePage() {
           onFatto={() => setRichiestaScelta(null)}
         />
       ) : null}
+      <AttesaZampe testo={riprendendo || segnaAvviso || segnaUscita ? frasi.authSalvataggioPunti : invioId !== null && invioId !== prontoChiesto?.id ? frasi.authInvio : null} />
       <ChiediPronto
         nomeCane={prontoChiesto?.nomeCane ?? null}
         inInvio={invioId !== null && invioId === prontoChiesto?.id}

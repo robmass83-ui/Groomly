@@ -11,6 +11,7 @@ import { apriEsterno } from '../../lib/openDocument'
 import { VERSIONE_DOCUMENTI, deveRiaccettare, documentiPerRuolo, mancaSuServer } from '../../lib/versioneLegale'
 import { SIZES } from '../../theme/sizes'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { DomandaStatistiche } from './DomandaStatistiche'
 
 const PAGINA_ELIMINA = '/impostazioni/account/elimina'
@@ -119,6 +120,7 @@ export function RiaccettaDocumenti({ richiesta = VERSIONE_DOCUMENTI, children }:
         ))}
       </div>
       {errore ? <p role="alert" style={{ margin: 0, color: 'var(--bad)' }}>{frasi.riaccErrore}</p> : null}
+      <AttesaZampe testo={occupato ? frasi.authSalvataggioPunti : null} />
       <Button onClick={() => { void accetta() }} disabled={occupato}>{frasi.riaccAccetto}</Button>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <Button variant="secondary" onClick={session.logout}>{frasi.riaccEsci}</Button>

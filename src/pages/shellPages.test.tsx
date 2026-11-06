@@ -311,7 +311,7 @@ describe('guscio', () => {
     expect(home.state.location.search).not.toContain('data=')
   })
 
-  it('il campanello segna i mensili in arrivo e la riga di oggi apre la scheda', async () => {
+  it('il campanello segna i mensili in arrivo e la riga di oggi apre l’appuntamento', async () => {
     const account = await createAccount('maria@salone.it', 'segretissimo')
     const birba = createDog(account.uid, dog('Birba'))
     const luna = createDog(account.uid, dog('Luna', { clientType: 'mensile' }))
@@ -341,18 +341,9 @@ describe('guscio', () => {
     expect(screen.getByRole('link', { name: 'Calendario ›' })).toHaveAttribute('href', '/calendario?data=2026-10-01')
     expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
     await user.click(screen.getAllByRole('button', { name: 'Apri Birba' })[0])
-    expect(screen.getByRole('heading', { name: 'Scheda' })).toBeInTheDocument()
-    const back = screen.getByRole('link', { name: 'Torna agli animali' })
-    expect(back.closest('header')).toBeNull()
-    expect(screen.queryByTestId('back-bar')).toBeNull()
-    expect(screen.queryByRole('link', { name: 'Home' })).toBeNull()
-    const scheda = screen.getByTestId('scheda')
-    expect(scheda).toHaveClass('scheda-enter')
-    expect(scheda.getAttribute('style')).toContain('calc(72px + env(safe-area-inset-bottom, 0px))')
-    await user.click(back)
-    await user.click(await screen.findByRole('link', { name: 'Home' }))
-    expect(await screen.findByRole('heading', { name: 'Oggi' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Visti di recente' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Appuntamento' })).toBeInTheDocument()
+    expect(screen.queryByTestId('scheda')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Scheda' })).not.toBeInTheDocument()
   })
 
   it('nuovo cane apre la scheda vuota', async () => {

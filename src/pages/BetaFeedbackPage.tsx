@@ -4,9 +4,10 @@ import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-route
 import { useBeta } from '../components/beta/BetaProvider'
 import { SFUMATURA_BETA } from '../components/beta/CardInvitoBeta'
 import { messaggioErroreBeta, nomePiano, riempi } from '../components/beta/testi'
+import { Dialog } from '../components/layout/Dialog'
 import { Header } from '../components/layout/Header'
-import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { useSession } from '../hooks/useSession'
 import { useFrasi } from '../i18n/LinguaContext'
 import { APP_VERSION } from '../lib/appVersion'
@@ -61,7 +62,6 @@ export function BetaFeedbackPage() {
   const session = useSession()
   const navigate = useNavigate()
   const location = useLocation()
-  const toast = useToast()
   const [parametri] = useSearchParams()
   const fineBeta = parametri.get('fine') === '1'
   const [passo, setPasso] = useState(1)
@@ -74,6 +74,7 @@ export function BetaFeedbackPage() {
   const [ricontatto, setRicontatto] = useState(false)
   const [attesa, setAttesa] = useState(false)
   const [errore, setErrore] = useState('')
+  const [grazie, setGrazie] = useState(false)
   const inVolo = useRef(false)
   const ruolo = session.gate.kind === 'in' ? session.gate.account.role : undefined
 
@@ -110,8 +111,8 @@ export function BetaFeedbackPage() {
         versioneApp: APP_VERSION,
       })
       beta.ricordaFeedback()
-      toast.show(frasi.betaGrazie, 'ok')
-      torna()
+      setAttesa(false)
+      setGrazie(true)
     } catch (error) {
       setErrore(messaggioErroreBeta(frasi, error))
       inVolo.current = false
@@ -230,6 +231,11 @@ export function BetaFeedbackPage() {
           </Button>
         </div>
       </div>
+      <AttesaZampe testo={attesa ? frasi.authInvio : null} />
+      <Dialog open={grazie} title={frasi.betaFeedbackTitolo} onClose={torna} portal>
+        <p style={{ margin: 0, lineHeight: 1.45 }}>{frasi.betaGrazie}</p>
+        <Button onClick={torna}>{frasi.chiudi}</Button>
+      </Dialog>
     </ShellFrame>
   )
 }

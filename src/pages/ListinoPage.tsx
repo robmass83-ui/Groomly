@@ -8,6 +8,7 @@ import { Dialog } from '../components/layout/Dialog'
 import { useToast } from '../components/layout/Toast'
 import { Header } from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card, Row } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
@@ -330,6 +331,7 @@ export function ListinoPage() {
   const skipRename = useRef(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [draftName, setDraftName] = useState('')
+  const [fileInCorso, setFileInCorso] = useState(false)
   const [removeTarget, setRemoveTarget] = useState<{ id: string; fileName: string } | null>(null)
   const view = listinoView(uid ? services : [])
   const iconById = Object.fromEntries(services.map((service) => [service.id, service.iconKey])) as Record<string, ServiceIconKey | undefined>
@@ -387,11 +389,16 @@ export function ListinoPage() {
     }
     let next = settings
     const keepIds: string[] = []
-    for (const file of picked) {
-      const price = await priceFrom(file)
-      if (!price) continue
-      next = addPriceFile(next, price)
-      keepIds.push(price.id)
+    setFileInCorso(true)
+    try {
+      for (const file of picked) {
+        const price = await priceFrom(file)
+        if (!price) continue
+        next = addPriceFile(next, price)
+        keepIds.push(price.id)
+      }
+    } finally {
+      setFileInCorso(false)
     }
     if (keepIds.length === 0) return
     if (save(next)) return
@@ -436,6 +443,7 @@ export function ListinoPage() {
 
   return (
     <ShellFrame>
+      <AttesaZampe testo={fileInCorso ? frasi.relCaricamento : null} />
       <Header title={frasi.lisTitolo} subtitle={subtitle} />
       <div style={{ padding: `8px ${SIZES.pagePadX}px 24px`, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', gap: 6 }}>

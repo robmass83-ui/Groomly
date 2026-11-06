@@ -6,6 +6,7 @@ import { useFrasi } from '../../i18n/LinguaContext'
 import { downloadAnchor, isShareCancel, shareFiles } from '../../lib/shareFile'
 import { useToast } from '../layout/Toast'
 import { Card, Row } from '../ui/Card'
+import { AttesaZampe } from '../ui/Zampette'
 
 /** Per chi non vede il backup del salone: scarica i dati del proprio account. */
 export function ScaricaAccount() {
@@ -32,6 +33,7 @@ export function ScaricaAccount() {
 
   return (
     <Card>
+      <AttesaZampe testo={occupato ? frasi.relCaricamento : null} />
       <Row style={{ borderTop: 'none', minHeight: 52 }}>
         <button
           type="button"

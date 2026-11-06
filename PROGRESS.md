@@ -522,3 +522,10 @@ Il prossimo passo attuale è in «Punto della situazione», in cima.
 - Scelta fra 7 proposte di redesign: Oggi più la ricerca di Comando. La Panoramica diventa Oggi, con le cose da fare in card col pulsante pronto.
 - Barra in alto col logo Groomly, tasto + per le azioni rapide, ricerca di saloni e pagine (Ctrl+K su PC). Beta passa sotto Altro sul telefono.
 - Restano com'erano Saloni, Scheda salone, Assistenza, Comunicazioni e Piani. Non provata con dati veri: controllata su anteprima con dati finti.
+
+## Home, pop-up e caricamenti (6 novembre, pubblicati con la 1.1.195)
+- In Home il tocco su una visita apre l'appuntamento, non più il profilo del cane.
+- L'avviso «si accavallano» e il grazie del feedback beta sono ora pop-up centrali come gli altri.
+- Caricamento con le zampe su feedback, suggerimenti, invito beta, account, team, prenotazioni, foto, logo e file del listino. Gli interruttori si muovono subito e restano senza.
+- I salvataggi di cani, visite e magazzino non aspettano il cloud, quindi non hanno attesa. Le chiusure sì, ma senza rete non finirebbero mai: lì niente caricamento.
+- Controllati su anteprima locale il tocco in Home e l'avviso. Il pop-up del feedback solo con i test.

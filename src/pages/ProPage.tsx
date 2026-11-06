@@ -323,6 +323,7 @@ export function ProPage({ titolo }: { titolo?: string }) {
           <AttesaZampe testo={sending ? frasi.authInvio : null} />
         </form>
       </Dialog>
+      <AttesaZampe testo={cancelling ? frasi.authInvio : null} />
       <ConfermaRevoca membro={toRevoke} onChiudi={() => setToRevoke(null)} />
       <ConfermaRuolo membro={toChangeRole} onChiudi={() => setToChangeRole(null)} />
       <Dialog open={toCancel !== null} title={frasi.teamAnnullaConferma} onClose={() => setToCancel(null)}>

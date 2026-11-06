@@ -282,6 +282,7 @@ export function SettingsPage() {
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [tornaOpen, setTornaOpen] = useState(false)
   const [tornando, setTornando] = useState(false)
+  const [leggoFile, setLeggoFile] = useState(false)
   const tornandoRef = useRef(false)
   const [temaOpen, setTemaOpen] = useState(false)
   const [linguaOpen, setLinguaOpen] = useState(false)
@@ -379,6 +380,7 @@ export function SettingsPage() {
 
   async function onRestoreFile(file: File) {
     presaRef.current = false
+    setLeggoFile(true)
     try {
       const { leggiRipristino } = await import('../lib/leggiRipristino')
       const esito = await leggiRipristino(new Uint8Array(await file.arrayBuffer()))
@@ -393,6 +395,8 @@ export function SettingsPage() {
       })
     } catch {
       toast.show(frasi.bakFileNonValido, 'plain')
+    } finally {
+      setLeggoFile(false)
     }
   }
 
@@ -740,7 +744,9 @@ export function SettingsPage() {
       : invioBusy ? frasi.zampeDrive
         : copieBusy ? frasi.zampeLeggoDrive
           : completoBusy ? frasi.zampeBackup
-            : null
+            : leggoFile ? frasi.relCaricamento
+              : tornando ? frasi.authSalvataggioPunti
+                : null
   const headline = businessHeadline(settings.business, frasi.authIva)
   const backupLabel = driveStato?.testo ?? backupStatusLabel(settings.backup.lastAt, now, lingua)
   const linguaClienti = linguaValida(settings.linguaClienti) ?? 'it'

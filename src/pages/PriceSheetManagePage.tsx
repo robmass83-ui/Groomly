@@ -10,6 +10,7 @@ import { PhoneShell } from '../components/layout/PhoneShell'
 import { Sheet } from '../components/layout/Sheet'
 import { useToast } from '../components/layout/Toast'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { IconButton } from '../components/ui/IconButton'
 import { IconTile } from '../components/ui/IconTile'
@@ -162,6 +163,7 @@ export function PriceSheetManagePage() {
   const [iconPick, setIconPick] = useState<number | null>(null)
   const [servizioPick, setServizioPick] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [logoInCorso, setLogoInCorso] = useState(false)
 
   function persist(next: PriceSheet): boolean {
     const message = savePriceSheet(settings, next, save)
@@ -180,10 +182,13 @@ export function PriceSheetManagePage() {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
+    setLogoInCorso(true)
     try {
       patchHeader({ logo: await prepareLogo(file) })
     } catch {
       toast.show(frasi.schedaFotoGrande, 'plain')
+    } finally {
+      setLogoInCorso(false)
     }
   }
 
@@ -253,6 +258,7 @@ export function PriceSheetManagePage() {
 
   return (
     <PhoneShell>
+      <AttesaZampe testo={logoInCorso ? frasi.relCaricamento : null} />
       <Header title={frasi.lisGestione} subtitle={frasi.manSottotitolo} backTo="/listino" />
       <div style={{ flex: 1, overflow: 'auto', padding: '6px 12px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <SectionTitle>{frasi.manIntestazione}</SectionTitle>

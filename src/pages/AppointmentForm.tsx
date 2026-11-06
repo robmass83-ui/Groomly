@@ -9,7 +9,7 @@ import { dataCorta } from '../i18n/format'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { nomeServizioVisibile } from '../i18n/servizioVisibile'
 import { t, type Chiave } from '../i18n/t'
-import { Sheet } from '../components/layout/Sheet'
+import { Dialog } from '../components/layout/Dialog'
 import { Button } from '../components/ui/Button'
 import { IconTile } from '../components/ui/IconTile'
 import { Segmented } from '../components/ui/Segmented'
@@ -914,13 +914,13 @@ export function AppointmentForm({
           {saveBar}
         </div>
       )}
-      <Sheet open={pending !== null} title={frasi.formOccupato} onClose={() => setPending(null)} closeLabel={frasi.formTorna}>
-        <p style={{ margin: 0, fontSize: TYPE.base }}>{pending?.message}</p>
+      <Dialog open={pending !== null} title={frasi.formOccupato} onClose={() => setPending(null)} portal>
+        <p style={{ margin: 0, fontSize: TYPE.base, lineHeight: 1.4, ...USER_TEXT }}>{pending?.message}</p>
         <div style={{ display: 'flex', gap: 6 }}>
-          <Button type="button" onClick={() => setPending(null)} style={{ flex: 1 }}>{frasi.formCambiaOra}</Button>
-          <Button type="button" variant="secondary" onClick={confirmOverlap} style={{ flex: 1 }}>{frasi.formSalvaComunque}</Button>
+          <Button type="button" variant="secondary" onClick={() => setPending(null)} style={{ flex: 1 }}>{frasi.formCambiaOra}</Button>
+          <Button type="button" onClick={confirmOverlap} style={{ flex: 1 }}>{frasi.formSalvaComunque}</Button>
         </div>
-      </Sheet>
+      </Dialog>
     </form>
   )
 }

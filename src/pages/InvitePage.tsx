@@ -4,6 +4,7 @@ import { messaggioCallable } from '../components/team/messaggioCallable'
 import { Header } from '../components/layout/Header'
 import { PhoneShell } from '../components/layout/PhoneShell'
 import { Button } from '../components/ui/Button'
+import { AttesaZampe } from '../components/ui/Zampette'
 import { Card } from '../components/ui/Card'
 import { callAcceptInvite, callLeggiInvito, callRifiutaInvito, reloadSignedInAccount, salonePersonale } from '../data/firebase/client'
 import { dopoCambioSalone } from '../data/local/cambioSalone'
@@ -167,6 +168,7 @@ export function InvitePage() {
 
   return (
     <PhoneShell>
+      <AttesaZampe testo={controllo ? frasi.authControllo : invio ? frasi.authInvio : null} />
       <Header title={frasi.invitoTitolo} />
       <div style={{ padding: SIZES.pagePadX, display: 'flex', flexDirection: 'column', gap: SIZES.sectionGap }}>
         {signedOut ? (

@@ -29,6 +29,7 @@ import { Dialog } from '../layout/Dialog'
 import { useToast } from '../layout/Toast'
 import { OrariEditor } from '../piano/OrariEditor'
 import { Button } from '../ui/Button'
+import { AttesaZampe } from '../ui/Zampette'
 import { Card } from '../ui/Card'
 import { IndirizzoInput } from '../ui/IndirizzoInput'
 import { Input } from '../ui/Input'
@@ -140,16 +141,20 @@ export function PassoLogo({ n, m, onFatto, onSalta }: PassoProps) {
   const { save } = useSettings()
   const { attuali } = useImpostazioniTour()
   const [logo, setLogo] = useState<string | null>(null)
+  const [logoInCorso, setLogoInCorso] = useState(false)
   const file = useRef<HTMLInputElement>(null)
 
   async function scegli(event: ChangeEvent<HTMLInputElement>) {
     const scelto = event.target.files?.[0]
     event.target.value = ''
     if (!scelto) return
+    setLogoInCorso(true)
     try {
       setLogo(await prepareLogo(scelto))
     } catch {
       toast.show(frasi.schedaFotoGrande, 'plain')
+    } finally {
+      setLogoInCorso(false)
     }
   }
 
@@ -167,6 +172,7 @@ export function PassoLogo({ n, m, onFatto, onSalta }: PassoProps) {
 
   return (
     <>
+      <AttesaZampe testo={logoInCorso ? frasi.relCaricamento : null} />
       <Intestazione n={n} m={m} tono="logo" icona={Image} testo={frasi.tourLogoTitolo} dettaglio={frasi.tourLogoSotto} />
       <div {...cascata(4, { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 })}>
         {logo ? <img src={logo} alt="" style={stileLogo(96, 240)} /> : null}

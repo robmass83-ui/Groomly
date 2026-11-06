@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -81,13 +81,32 @@ describe('BetaFeedbackPage', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Potete ricontattarmi per parlarne' }))
     await user.dblClick(invia)
 
-    expect(await screen.findByText('impostazioni')).toBeInTheDocument()
+    const grazie = await screen.findByRole('dialog', { name: 'Feedback beta' })
     expect(inviaFeedbackBeta).toHaveBeenCalledTimes(1)
     expect(inviaFeedbackBeta).toHaveBeenCalledWith({
       voto: 4, funzioni: { export: 'utile' }, nonVa: 'Lento', manca: '', pagheresti: 'si', quanto: '5-10', ricontatto: true, fineBeta: false, versioneApp: APP_VERSION,
     })
     expect(ricordaFeedback).toHaveBeenCalled()
-    expect(screen.getByRole('status')).toHaveTextContent('Grazie! L’ho ricevuto.')
+    expect(within(grazie).getByText('Grazie! L’ho ricevuto.')).toBeInTheDocument()
+    expect(screen.queryByText('impostazioni')).not.toBeInTheDocument()
+    await user.click(within(grazie).getAllByRole('button', { name: 'Chiudi' })[1])
+    expect(await screen.findByText('impostazioni')).toBeInTheDocument()
+  })
+
+  it('mentre il feedback parte si vede il caricamento', async () => {
+    let finisci: (esito: { ok: true }) => void = () => undefined
+    inviaFeedbackBeta.mockImplementationOnce(() => new Promise((resolve) => { finisci = resolve }))
+    const user = userEvent.setup()
+    await monta(inCorso(), '/impostazioni/beta/feedback?pagheresti=no')
+    await user.click(screen.getByRole('radio', { name: '4 stelle su 5' }))
+    await user.click(screen.getByRole('button', { name: 'Avanti' }))
+    await user.click(screen.getByRole('button', { name: 'Avanti' }))
+    await user.click(screen.getByRole('button', { name: 'Avanti' }))
+    await user.click(screen.getByRole('button', { name: 'Invia feedback' }))
+    expect(await screen.findByText('Invio…')).toBeInTheDocument()
+    finisci({ ok: true })
+    expect(await screen.findByRole('dialog', { name: 'Feedback beta' })).toBeInTheDocument()
+    expect(screen.queryByText('Invio…')).not.toBeInTheDocument()
   })
 
   it('con «No» la domanda Quanto non c’è e quanto vale null', async () => {
