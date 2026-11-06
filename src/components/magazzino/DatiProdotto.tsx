@@ -1,5 +1,5 @@
 import { ChevronDown, Plus } from 'lucide-react'
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { usePlus } from '../../hooks/usePlus'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { t } from '../../i18n/t'
@@ -100,6 +100,12 @@ export function DatiProdotto({ bozza, esistente, prodotti, onClose, save, onSalv
   const [erroreAltra, setErroreAltra] = useState<string>()
   const [contatti, setContatti] = useState<{ nome: string; telefono: string; email: string; giorni: number } | null>(null)
   const [erroreDitta, setErroreDitta] = useState<string>()
+
+  // Nel pop-up i campi aperti restano sotto il bordo: senza questo sembra che il tocco non faccia nulla.
+  const altriDettagli = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (dettagli) altriDettagli.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+  }, [dettagli])
 
   function scegliFornitore(nomeDitta: string) {
     const scelto = noti.find((item) => item.nome === nomeDitta)
@@ -254,7 +260,7 @@ export function DatiProdotto({ bozza, esistente, prodotti, onClose, save, onSalv
           <ChevronDown size={16} strokeWidth={2} aria-hidden style={{ transform: dettagli ? 'rotate(180deg)' : undefined }} />
         </button>
         {dettagli ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div ref={altriDettagli} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                 <span style={{ ...etichetta, marginBottom: 0 }}>{frasi.magLoVendo}</span>
