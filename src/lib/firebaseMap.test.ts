@@ -1,3 +1,4 @@
+import { serviceFromDoc, serviceToDoc } from './firebaseMap'
 import { describe, expect, it } from 'vitest'
 import { seedPriceSheet } from '../data/seed/priceSheet'
 import { blankSettings, DEFAULT_EXPORT, type SettingsMain } from '../data/local/settings'
