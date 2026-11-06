@@ -529,3 +529,17 @@ Il prossimo passo attuale è in «Punto della situazione», in cima.
 - Caricamento con le zampe su feedback, suggerimenti, invito beta, account, team, prenotazioni, foto, logo e file del listino. Gli interruttori si muovono subito e restano senza.
 - I salvataggi di cani, visite e magazzino non aspettano il cloud, quindi non hanno attesa. Le chiusure sì, ma senza rete non finirebbero mai: lì niente caricamento.
 - Controllati su anteprima locale il tocco in Home e l'avviso. Il pop-up del feedback solo con i test.
+
+## Magazzino da toelettatura (6 novembre, 1.1.197)
+- Piano `docs/MAGAZZINO-TOELETTATURA-PIANO.md`, spec `docs/superpowers/specs/2026-11-06-magazzino-toelettatura-design.md`, piano di lavoro `docs/superpowers/plans/2026-11-06-magazzino-toelettatura.md`.
+- Categorie per fasi di lavoro: Lavaggio, Finitura, Cura, Macchinette, Pulizia salone, Tocchi finali, più il filtro Vendita. Le chiavi vecchie si convertono in `prodottoDaDoc` e si salvano nuove alla scrittura dopo, solo per il prodotto toccato. Nessuno script sui dati, I Pelosetti non toccato.
+- Una categoria sconosciuta finisce in `varie` (chip «Altro», solo se non è vuoto): `altro` resta una chiave vecchia che va in `pulizia`.
+- Il campo `uso` segna il formato nuovo: dopo, il nome non sposta più il prodotto. I nomi vecchi da riconoscere sono congelati in `NOMI_VECCHI`.
+- Catalogo rifatto (41 voci, kit base da 14). `catCuSalviette` resta: il piano non la toglieva.
+- Scheda: «Altri dettagli» con vendita, costo, diluizione, mesi dopo l'apertura, consumo a cane. Giorni di consegna nel dialogo del fornitore. «Ho aperto un pezzo nuovo», striscia «da buttare».
+- `src/lib/stimeMagazzino.ts`: «Quanto mi dura?», costo per lavaggio, «Sta per finire (stima)» in Da ordinare, confronto dopo 2 taniche, riepilogo. Tutto dietro la funzione `stimeMagazzino` (Plus e Salon), con anteprima bloccata in Go.
+- Servizi: interruttore «Senza bagno» sui principali. Registro Excel: foglio Magazzino, solo se ci sono prodotti. Regole: campi nuovi controllati se presenti, `categoria` libera per le APK vecchie. Checksum dei backup vecchi fissato da un test.
+- Verifiche: suite 3971/3971, lenti 302/302, regole 45/45, `lingue.test` verde. Test a 360° con `scripts/test360/magazzino.ts`: 20 saloni finti, 687 controlli contro conti fatti a parte, 0 errori; 7 saloni sotto la soglia con il piano, 1 in Go senza effetto. Browser `QA-tests/.qa-catalog/verify-magazzino.cjs` 7/7 a 360 px, chiaro e scuro. Dati di test cancellati.
+- Limiti: ogni prodotto con `mlPerCane` conta tutti i lavaggi, quindi con più shampoo la stima di quelli specialistici è troppo alta. Un'APK vecchia scarta i prodotti con categoria nuova e salvando toglie i campi nuovi: i telefoni di un salone vanno aggiornati insieme.
+- Non provato: telefono vero, ripristino di un backup vecchio fino in fondo sul cloud (solo lettura e checksum), invio vero su WhatsApp (provato «Copia»).
+- Già così prima, non toccato: il titolo del pop-up di modifica dice «Nuovo prodotto»; aprendo a freddo il link di una scheda si torna all'elenco finché i prodotti non sono caricati.
