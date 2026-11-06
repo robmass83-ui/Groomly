@@ -1505,7 +1505,7 @@ export const fr = {
   abbPlus: 'Groomly Plus',
   abbSalone: 'Groomly Salon',
   abbGoFrase: 'Agenda, fiches et tarifs',
-  abbPlusFrase: 'Rappels, fidélité, réservations',
+  abbPlusFrase: 'Réservations en ligne, rappels, fidélité',
   abbSaloneFrase: 'Tout Plus, avec votre équipe',
   abbPlusClaim: 'Le salon qui travaille même quand vous avez les ciseaux en main',
   abbSaloneClaim: 'Tout Plus, avec votre équipe dans le même salon',
