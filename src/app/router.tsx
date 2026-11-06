@@ -38,6 +38,7 @@ import { InvitePage } from '../pages/InvitePage'
 import { LoginPage } from '../pages/LoginPage'
 import { MagazzinoPage } from '../pages/MagazzinoPage'
 import { MonthlyPage } from '../pages/MonthlyPage'
+import { DaOrdinarePage } from '../pages/DaOrdinarePage'
 import { ProdottoPage } from '../pages/ProdottoPage'
 import { ListinoPage } from '../pages/ListinoPage'
 import { PriceSheetExportPage } from '../pages/PriceSheetExportPage'
@@ -203,7 +204,7 @@ export function buildRoutes(isDev: boolean): RouteObject[] {
     { path: '/listino/stampa', element: <Guard><PriceSheetExportPage /></Guard> },
     { path: '/altro', element: <Guard><AltroPage /></Guard> },
     { path: '/altro/magazzino', element: <Guard><MagazzinoPage /></Guard> },
-    { path: '/altro/magazzino/nuovo', element: <Guard><ProdottoPage /></Guard> },
+    { path: '/altro/magazzino/ordini', element: <Guard><DaOrdinarePage /></Guard> },
     { path: '/altro/magazzino/:id', element: <Guard><ProdottoPage /></Guard> },
     { path: '/impostazioni', element: <Guard><SettingsPage /></Guard> },
     { path: '/impostazioni/account', element: <Guard><AccountPage /></Guard> },

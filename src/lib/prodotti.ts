@@ -1,26 +1,53 @@
 import type { Lingua } from '../i18n/lingua'
 import { normalizeSearch } from './normalizza'
 
-export const CATEGORIE_PRODOTTO = ['shampoo', 'balsami', 'profumi', 'altro'] as const
+export const CATEGORIE_PRODOTTO = ['shampoo', 'balsami', 'profumi', 'cura', 'altro'] as const
 export type CategoriaProdotto = (typeof CATEGORIE_PRODOTTO)[number]
-export type FiltroProdotti = CategoriaProdotto | 'tutti'
+export type FiltroProdotti = CategoriaProdotto | 'tutti' | 'daOrdinare'
 
 export const UNITA_PRODOTTO = ['l', 'ml'] as const
 export type UnitaProdotto = (typeof UNITA_PRODOTTO)[number]
 
 const TESTO_MAX = 120
-const DITTE_PROPOSTE = 4
+const PEZZI_MAX = 9999
+const MOVIMENTI_MAX = 30
+const TACCHE = 10
+
+export const FORMATI_PROPOSTI: readonly { quantita: number; unita: UnitaProdotto }[] = [
+  { quantita: 250, unita: 'ml' }, { quantita: 500, unita: 'ml' },
+  ...[1, 2, 3, 4, 5, 6, 7, 10].map((quantita) => ({ quantita, unita: 'l' as const })),
+]
+
+export type StatoProdotto = 'ok' | 'ordina' | 'finito'
+
+export interface Movimento {
+  at: number
+  delta: number
+  dopo: number
+}
 
 export interface Prodotto {
   id: string
   nome: string
   categoria: CategoriaProdotto
+  pezzi: number
+  /** Contenuto di ogni pezzo: `null` per i prodotti senza formato. */
   quantita: number | null
   unita: UnitaProdotto
   ditta: string
+  telefono: string
+  email: string
   codice: string
+  soglia: number
+  inArrivo: number
+  ordinatoIl: number | null
+  movimenti: Movimento[]
   createdAt: Date
   updatedAt: Date
+}
+
+function interoValido(value: number): boolean {
+  return Number.isInteger(value) && value >= 0 && value <= PEZZI_MAX
 }
 
 export function prodottoValido(prodotto: Prodotto): boolean {
@@ -29,6 +56,11 @@ export function prodottoValido(prodotto: Prodotto): boolean {
     && prodotto.nome.length <= TESTO_MAX
     && prodotto.ditta.length <= TESTO_MAX
     && prodotto.codice.length <= TESTO_MAX
+    && prodotto.telefono.length <= TESTO_MAX
+    && prodotto.email.length <= TESTO_MAX
+    && interoValido(prodotto.pezzi)
+    && interoValido(prodotto.soglia)
+    && interoValido(prodotto.inArrivo)
     && CATEGORIE_PRODOTTO.includes(prodotto.categoria)
     && UNITA_PRODOTTO.includes(prodotto.unita)
     && (prodotto.quantita === null || (Number.isFinite(prodotto.quantita) && prodotto.quantita > 0))
@@ -44,16 +76,37 @@ function testoDa(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+function interoDa(value: unknown, riserva: number): number {
+  return typeof value === 'number' && interoValido(value) ? value : riserva
+}
+
+function movimentiDa(value: unknown): Movimento[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item: Partial<Movimento> | null) => (
+    typeof item?.at === 'number' && typeof item.delta === 'number' && typeof item.dopo === 'number'
+      ? [{ at: item.at, delta: item.delta, dopo: item.dopo }]
+      : []
+  )).slice(0, MOVIMENTI_MAX)
+}
+
 /** Vale per il documento del cloud (date in millisecondi) e per la copia locale (date ISO). */
 export function prodottoDaDoc(id: string, data: Record<string, unknown>): Prodotto | null {
   const prodotto: Prodotto = {
     id,
     nome: testoDa(data.nome),
     categoria: data.categoria as CategoriaProdotto,
+    // I prodotti salvati prima dei pezzi contano come uno, senza avviso.
+    pezzi: interoDa(data.pezzi, 1),
     quantita: typeof data.quantita === 'number' ? data.quantita : null,
     unita: data.unita as UnitaProdotto,
     ditta: testoDa(data.ditta),
+    telefono: testoDa(data.telefono),
+    email: testoDa(data.email),
     codice: testoDa(data.codice),
+    soglia: interoDa(data.soglia, 0),
+    inArrivo: interoDa(data.inArrivo, 0),
+    ordinatoIl: typeof data.ordinatoIl === 'number' ? data.ordinatoIl : null,
+    movimenti: movimentiDa(data.movimenti),
     createdAt: dataDa(data.createdAt),
     updatedAt: dataDa(data.updatedAt),
   }
@@ -72,24 +125,76 @@ export function leggiQuantita(testo: string): number | null | 'errore' {
   return Number.isFinite(numero) && numero > 0 ? numero : 'errore'
 }
 
+export function misura(quantita: number, unita: UnitaProdotto, lingua: Lingua): string {
+  return `${new Intl.NumberFormat(lingua).format(quantita)} ${unita === 'l' ? 'L' : 'ml'}`
+}
+
 export function misuraProdotto(prodotto: Prodotto, lingua: Lingua): string {
-  if (prodotto.quantita === null) return ''
-  return `${new Intl.NumberFormat(lingua).format(prodotto.quantita)} ${prodotto.unita === 'l' ? 'L' : 'ml'}`
+  return prodotto.quantita === null ? '' : misura(prodotto.quantita, prodotto.unita, lingua)
+}
+
+/** Tutto il contenuto a magazzino: oltre il litro i ml diventano litri. */
+export function totaleProdotto(prodotto: Prodotto, lingua: Lingua): string {
+  if (prodotto.quantita === null || prodotto.pezzi === 0) return ''
+  const totale = prodotto.quantita * prodotto.pezzi
+  return prodotto.unita === 'ml' && totale >= 1000 ? misura(totale / 1000, 'l', lingua) : misura(totale, prodotto.unita, lingua)
+}
+
+export function statoProdotto(prodotto: Prodotto): StatoProdotto {
+  if (prodotto.pezzi === 0) return 'finito'
+  return prodotto.pezzi <= prodotto.soglia ? 'ordina' : 'ok'
+}
+
+/** Tacche accese e posizione del minimo: oltre le dieci unità la barra si comprime. */
+export function tacche(pezzi: number, soglia: number): { accese: number; minimo: number | null } {
+  const scala = Math.max(TACCHE, pezzi, soglia)
+  return {
+    accese: Math.ceil((pezzi * TACCHE) / scala),
+    minimo: soglia > 0 ? Math.ceil((soglia * TACCHE) / scala) - 1 : null,
+  }
+}
+
+/** I pezzi non scendono sotto zero: se non cambia nulla torna lo stesso prodotto. */
+export function muoviProdotto(prodotto: Prodotto, delta: number, adesso: Date): Prodotto {
+  const dopo = Math.min(PEZZI_MAX, Math.max(0, prodotto.pezzi + delta))
+  if (dopo === prodotto.pezzi) return prodotto
+  const movimento = { at: adesso.getTime(), delta: dopo - prodotto.pezzi, dopo }
+  return { ...prodotto, pezzi: dopo, movimenti: [movimento, ...prodotto.movimenti].slice(0, MOVIMENTI_MAX), updatedAt: adesso }
+}
+
+export function arrivatoProdotto(prodotto: Prodotto, adesso: Date): Prodotto {
+  return { ...muoviProdotto(prodotto, prodotto.inArrivo, adesso), inArrivo: 0, ordinatoIl: null, updatedAt: adesso }
+}
+
+export function daOrdinare(prodotti: Prodotto[]): Prodotto[] {
+  return prodotti.filter((prodotto) => statoProdotto(prodotto) !== 'ok' && prodotto.inArrivo === 0)
+}
+
+/** Riporta il prodotto al doppio del minimo. */
+export function quantitaProposta(prodotto: Prodotto): number {
+  return Math.max(1, Math.max(prodotto.soglia, 1) * 2 - prodotto.pezzi)
+}
+
+export interface Fornitore {
+  nome: string
+  telefono: string
+  email: string
+}
+
+/** I contatti vivono sui prodotti: vince il primo prodotto che li ha. */
+export function fornitori(prodotti: Prodotto[]): Fornitore[] {
+  const trovati = new Map<string, Fornitore>()
+  for (const { ditta, telefono, email } of prodotti) {
+    const chiave = normalizeSearch(ditta)
+    if (!chiave) continue
+    const noto = trovati.get(chiave)
+    trovati.set(chiave, { nome: noto?.nome ?? ditta.trim(), telefono: noto?.telefono || telefono, email: noto?.email || email })
+  }
+  return [...trovati.values()].sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
 export function filtraProdotti(prodotti: Prodotto[], testo: string, filtro: FiltroProdotti): Prodotto[] {
   const cercato = normalizeSearch(testo)
-  return prodotti.filter((prodotto) => (filtro === 'tutti' || prodotto.categoria === filtro)
+  return prodotti.filter((prodotto) => (filtro === 'tutti' || prodotto.categoria === filtro || (filtro === 'daOrdinare' && statoProdotto(prodotto) !== 'ok'))
     && normalizeSearch(`${prodotto.nome} ${prodotto.ditta} ${prodotto.codice}`).includes(cercato))
-}
-
-export function ditteProposte(prodotti: Prodotto[], testo: string): string[] {
-  const cercato = normalizeSearch(testo)
-  const ditte = new Map<string, string>()
-  for (const { ditta } of prodotti) {
-    const chiave = normalizeSearch(ditta)
-    if (chiave && !ditte.has(chiave)) ditte.set(chiave, ditta.trim())
-  }
-  if (ditte.has(cercato)) return []
-  return [...ditte].filter(([chiave]) => chiave.includes(cercato)).map(([, ditta]) => ditta).sort((a, b) => a.localeCompare(b)).slice(0, DITTE_PROPOSTE)
 }
