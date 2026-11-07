@@ -36,7 +36,7 @@ import { membroTitolareMancante } from './piano/titolareMembro'
 import { annullaInvitoPer, invitiInSospesoPer, leggiInvitoPer, rifiutaInvitoPer, scriviAvvisoUscita, segnaAvvisoUscitaPer } from './piano/invitiTeam'
 import { inviaCampione } from './campioneEmail'
 import { conRegistro } from './adminLog'
-import { controllaAdminRecente } from './accessoRecente'
+import { controllaAccessoRecente, controllaAdminRecente } from './accessoRecente'
 import { avviaAssistenzaPer, eliminaModelloAssistenzaPer, impostaStatoAssistenzaPer, rispondiAssistenzaPer, salvaModelloAssistenzaPer } from './assistenza/assistenza'
 import { anteprimaComunicazionePer, eliminaComunicazionePer, inviaComunicazionePer, riprendiComunicazionePer } from './comunicazioni/comunicazioni'
 import { cancellaAvviso, eliminaAvvisoSistemaPer, pubblicaAvvisoSistemaPer, riservaAvviso, scriviAvviso } from './config/avvisiSistema'
@@ -300,13 +300,22 @@ export const prendiPushTelefono = onCall({
     throw erroreServer('invalid-argument', 'dispositivo_non_valido')
   }
   const db = getFirestore()
+  if (tieni) await richiediEmailConfermata(uid, request.auth?.token)
   await reservePushSlot(uid)
   if (tieni) {
-    await db.doc(`accounts/${uid}/devices/${deviceId}`).set({
-      token,
-      platform: 'android',
-      appVersion,
-      updatedAt: new Date().toISOString(),
+    const mio = db.doc(`accounts/${uid}/devices/${deviceId}`)
+    // Ora del server, e la verifica resta se il token è lo stesso: a ogni avvio il telefono non perde la prova già data.
+    await db.runTransaction(async (tx) => {
+      const prima = await tx.get(mio)
+      const adesso = Date.now()
+      tx.set(mio, {
+        token,
+        platform: 'android',
+        appVersion,
+        updatedAt: new Date(adesso).toISOString(),
+        registratoIl: adesso,
+        ...(prima.get('token') === token && prima.get('verificato') === true ? { verificato: true } : {}),
+      })
     })
   }
   const trovati = await registrazioniDelToken(token)
@@ -399,6 +408,7 @@ export const sendPush = onSchedule({
   const telefoni = new Map<string, PushDevice[]>()
   const accessi = new Map<string, { salonId: string; lingua?: string; role: string } | null>()
   const pianiAccesi = new Map<string, Promise<boolean>>()
+  const sessioniDal = new Map<string, number>()
 
   const load: PushLoad = {
     // Si parte dai telefoni registrati, a pagine, non da tutti gli account: il giro cresce con i telefoni, non con le iscrizioni.
@@ -421,6 +431,7 @@ export const sendPush = onSchedule({
             appVersion: text(data.appVersion),
             updatedAt: text(data.updatedAt),
             verificato: data.verificato === true,
+            registratoIl: typeof data.registratoIl === 'number' ? data.registratoIl : undefined,
           }])
         }
         if (pagina.size < PAGINA_TELEFONI) break
@@ -428,15 +439,27 @@ export const sendPush = onSchedule({
       }
       const uids = [...telefoni.keys()]
       for (let inizio = 0; inizio < uids.length; inizio += 100) {
-        const snaps = await db.getAll(...uids.slice(inizio, inizio + 100).map((uid) => db.doc(`accounts/${uid}`)))
+        const gruppo = uids.slice(inizio, inizio + 100)
+        const snaps = await db.getAll(...gruppo.map((uid) => db.doc(`accounts/${uid}`)))
         for (const snap of snaps) {
           const data = snap.data()
           accessi.set(snap.id, data ? { salonId: text(data.salonId), lingua: text(data.lingua), role: text(data.role) } : null)
+        }
+        try {
+          const utenti = await getAuth().getUsers(gruppo.map((uid) => ({ uid })))
+          for (const utente of utenti.users) {
+            const dal = Date.parse(utente.tokensValidAfterTime ?? '')
+            if (Number.isFinite(dal)) sessioniDal.set(utente.uid, dal)
+          }
+        } catch (error) {
+          // Senza la data delle sessioni il giro manda come prima: meglio una push in più che nessuna.
+          logger.error('Sessioni degli accessi non lette per le push', { code: authCode(error) })
         }
       }
       return uids
     },
     account: async (uid) => accessi.get(uid) ?? null,
+    sessioniDal: async (uid) => sessioniDal.get(uid) ?? null,
     operativo: async (salonId, uid) => {
       const role = accessi.get(uid)?.role ?? ''
       if (role === '' || role === 'titolare') return true
@@ -499,7 +522,10 @@ export const sendPush = onSchedule({
         try {
           await db.runTransaction(async (tx) => {
             const snap = await tx.get(ref)
-            if (snap.get('token') === item.token) tx.delete(ref)
+            if (snap.get('token') !== item.token) return
+            // Un telefono di una sessione chiusa si toglie solo se non si è registrato di nuovo nel frattempo.
+            if (item.scaduto && (snap.get('registratoIl') !== item.scaduto.registratoIl || text(snap.get('updatedAt')) !== item.scaduto.updatedAt)) return
+            tx.delete(ref)
           })
         } catch (error) {
           logger.error('Token push di un altro accesso non rimosso', {
@@ -723,6 +749,7 @@ export const setSalonPro = onCall(pianoCall, async (request) => {
 
 export const avviaProva = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
+  await richiediEmailConfermata(uid, request.auth?.token)
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   return avviaProvaPer(uid, account)
@@ -730,6 +757,8 @@ export const avviaProva = onCall(pianoCall, async (request) => {
 
 export const eliminaAccount = onCall({ ...pianoCall, timeoutSeconds: 300, secrets: [brevoApiKey] }, async (request) => {
   const uid = requireUid(request.auth)
+  // La password chiesta dall'app vale solo se il server vede un accesso di pochi minuti fa.
+  controllaAccessoRecente(request.auth?.token.auth_time)
   const richiesto = text(field(request.data, 'salonId'))
   return eliminaAccountPer(uid, richiesto || undefined, async (to, subject, html) => {
     if (await riservaPostaSistema(getFirestore(), new Date())) await postBrevoHtml(brevoApiKey.value(), to, subject, html)
@@ -750,7 +779,11 @@ export const eliminaSalone = onCall({ ...pianoCall, timeoutSeconds: 300 }, async
 export const esciAltriDispositivi = onCall(pianoCall, async (request) => {
   const uid = requireUid(request.auth)
   await getAuth().revokeRefreshTokens(uid)
-  return { ok: true }
+  // Anche le push: un telefono scollegato non deve ricevere più nomi di animali. Se la sessione di chi chiama regge, il suo telefono si registra di nuovo.
+  const db = getFirestore()
+  const telefoni = await db.collection(`accounts/${uid}/devices`).get()
+  await Promise.all(telefoni.docs.map((doc) => doc.ref.delete()))
+  return { ok: true, telefoni: telefoni.size }
 })
 
 export const pubblicaSalone = onCall(pianoCall, async (request) => {
@@ -758,13 +791,22 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('accesso_negato')
-  return registraSlug(uid, text(field(request.data, 'nome')))
+  await richiediEmailConfermata(uid, request.auth?.token)
+  let nome = text(field(request.data, 'nome'))
+  // Senza nome: subito dopo la conferma dell'email l'app chiede il link del nome già salvato.
+  if (nome.trim() === '') {
+    const salvato = (await db.doc(`salons/${uid}/settings/main`).get()).data()?.business?.salonName
+    nome = typeof salvato === 'string' ? salvato : ''
+  }
+  return registraSlug(uid, nome)
 })
 
 export const slugSalone = onDocumentWritten({ document: 'salons/{salonId}/settings/main', region: 'europe-west1' }, async (event) => {
   // Una lettura a salvataggio: registra anche i saloni che il link non l'hanno mai pubblicato.
   const nome = event.data?.after.data()?.business?.salonName
   if (typeof nome !== 'string' || nome.trim() === '') return
+  // Un account mai confermato non occupa un link pubblico: lo prende alla conferma, con pubblicaSalone.
+  if (!(await titolareConfermato(event.params.salonId))) return
   await slugDalSalone(event.params.salonId, nome)
 })
 
@@ -1351,6 +1393,7 @@ function chiudiInvitiDi(
 
 export const createInvite = onCall(callable, async (request) => {
   const uid = requireUid(request.auth)
+  await richiediEmailConfermata(uid, request.auth?.token)
   const db = getFirestore()
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   if (!account) deny('accesso_negato')
@@ -1774,6 +1817,25 @@ async function riservaRichiestaPlaces(uid: string): Promise<void> {
 async function indirizziAmmessi(uid: string, emailConfermata: boolean): Promise<boolean> {
   if (emailConfermata) return true
   return (await getFirestore().doc(`accounts/${uid}`).get()).get('legacy') === true
+}
+
+/**
+ * La schermata «conferma la tua email» vive nell'app: chi chiama le functions direttamente la salta.
+ * Qui serve davvero l'email confermata, o un account di prima della conferma obbligatoria.
+ */
+async function richiediEmailConfermata(uid: string, token: { email_verified?: unknown } | undefined): Promise<void> {
+  if (await indirizziAmmessi(uid, token?.email_verified === true)) return
+  throw erroreServer('failed-precondition', 'email_non_confermata')
+}
+
+/** Per il link pubblico registrato dal salvataggio delle impostazioni, dove non c'è un token: si chiede ad Auth. */
+async function titolareConfermato(salonId: string): Promise<boolean> {
+  try {
+    if ((await getAuth().getUser(salonId)).emailVerified === true) return true
+  } catch {
+    return false
+  }
+  return (await getFirestore().doc(`accounts/${salonId}`).get()).get('legacy') === true
 }
 
 export const suggerisciIndirizzi = onCall(placesCall, async (request) => {

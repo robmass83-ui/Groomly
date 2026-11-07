@@ -79,19 +79,20 @@ export function PushHost() {
         return
       }
       localStorage.setItem(PUSH_TOKEN_KEY, token)
-      await writePushDevice(uid, pushDeviceId(), { token, appVersion: APP_VERSION })
+      // La registra il server, con la sua ora e senza togliere la verifica già fatta.
+      // Solo se la function non risponde il telefono la scrive da sé, come prima.
+      await prendiPushTelefono({
+        token,
+        deviceId: pushDeviceId(),
+        tieni: true,
+        appVersion: APP_VERSION,
+      }).catch(() => writePushDevice(uid, pushDeviceId(), { token, appVersion: APP_VERSION }))
       if (cancelled || !prefs.enabled) {
         localStorage.removeItem(PUSH_TOKEN_KEY)
         await writePushDevice(uid, pushDeviceId(), null)
         await prendiPushTelefono({ token, deviceId: pushDeviceId(), tieni: false }).catch(() => {})
         return
       }
-      await prendiPushTelefono({
-        token,
-        deviceId: pushDeviceId(),
-        tieni: true,
-        appVersion: APP_VERSION,
-      }).catch(() => {})
       setPushStatus({ unavailable: false })
       if (prefs.updates) {
         localStorage.setItem(PUSH_READY_KEY, '1')

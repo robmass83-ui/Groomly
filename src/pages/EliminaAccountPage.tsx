@@ -14,6 +14,7 @@ import { useSettings } from '../hooks/useSettings'
 import { useFrasi, useLingua } from '../i18n/LinguaContext'
 import { accountNonEliminabile } from '../lib/accountProtetto'
 import { messaggioAuth } from '../lib/erroriAuth'
+import { codiceErroreServer, fraseErrore } from '../i18n/errori'
 import { confermaEliminaValida } from '../lib/confermaElimina'
 import { avvisoAbbonamentoPlay } from '../lib/avvisoPlay'
 import { SIZES } from '../theme/sizes'
@@ -64,7 +65,8 @@ export function EliminaAccountPage() {
     setErrore('')
     try {
       const mod = await import('../data/firebase/client')
-      await mod.verificaPassword(password)
+      // Il token nuovo porta al server il momento dell'accesso: senza, eliminaAccount rifiuta.
+      await mod.riconfermaPassword(password)
       setPasso(5)
     } catch (error) {
       setErrore(messaggioAuth(lingua, error))
@@ -86,6 +88,13 @@ export function EliminaAccountPage() {
       toast.show(frasi.delFatto, 'plain')
       session.logout()
     } catch (error) {
+      if (codiceErroreServer(error)?.codice === 'riconferma_richiesta') {
+        // Tra la password e la conferma sono passati troppi minuti: si richiede.
+        setPassword('')
+        setErrore(fraseErrore(lingua, 'riconferma_richiesta'))
+        setPasso(4)
+        return
+      }
       toast.show(messaggioAuth(lingua, error), 'plain')
     } finally {
       setOccupato(false)

@@ -25,6 +25,7 @@ export type ValoriErrore = Record<string, string | number>
 const ERRORI_SERVER = {
   accesso_richiesto: { it: 'Accesso richiesto', en: 'Please sign in', es: 'Inicia sesión', fr: 'Connexion requise', de: 'Anmeldung erforderlich' },
   accesso_negato: { it: 'Accesso negato', en: 'Access denied', es: 'Acceso denegado', fr: 'Accès refusé', de: 'Zugriff verweigert' },
+  email_non_confermata: { it: 'Conferma prima la tua email', en: 'Please confirm your email first', es: 'Confirma primero tu correo', fr: 'Confirmez d’abord votre e-mail', de: 'Bitte bestätigen Sie zuerst Ihre E-Mail' },
   richiesta_non_valida: { it: 'Richiesta non valida', en: 'Invalid request', es: 'Solicitud no válida', fr: 'Demande non valide', de: 'Ungültige Anfrage' },
   riconferma_richiesta: { it: 'Conferma la password per continuare', en: 'Confirm your password to continue', es: 'Confirma tu contraseña para continuar', fr: 'Confirmez votre mot de passe pour continuer', de: 'Bestätigen Sie Ihr Passwort, um fortzufahren' },
   autore_assente: { it: 'L’account di chi ha scritto non esiste più', en: 'The account of the person who wrote no longer exists', es: 'La cuenta de quien escribió ya no existe', fr: 'Le compte de la personne qui a écrit n’existe plus', de: 'Das Konto der Person, die geschrieben hat, gibt es nicht mehr' },

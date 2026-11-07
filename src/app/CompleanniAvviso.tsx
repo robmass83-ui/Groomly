@@ -13,6 +13,7 @@ const COMPLEANNO_ID = 8
 export function CompleanniAvviso() {
   const { gate, entry } = useSession()
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
+  const salonId = gate.kind === 'in' ? gate.account.salonId : ''
   const { dogs, settled } = useDogs(uid)
   const frasi = useFrasi()
 
@@ -48,7 +49,7 @@ export function CompleanniAvviso() {
             body: frasi.notificaCompleanno.replace('{{nomi}}', nomi),
             channelId: 'compleanni',
             schedule: { at: piano.at, allowWhileIdle: true },
-            extra: { path: piano.path },
+            extra: { path: piano.path, type: 'compleanno', salonId },
           }])
           if (piano.subito) localStorage.setItem(chiave, '1')
         } catch {
@@ -59,7 +60,7 @@ export function CompleanniAvviso() {
     return () => {
       void pending.then((handle) => handle.remove())
     }
-  }, [uid, settled, dogs, frasi])
+  }, [uid, salonId, settled, dogs, frasi])
 
   return null
 }

@@ -26,6 +26,9 @@ describe('uscita: pulizia dei dati dell’account', () => {
     `groomly.users.${UID}.driveUltimoInvio`,
     `groomly.piano.${UID}`,
     `groomly.pending-photos.${UID}`,
+    `groomly.orario-scaduto.${UID}`,
+    `groomly.orario-scaduto.${UID}.lingua`,
+    `groomly.compleanno.${UID}.2026-11-07`,
   ]
   const restano = [
     storageKeys.dogs('u2'),
@@ -38,6 +41,8 @@ describe('uscita: pulizia dei dati dell’account', () => {
     `groomly.pushPrefs.${UID}`,
     storageKeys.lastSignIn,
     'groomly.pendingSalon.x',
+    'groomly.orario-scaduto.u2',
+    'groomly.compleanno.u2.2026-11-07',
   ]
 
   it('toglie tutto ciò che è dell’account, anche senza il segno di copia del cloud', () => {

@@ -2701,6 +2701,7 @@ export async function sendVerification(): Promise<{ alreadyVerified: boolean }> 
 /** Dopo la riautenticazione il token nuovo porta il momento dell'accesso che le functions controllano. */
 export async function riconfermaPassword(password: string): Promise<void> {
   await verificaPassword(password)
+  if (!firebaseEnabled()) return
   await (await auth()).currentUser?.getIdToken(true)
 }
 
@@ -2732,6 +2733,7 @@ export async function cambiaPassword(attuale: string, nuova: string): Promise<vo
   const cred = EmailAuthProvider.credential(user.email, attuale)
   await reauthenticateWithCredential(user, cred)
   await updatePassword(user, nuova)
+  await registraDiNuovoQuestoTelefono()
 }
 
 /** Nome e cognome della persona (saluto in Home), non il titolare del salone. */
@@ -2766,6 +2768,22 @@ export async function esciAltriDispositivi(): Promise<void> {
   await callCallable('esciAltriDispositivi', {})
   const user = await currentUser()
   await user.getIdToken(true)
+  // Il server ha tolto tutti i telefoni dalle push: se questa sessione regge, il suo si registra di nuovo.
+  await registraDiNuovoQuestoTelefono()
+}
+
+/** Dopo un'uscita forzata o un cambio password il server non manda più ai telefoni registrati prima. */
+async function registraDiNuovoQuestoTelefono(): Promise<void> {
+  const { PUSH_TOKEN_KEY, pushDeviceId } = await import('../../lib/pushDevice')
+  let token = ''
+  try {
+    token = localStorage.getItem(PUSH_TOKEN_KEY) ?? ''
+  } catch {
+    token = ''
+  }
+  if (!token) return
+  const { APP_VERSION } = await import('../../lib/appVersion')
+  await prendiPushTelefono({ token, deviceId: pushDeviceId(), tieni: true, appVersion: APP_VERSION }).catch(() => undefined)
 }
 
 export async function sendPasswordReset(email: string): Promise<void> {
@@ -2788,6 +2806,8 @@ export async function reloadEmailVerified(): Promise<boolean> {
   emailVerified = user.emailVerified === true
   // Il token vecchio dice ancora «non confermata» fino a un'ora: le functions guardano quello.
   if (emailVerified) await user.getIdToken(true).catch(() => undefined)
+  // Il link pubblico del salone nasce solo dopo la conferma: si chiede adesso, col nome già salvato. Per i membri il server dice no.
+  if (emailVerified) void callCallable('pubblicaSalone', { nome: '' }).catch(() => undefined)
   return emailVerified
 }
 

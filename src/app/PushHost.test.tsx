@@ -4,7 +4,7 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { writePushDevice } from '../data/firebase/client'
+import { prendiPushTelefono, writePushDevice } from '../data/firebase/client'
 import { completeAppointment, createAppointment } from '../data/local/appointments'
 import { createAccount } from '../data/local/auth'
 import { createDog } from '../data/local/dogs'
@@ -154,7 +154,7 @@ describe('PushHost', () => {
     const writePending = new Promise<void>((resolve) => {
       resolveWrite = resolve
     })
-    vi.mocked(writePushDevice).mockImplementationOnce(async () => writePending)
+    vi.mocked(prendiPushTelefono).mockImplementationOnce(async () => writePending)
 
     render(
       <Providers>
@@ -169,11 +169,9 @@ describe('PushHost', () => {
       pushListeners.get('registration')?.({ value: 'token-in-volo' })
       await Promise.resolve()
     })
-    expect(writePushDevice).toHaveBeenCalledWith(
-      account.uid,
-      expect.any(String),
-      { token: 'token-in-volo', appVersion: expect.any(String) },
-    )
+    // La registrazione la fa il server, con la sua ora: il telefono non scrive più il documento da sé.
+    expect(prendiPushTelefono).toHaveBeenCalledWith(expect.objectContaining({ token: 'token-in-volo', tieni: true }))
+    expect(writePushDevice).not.toHaveBeenCalledWith(account.uid, expect.any(String), expect.objectContaining({ token: 'token-in-volo' }))
 
     act(() => savePushPrefs(account.uid, { ...prefs, enabled: false }))
     await act(async () => resolveWrite())
@@ -182,6 +180,29 @@ describe('PushHost', () => {
       expect(localStorage.getItem('groomly.pushToken')).toBeNull()
       expect(vi.mocked(writePushDevice).mock.calls.some((call) => call[2] === null)).toBe(true)
     })
+  })
+
+  it('se la function non risponde il telefono si registra da sé, come prima', async () => {
+    const account = await createAccount('ripiego@salone.it', 'segretissimo')
+    savePushPrefs(account.uid, { enabled: true, updates: true, complete: true, completeAfterMin: 60 })
+    vi.mocked(prendiPushTelefono).mockRejectedValueOnce(new Error('offline'))
+    render(
+      <Providers>
+        <MemoryRouter>
+          <PushHost />
+        </MemoryRouter>
+      </Providers>,
+    )
+    await waitFor(() => expect(PushNotifications.register).toHaveBeenCalled())
+    await act(async () => {
+      pushListeners.get('registration')?.({ value: 'token-ripiego' })
+      await Promise.resolve()
+    })
+    await waitFor(() => expect(writePushDevice).toHaveBeenCalledWith(
+      account.uid,
+      expect.any(String),
+      { token: 'token-ripiego', appVersion: expect.any(String) },
+    ))
   })
 
   it('richiede di nuovo il permesso dopo un rifiuto e una nuova attivazione', async () => {

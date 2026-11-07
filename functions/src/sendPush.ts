@@ -25,12 +25,16 @@ export type PushDevice = {
   updatedAt?: string
   /** Scritto solo dal server, dopo che il telefono ha risposto alla sfida mandata a quel token. */
   verificato?: boolean
+  /** Ora del server alla registrazione (ms): il telefono non la può scrivere. */
+  registratoIl?: number
 }
 
 export type StalePushDevice = {
   uid: string
   deviceId: string
   token: string
+  /** Registrato prima dell'ultima chiusura delle sessioni: si toglie solo se nel frattempo non è stato riscritto. */
+  scaduto?: { registratoIl?: number; updatedAt: string }
 }
 
 type PushRegistration = {
@@ -40,6 +44,18 @@ type PushRegistration = {
   token: string
   updatedAt: string
   verificato?: boolean
+  registratoIl?: number
+}
+
+/**
+ * Quando il telefono si è registrato. Conta l'ora del server; per le righe scritte dal telefono,
+ * prima di questa versione, vale updatedAt, ma un'ora nel futuro non si accetta.
+ */
+export function momentoRegistrazione(row: { registratoIl?: number; updatedAt?: string }, nowMs: number): number {
+  if (typeof row.registratoIl === 'number' && Number.isFinite(row.registratoIl)) return row.registratoIl
+  const scritto = Date.parse(row.updatedAt ?? '')
+  if (!Number.isFinite(scritto) || scritto > nowMs + MINUTE_MS) return 0
+  return scritto
 }
 
 export type PushAppointment = {
@@ -71,11 +87,16 @@ export type PushLoad = {
   ): Promise<string[]>
   latestVersion(): Promise<string | null>
   dimentica?(refs: StalePushDevice[]): Promise<void>
+  /**
+   * Da quando valgono le sessioni dell'accesso (ms), cioè l'ultima uscita forzata, cambio o reset della password.
+   * null se non si sa: allora non si toglie nulla.
+   */
+  sessioniDal?(uid: string): Promise<number | null>
   /** Un salone che non si legge non ferma il giro degli altri. */
   errore?(salonId: string, error: unknown): void
 }
 
-export function telefoniDelLogin(rows: PushRegistration[]): {
+export function telefoniDelLogin(rows: PushRegistration[], nowMs = Date.now()): {
   attivi: PushRegistration[]
   vecchi: StalePushDevice[]
 } {
@@ -97,15 +118,18 @@ export function telefoniDelLogin(rows: PushRegistration[]): {
     // Una registrazione verificata vince su quelle che nessun telefono ha confermato: scrivere il token di un altro non basta a staccarlo.
     const verificate = group.filter((row) => row.verificato === true)
     const candidate = verificate.length > 0 ? verificate : group
+    const quando = (row: PushRegistration) => momentoRegistrazione(row, nowMs)
     const sorted = [...candidate].sort((left, right) => {
-      const byTime = right.updatedAt.localeCompare(left.updatedAt)
+      const byTime = quando(right) - quando(left)
       if (byTime !== 0) return byTime
       return left.deviceId.localeCompare(right.deviceId)
     })
     const best = sorted[0]
-    if (!best.updatedAt && verificate.length === 0) continue
-    const winner = sorted.find((row) => row.updatedAt === best.updatedAt && row.salonId === best.salonId) ?? best
+    if (quando(best) === 0 && verificate.length === 0) continue
+    const winner = sorted.find((row) => quando(row) === quando(best) && row.salonId === best.salonId) ?? best
     attivi.push(winner)
+    // Senza una registrazione verificata nessuno ha provato di avere il telefono: non si stacca nessuno.
+    if (verificate.length === 0) continue
     for (const row of group) {
       if (row.uid === winner.uid && row.deviceId === winner.deviceId) continue
       vecchi.push({ uid: row.uid, deviceId: row.deviceId, token: row.token })
@@ -235,6 +259,7 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
   const membersBySalon = new Map<string, { uid: string; lingua: Lingua }[]>()
   const rows: PushRegistration[] = []
   const devicesByUid = new Map<string, PushDevice[]>()
+  const scaduti: StalePushDevice[] = []
   for (const uid of accountIds) {
     const account = await load.account(uid)
     const salonId = account?.salonId ?? ''
@@ -244,7 +269,19 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
     const member = { uid, lingua }
     if (members) members.push(member)
     else membersBySalon.set(salonId, [member])
-    const devices = await load.devices(uid)
+    const tutti = await load.devices(uid)
+    const dal = load.sessioniDal ? await load.sessioniDal(uid) : null
+    // Dopo «Esci da tutti gli altri dispositivi», un cambio o un reset della password, i telefoni registrati prima non ricevono più nulla.
+    const devices = dal === null ? tutti : tutti.filter((device) => {
+      if (momentoRegistrazione(device, nowMs) >= dal) return true
+      scaduti.push({
+        uid,
+        deviceId: device.id,
+        token: device.token,
+        scaduto: { registratoIl: device.registratoIl, updatedAt: device.updatedAt ?? '' },
+      })
+      return false
+    })
     devicesByUid.set(uid, devices)
     for (const device of devices) {
       rows.push({
@@ -254,11 +291,13 @@ export async function collectSends(load: PushLoad, nowMs: number): Promise<PushS
         token: device.token,
         updatedAt: device.updatedAt ?? '',
         verificato: device.verificato === true,
+        registratoIl: device.registratoIl,
       })
     }
   }
-  const { attivi, vecchi } = telefoniDelLogin(rows)
-  if (vecchi.length > 0 && load.dimentica) await load.dimentica(vecchi)
+  const { attivi, vecchi } = telefoniDelLogin(rows, nowMs)
+  const daTogliere = [...vecchi, ...scaduti]
+  if (daTogliere.length > 0 && load.dimentica) await load.dimentica(daTogliere)
   const activeKey = new Set(attivi.map((row) => `${row.uid}\n${row.deviceId}`))
 
   const sends: PushSend[] = []

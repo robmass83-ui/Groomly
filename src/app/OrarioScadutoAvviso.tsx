@@ -52,6 +52,7 @@ async function togliDalTelefono(ids: readonly string[]) {
 export function OrarioScadutoAvviso() {
   const { gate, entry } = useSession()
   const uid = gate.kind === 'in' && entry.kind === 'home' ? gate.account.uid : ''
+  const salonId = gate.kind === 'in' ? gate.account.salonId : ''
   const { dogs, settled } = useDogs(uid)
   const { appointments, synced } = useAppointments(uid)
   const frasi = useFrasi()
@@ -120,7 +121,7 @@ export function OrarioScadutoAvviso() {
             body: `${frasi.notificaOrarioScaduto.replace('{{nome}}', nome).replace('{{ora}}', orologio)} ${frasi.notificaOrarioScadutoApri}`,
             channelId: CANALE,
             schedule: { at: quando, allowWhileIdle: true },
-            extra: { path: `/appuntamenti/${scelta.id}` },
+            extra: { path: `/appuntamenti/${scelta.id}`, type: 'orario-scaduto', salonId },
           }
         }))
         const morte = ancora.filter((scelta) => !ancoraAperta(scelta.id))

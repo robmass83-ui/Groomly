@@ -237,7 +237,7 @@ describe('raccolta invii push', () => {
         id: 'tel',
         token,
         appVersion: '1.1.62',
-        updatedAt: uid === 'attuale' ? '2026-10-27T18:00:00.000Z' : '2026-10-01T18:00:00.000Z',
+        updatedAt: uid === 'attuale' ? '2026-06-14T18:00:00.000Z' : '2026-06-01T18:00:00.000Z',
       }],
       appointments: async (salonId) => [{
         id: salonId === 'salon-vecchio' ? 'olaf' : 'rex',
@@ -258,7 +258,63 @@ describe('raccolta invii push', () => {
       }),
     ])
     expect(sends.some((send) => send.body.includes('Olaf'))).toBe(false)
-    expect(dimenticati).toEqual([{ uid: 'vecchio', deviceId: 'tel', token }])
+    // Nessuna delle due righe è verificata: nessuno ha provato di avere il telefono, quindi non si stacca nessuno.
+    expect(dimenticati).toEqual([])
+  })
+
+  it('senza verifica un’ora scritta nel futuro non vince e non stacca la vittima', () => {
+    const { attivi, vecchi } = telefoniDelLogin([
+      { uid: 'vittima', salonId: 'salon-v', deviceId: 'tel', token: 'stesso', updatedAt: '2026-06-15T09:00:00.000Z' },
+      { uid: 'altro', salonId: 'salon-x', deviceId: 'x', token: 'stesso', updatedAt: '2099-01-01T00:00:00.000Z' },
+    ], now)
+    expect(attivi.map((row) => row.uid)).toEqual(['vittima'])
+    expect(vecchi).toEqual([])
+  })
+
+  it('l’ora del server conta più di quella scritta dal telefono', () => {
+    const { attivi } = telefoniDelLogin([
+      { uid: 'a', salonId: 'salon-a', deviceId: 'tel', token: 'stesso', updatedAt: '2026-06-15T09:59:00.000Z', registratoIl: now - 3_600_000 },
+      { uid: 'b', salonId: 'salon-b', deviceId: 'tel', token: 'stesso', updatedAt: '2026-06-15T08:00:00.000Z', registratoIl: now - 60_000 },
+    ], now)
+    expect(attivi.map((row) => row.uid)).toEqual(['b'])
+  })
+
+  it('dopo l’uscita forzata o il cambio password i telefoni registrati prima non ricevono e si tolgono', async () => {
+    const dimenticati: { uid: string; deviceId: string; token: string }[] = []
+    const giro = (dal: number | null) => collectSends({
+      ...load(null),
+      accountIds: async () => ['active'],
+      prefs: async () => ({ enabled: true, updates: true, complete: true, completeAfterMin: 0 }),
+      devices: async () => [
+        { id: 'perso', token: 'token-perso', appVersion: '1.1.62', updatedAt: '2026-06-10T08:00:00.000Z' },
+        { id: 'mio', token: 'token-mio', appVersion: '1.1.62', updatedAt: '2026-06-01T08:00:00.000Z', registratoIl: now - 60_000 },
+      ],
+      sessioniDal: async () => dal,
+      dimentica: async (refs) => { dimenticati.push(...refs) },
+    }, now)
+    const prima = await giro(null)
+    expect(new Set(prima.map((send) => send.deviceId))).toEqual(new Set(['perso', 'mio']))
+    expect(dimenticati).toEqual([])
+    const dopo = await giro(now - 30 * 60_000)
+    expect(dopo.length).toBeGreaterThan(0)
+    expect(dopo.every((send) => send.deviceId === 'mio')).toBe(true)
+    expect(dimenticati).toEqual([{
+      uid: 'active',
+      deviceId: 'perso',
+      token: 'token-perso',
+      scaduto: { registratoIl: undefined, updatedAt: '2026-06-10T08:00:00.000Z' },
+    }])
+  })
+
+  it('l’uscita forzata toglie i telefoni e la registrazione tiene la verifica con l’ora del server', () => {
+    const src = readFileSync('functions/src/index.ts', 'utf8')
+    const esci = src.slice(src.indexOf('export const esciAltriDispositivi'), src.indexOf('export const pubblicaSalone'))
+    expect(esci).toContain('revokeRefreshTokens')
+    expect(esci).toContain('/devices')
+    expect(esci).toContain('.delete()')
+    const prendi = src.slice(src.indexOf('export const prendiPushTelefono'), src.indexOf('async function registrazioniDelToken'))
+    expect(prendi).toContain('registratoIl: adesso')
+    expect(prendi).toContain("prima.get('verificato') === true")
   })
 
   it('due accessi senza orario non si dividono lo stesso telefono', () => {

@@ -16,6 +16,8 @@ export function pulisciDatiAccount(uid: string): void {
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index)
       if (key && key.startsWith(prefisso) && key !== tenere) chiavi.push(key)
+      // Gli avvisi di compleanno e orario scaduto si tolgono all'uscita: senza i segni, chi rientra li riceve di nuovo.
+      if (key && (key === `groomly.orario-scaduto.${uid}` || key.startsWith(`groomly.orario-scaduto.${uid}.`) || key.startsWith(`groomly.compleanno.${uid}.`))) chiavi.push(key)
     }
     chiavi.push(`groomly.piano.${uid}`)
     for (const key of chiavi) localStorage.removeItem(key)

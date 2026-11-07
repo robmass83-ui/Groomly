@@ -42,4 +42,18 @@ describe('push del telefono', () => {
       { id: 4, extra: { type: 'update' } },
     ], 'mio')).toEqual([2, 3])
   })
+
+  it('all’uscita toglie anche compleanni e orario scaduto, ma non l’avviso di aggiornamento', () => {
+    const avvisi = [
+      { id: 2, extra: { type: 'update' } },
+      { id: 8, extra: { path: '/clienti', type: 'compleanno', salonId: 'mio' } },
+      { id: 900, extra: { path: '/appuntamenti/a1', type: 'orario-scaduto', salonId: 'mio' } },
+      { id: 901, extra: { path: '/appuntamenti/a2' } },
+      { id: 902 },
+    ]
+    expect(pushLocaleDaTogliere(avvisi, '')).toEqual([8, 900, 901])
+    // All'avvio nello stesso salone restano; quelli delle versioni prima li riprogramma l'app.
+    expect(pushLocaleDaTogliere(avvisi, 'mio')).toEqual([])
+    expect(pushLocaleDaTogliere(avvisi, 'nuovo')).toEqual([8, 900])
+  })
 })
