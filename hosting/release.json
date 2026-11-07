@@ -1,25 +1,20 @@
 {
-  "version": "1.1.202",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.202/groomly.apk",
+  "version": "1.1.203",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.203/groomly.apk",
   "notes": [
-    "«Esci da tutti gli altri dispositivi» e il cambio password fermano anche le notifiche sui telefoni scollegati.",
-    "Dopo Esci, gli avvisi di compleanno e di orario scaduto spariscono dal telefono.",
-    "Eliminare l’account chiede di nuovo la password se è passato troppo tempo.",
+    "Il saluto all’avvio usa il nome del tuo profilo.",
+    "Più controlli di sicurezza nella console di Groomly.",
     "[en]",
-    "“Sign out of all other devices” and a password change also stop notifications on disconnected phones.",
-    "After signing out, birthday and overdue-time reminders disappear from the phone.",
-    "Deleting your account asks for your password again if too much time has passed.",
+    "The greeting at start-up uses the name in your profile.",
+    "More security checks in the Groomly console.",
     "[es]",
-    "«Salir del resto de dispositivos» y el cambio de contraseña también detienen los avisos en los teléfonos desconectados.",
-    "Al cerrar sesión, los avisos de cumpleaños y de hora vencida desaparecen del teléfono.",
-    "Eliminar la cuenta vuelve a pedir la contraseña si ha pasado demasiado tiempo.",
+    "El saludo al abrir usa el nombre de tu perfil.",
+    "Más controles de seguridad en la consola de Groomly.",
     "[fr]",
-    "« Se déconnecter de tous les autres appareils » et le changement de mot de passe arrêtent aussi les notifications sur les téléphones déconnectés.",
-    "Après la déconnexion, les rappels d’anniversaire et d’heure dépassée disparaissent du téléphone.",
-    "Supprimer le compte redemande le mot de passe si trop de temps s’est écoulé.",
+    "Le message d’accueil au démarrage utilise le prénom de votre profil.",
+    "Plus de contrôles de sécurité dans la console Groomly.",
     "[de]",
-    "„Auf allen anderen Geräten abmelden“ und eine Passwortänderung stoppen auch die Benachrichtigungen auf getrennten Handys.",
-    "Nach dem Abmelden verschwinden Geburtstags- und Zeitüberschreitungs-Hinweise vom Handy.",
-    "Das Löschen des Kontos fragt erneut nach dem Passwort, wenn zu viel Zeit vergangen ist."
+    "Die Begrüßung beim Start nutzt den Namen aus Ihrem Profil.",
+    "Mehr Sicherheitsprüfungen in der Groomly-Konsole."
   ]
 }
