@@ -472,7 +472,7 @@ describe('gate Firebase', () => {
     cloud.mode = 'pending'
     const account = await createAccount('laura.masala@tiscali.it', 'segretissimo')
     localStorage.removeItem(storageKeys.session)
-    localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: account.uid, email: account.email }))
+    localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: account.uid, email: account.email, firstName: 'Laura' }))
     render(<App memory isDev={false} initialPath="/" />)
     expect(screen.getByText('Ciao Laura')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()
@@ -499,7 +499,7 @@ describe('gate Firebase', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     try {
       cloud.mode = 'pending'
-      localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: 'fb-1', email: 'robmass83@gmail.com' }))
+      localStorage.setItem('groomly.lastSignIn', JSON.stringify({ uid: 'fb-1', email: 'socio@salone.it', firstName: 'Roberto' }))
       render(<App memory isDev={false} initialPath="/" />)
       expect(screen.getByText('Ciao Roberto')).toBeInTheDocument()
       expect(screen.getByRole('status', { name: 'Caricamento Groomly' })).toBeInTheDocument()

@@ -9,6 +9,7 @@ import { dataCorta } from '../../i18n/format'
 import { useFrasi, useLingua } from '../../i18n/LinguaContext'
 import { USER_TEXT } from '../../theme/text'
 import { AIUTO, RIGA } from './comuni'
+import { useRiconferma } from './RiconfermaPassword'
 
 const GIORNO = 86_400_000
 
@@ -24,6 +25,7 @@ export function AnnuncioPagamenti({ annuncioIl }: { annuncioIl: string | null })
   const [annuncio, setAnnuncio] = useState<'data' | 'conferma' | null>(null)
   const [dataAnnuncio, setDataAnnuncio] = useState(oggiIso)
   const [annunciando, setAnnunciando] = useState(false)
+  const { conRiconferma, dialogo } = useRiconferma()
   const campo = { width: '100%', boxSizing: 'border-box' as const, font: 'inherit', padding: 10, border: '1px solid var(--line)', borderRadius: 10, background: 'transparent', color: 'inherit' }
   const etichetta = { display: 'flex', flexDirection: 'column' as const, gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--tx2)' }
 
@@ -31,7 +33,9 @@ export function AnnuncioPagamenti({ annuncioIl }: { annuncioIl: string | null })
     if (annunciando) return
     setAnnunciando(true)
     try {
-      const esito = await callAnnunciaPagamenti(new Date(`${dataAnnuncio}T09:00:00`).toISOString())
+      const data = new Date(`${dataAnnuncio}T09:00:00`).toISOString()
+      // Se il server chiede la password, si chiede qui e l'annuncio riparte una volta sola.
+      const esito = await conRiconferma(() => callAnnunciaPagamenti(data))
       setAnnuncio(null)
       toast.show(frasi.amAnnuncioFatto.replace('{{n}}', String(esito.email)), 'ok')
     } catch {
@@ -86,6 +90,7 @@ export function AnnuncioPagamenti({ annuncioIl }: { annuncioIl: string | null })
           </>
         )}
       </Dialog>
+      {dialogo}
     </>
   )
 }

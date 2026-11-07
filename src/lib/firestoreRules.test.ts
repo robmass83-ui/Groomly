@@ -190,7 +190,8 @@ describe('firestore.rules', () => {
     expect(users).not.toContain('allow read: if request.auth != null;')
 
     const sharedFiles = sliceMatchBlock(rules, '/salon/shared/files/{fileId}')
-    expect(sharedFiles).toContain('isOperator()')
+    // La Console non legge i dati dei clienti del vecchio salone: solo impostazioni e piano.
+    expect(sharedFiles).not.toContain('isOperator()')
     expect(sharedFiles).toContain("canUse('shared')")
     expect(sharedFiles).toContain('allow create: if false')
     expect(sharedFiles).toContain('allow update: if false')
@@ -198,12 +199,17 @@ describe('firestore.rules', () => {
     expect(sharedFiles).not.toContain("ownerRank('shared')")
     for (const path of ['/salon/shared/{kind}/{id}', '/salon/shared/{kind}/{id}/{rest=**}']) {
       const block = sliceMatchBlock(rules, path)
-      expect(block).toContain('isOperator()')
+      expect(block).not.toContain('isOperator()')
       expect(block).toContain("canUse('shared')")
       expect(block).toContain('allow write: if false')
       expect(block).not.toContain("ownerRank('shared')")
     }
     expect(sliceMatchBlock(rules, '/salon/shared/pro/{docId}')).toContain('allow write: if false')
+    expect(sliceMatchBlock(rules, '/salon/shared/pro/{docId}')).toContain('isOperator()')
+    expect(sliceMatchBlock(rules, '/salon/shared/settings/main')).toContain('isOperator()')
+    for (const path of ['/salon/shared/dogs/{dogId}', '/salon/shared/appointments/{appointmentId}', '/salon/shared/members/{memberId}']) {
+      expect(sliceMatchBlock(rules, path), path).not.toContain('isOperator()')
+    }
     expect(sliceMatchBlock(rules, '/salon/shared/members/{memberId}')).toContain('allow write: if false')
     expect(sliceFunction(rules, 'proEnabled(salonId)')).toContain('salon/shared/pro/main')
 

@@ -44,11 +44,15 @@ export const spegniAbbonamenti = onCall(opzioni, async (request) => {
   return conRegistro('spegniAbbonamenti', () => ({}), () => spegniAbbonamentiPer(operatore(request)))
 })
 
-export const annunciaPagamenti = onCall({ ...opzioni, secrets: [brevoApiKey], timeoutSeconds: 300 }, async (request) => conRegistro('annunciaPagamenti', (esito) => ({ dettagli: { data: campo(request.data, 'data'), email: esito.email } }), () => annunciaPagamentiPer({
-  ...operatore(request),
-  data: campo(request.data, 'data'),
-  inviaEmail: async ({ email, lingua, pagamentiDal }) => {
-    const { oggetto, html } = emailAnnuncio(lingua, pagamentiDal)
-    await postBrevoHtml(brevoApiKey.value(), email, oggetto, html)
-  },
-})))
+export const annunciaPagamenti = onCall({ ...opzioni, secrets: [brevoApiKey], timeoutSeconds: 300 }, async (request) => {
+  // Scrive a tutti i titolari e fissa la data dei pagamenti: come l'invio a tutti, vuole la password di pochi minuti fa.
+  controllaAdminRecente(request.auth?.token)
+  return conRegistro('annunciaPagamenti', (esito) => ({ dettagli: { data: campo(request.data, 'data'), email: esito.email } }), () => annunciaPagamentiPer({
+    ...operatore(request),
+    data: campo(request.data, 'data'),
+    inviaEmail: async ({ email, lingua, pagamentiDal }) => {
+      const { oggetto, html } = emailAnnuncio(lingua, pagamentiDal)
+      await postBrevoHtml(brevoApiKey.value(), email, oggetto, html)
+    },
+  }))
+})

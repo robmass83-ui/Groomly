@@ -591,6 +591,42 @@ describe('regole Firestore sull’emulatore', () => {
     await assertFails(setDoc(doc(admin, 'comunicazioni', 'c1', 'invii', 'altro'), { esito: 'inviata' }))
   })
 
+  it('in salon/shared l’operatore legge impostazioni e piano, non cani, visite e file', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'salon', 'shared', 'settings', 'main'), { business: { salonName: 'Vecchio' } })
+      await setDoc(doc(db, 'salon', 'shared', 'pro', 'main'), { enabled: true })
+      await setDoc(doc(db, 'salon', 'shared', 'dogs', 'd1'), { name: 'Fido' })
+      await setDoc(doc(db, 'salon', 'shared', 'appointments', 'a1'), { dogId: 'd1' })
+      await setDoc(doc(db, 'salon', 'shared', 'files', 'f1'), { name: 'foto' })
+      await setDoc(doc(db, 'salon', 'shared', 'files', 'f1', 'chunks', '0'), { dati: 'x' })
+      await setDoc(doc(db, 'salon', 'shared', 'clienti', 'c1'), { nome: 'Rossi' })
+    })
+    const operatore = env.authenticatedContext('uid-operatore', { admin: true }).firestore()
+    await assertSucceeds(getDoc(doc(operatore, 'salon', 'shared', 'settings', 'main')))
+    await assertSucceeds(getDoc(doc(operatore, 'salon', 'shared', 'pro', 'main')))
+    await assertFails(getDoc(doc(operatore, 'salon', 'shared', 'dogs', 'd1')))
+    await assertFails(getDoc(doc(operatore, 'salon', 'shared', 'appointments', 'a1')))
+    await assertFails(getDoc(doc(operatore, 'salon', 'shared', 'files', 'f1')))
+    await assertFails(getDoc(doc(operatore, 'salon', 'shared', 'files', 'f1', 'chunks', '0')))
+    await assertFails(getDoc(doc(operatore, 'salon', 'shared', 'clienti', 'c1')))
+  })
+
+  it('i suggerimenti hanno l’ora del server e lingua e versione brevi', async () => {
+    const { serverTimestamp, Timestamp } = await import('firebase/firestore')
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'accounts', ALTRO), { salonId: ALTRO, role: 'titolare', legacy: false })
+    })
+    const db = env.authenticatedContext(ALTRO, { email: 'titolare@test.it', email_verified: true }).firestore()
+    const base = { uid: ALTRO, salonId: ALTRO, email: 'titolare@test.it', categoria: 'bug', testo: 'Non si apre la pagina', lingua: 'it', versione: '1.1.203' }
+    await assertSucceeds(setDoc(doc(db, 'suggerimenti', 's1'), { ...base, creato: serverTimestamp() }))
+    await assertFails(setDoc(doc(db, 'suggerimenti', 's2'), { ...base, creato: Timestamp.fromDate(new Date('2099-01-01T00:00:00Z')) }))
+    await assertFails(setDoc(doc(db, 'suggerimenti', 's3'), { ...base, creato: Timestamp.fromDate(new Date('2020-01-01T00:00:00Z')) }))
+    await assertFails(setDoc(doc(db, 'suggerimenti', 's4'), { ...base, creato: '9999' }))
+    await assertFails(setDoc(doc(db, 'suggerimenti', 's5'), { ...base, creato: serverTimestamp(), lingua: 'x'.repeat(500) }))
+    await assertFails(setDoc(doc(db, 'suggerimenti', 's6'), { ...base, creato: serverTimestamp(), versione: 'x'.repeat(500) }))
+  })
+
   it('avvisi per account: li legge solo l’account, nessun client li scrive', async () => {
     const proprio = env.authenticatedContext(ALTRO).firestore()
     const estraneo = env.authenticatedContext(COLLAB).firestore()

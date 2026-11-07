@@ -107,6 +107,14 @@ describe('inviaComunicazionePer', () => {
     await expect(invia({}, { authTime: VECCHIO })).resolves.toMatchObject({ id: 'c1' })
   })
 
+  it('un elenco di più di 10 saloni vale come «tutti»: con l’accesso vecchio chiede la riconferma', async () => {
+    const undici = Array.from({ length: 11 }, (_, i) => `s${i + 1}`)
+    await expect(invia({ salonIds: undici }, { authTime: VECCHIO })).rejects.toThrow('Conferma la password per continuare')
+    expect(archivio.has('avvisiSistema/c1')).toBe(false)
+    const dieci = undici.slice(0, 10)
+    await expect(invia({ salonIds: dieci }, { authTime: VECCHIO })).resolves.toMatchObject({ id: 'c1' })
+  })
+
   it.each([
     [{ testi: { de: { titolo: 'X', testo: 'Y' } } }],
     [{ testi: { it: { titolo: '  ', testo: 'Y' } } }],

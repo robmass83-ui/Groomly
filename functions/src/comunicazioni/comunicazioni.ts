@@ -44,6 +44,9 @@ function oggetto(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? value as Record<string, unknown> : {}
 }
 
+/** Oltre questi saloni un elenco vale come «tutti»: serve la password di pochi minuti fa. */
+export const SALONI_SENZA_RICONFERMA = 10
+
 function salonIdsDi(value: unknown): string[] | 'tutti' {
   if (value === 'tutti') return value
   valida(Array.isArray(value) && value.length > 0 && value.every((id) => typeof id === 'string' && id !== '' && !id.includes('/')))
@@ -149,7 +152,8 @@ export async function inviaComunicazionePer(input: {
   richiediAdmin(input.admin)
   const adesso = input.adesso ?? new Date()
   const c = comunicazioneDi(input.dati)
-  if (c.salonIds === 'tutti') controllaAccessoRecente(input.authTime, adesso.getTime())
+  // Conta quanti saloni raggiunge, non come è scritta la richiesta: l'elenco di tutti gli id vale come «tutti».
+  if (c.salonIds === 'tutti' || c.salonIds.length > SALONI_SENZA_RICONFERMA) controllaAccessoRecente(input.authTime, adesso.getTime())
   const db = getFirestore()
   const ref = db.doc(`comunicazioni/${c.idRichiesta}`)
   // In transazione: due richieste con lo stesso id non possono partire entrambe.

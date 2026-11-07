@@ -125,48 +125,53 @@ service cloud.firestore {
       allow read: if isOperator() || canUse('shared');
       allow write: if false;
     }
-    match /salon/shared/members/{memberId} {
+    // La Console legge di shared solo impostazioni e piano: cani, visite e file dei clienti restano fuori, come negli altri saloni.
+    match /salon/shared/settings/main {
       allow read: if isOperator() || canUse('shared');
       allow write: if false;
     }
+    match /salon/shared/members/{memberId} {
+      allow read: if canUse('shared');
+      allow write: if false;
+    }
     match /salon/shared/dogs/{dogId} {
-      allow read: if isOperator() || canUse('shared');
+      allow read: if canUse('shared');
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
     match /salon/shared/appointments/{appointmentId} {
-      allow read: if isOperator() || canUse('shared');
+      allow read: if canUse('shared');
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
     match /salon/shared/files/{fileId} {
-      allow read: if isOperator() || canUse('shared');
+      allow read: if canUse('shared');
       allow delete: if false;
       allow create: if false;
       allow update: if false;
 
       match /full/{part} {
-        allow read: if isOperator() || canUse('shared');
+        allow read: if canUse('shared');
         allow delete: if false;
         allow create: if false;
         allow update: if false;
       }
 
       match /chunks/{n} {
-        allow read: if isOperator() || canUse('shared');
+        allow read: if canUse('shared');
         allow delete: if false;
         allow create: if false;
         allow update: if false;
       }
     }
     match /salon/shared/{kind}/{id} {
-      allow read: if isOperator() || canUse('shared');
+      allow read: if canUse('shared');
       allow write: if false;
     }
     match /salon/shared/{kind}/{id}/{rest=**} {
-      allow read: if isOperator() || canUse('shared');
+      allow read: if canUse('shared');
       allow write: if false;
     }
 
@@ -467,7 +472,11 @@ service cloud.firestore {
         && request.resource.data.testo is string
         && request.resource.data.testo.size() >= 10
         && request.resource.data.testo.size() <= 2000
-        && request.resource.data.keys().hasOnly(['uid', 'salonId', 'email', 'categoria', 'testo', 'lingua', 'versione', 'creato']);
+        && request.resource.data.keys().hasOnly(['uid', 'salonId', 'email', 'categoria', 'testo', 'lingua', 'versione', 'creato'])
+        // La casella della Console ordina per creato: deve essere l'ora del server, non una data scelta dal telefono.
+        && request.resource.data.creato == request.time
+        && (!('lingua' in request.resource.data) || (request.resource.data.lingua is string && request.resource.data.lingua.size() <= 10))
+        && (!('versione' in request.resource.data) || (request.resource.data.versione is string && request.resource.data.versione.size() <= 40));
       allow update, delete: if false;
     }
   }
