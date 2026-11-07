@@ -17,8 +17,12 @@ const MAX_TESTO = 200
 const GIORNI_TETTO = 60
 
 export type EsitoIscrizione =
-  | { ok: true, iscrittoId: string }
+  | { ok: true, iscrittoId: string, giaInLista?: true }
   | { ok: false, errore: 'spento' | 'consenso' | 'dati' | 'tante' }
+
+function giornoDiRoma(quando: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit' }).format(quando)
+}
 
 function pulito(valore: unknown): string {
   return typeof valore === 'string' ? valore.trim() : ''
@@ -71,8 +75,20 @@ export async function iscrivitiAttesaPer(input: {
   const principale = scelta?.voci.find((voce) => voce.kind === 'principale')
   if (!scelta || !principale || principale.nome === '' || !(scelta.durataMin > 0)) return { ok: false, errore: 'dati' }
 
-  // Si contano solo gli iscritti ancora in lista. Chi è già iscritto con lo stesso cane e lo stesso servizio ritrova il suo id:
-  // un nuovo invio dello stesso modulo non è «tante». Poi valgono i tetti delle prenotazioni: 2 per email, 2 per cellulare, 20 per salone.
+  // Il tetto per connessione vale per ogni invio, anche per chi è già in lista: così email e nome del cane non si provano senza limite.
+  const mittente = input.mittente ?? ''
+  try {
+    await riservaMittente(mittente, db, input.adesso.getTime())
+  } catch {
+    return { ok: false, errore: 'tante' }
+  }
+
+  // Una settimana già finita non si sceglie: il cliente resterebbe in lista senza ricevere più offerte.
+  const oggi = giornoDiRoma(input.adesso)
+  const richiesta = settimanaValida(input.settimana)
+  const settimanaNuova = richiesta && richiesta.fine >= oggi ? richiesta : null
+
+  // Si contano solo gli iscritti ancora in lista. Poi valgono i tetti delle prenotazioni: 2 per email, 2 per cellulare, 20 per salone.
   const attive = (await db.collection(`${base}/attesa`).get()).docs
     .map((doc) => ({ id: doc.id, data: doc.data() ?? {} }))
     .filter((riga) => riga.data.attivo !== false)
@@ -81,12 +97,19 @@ export async function iscrivitiAttesaPer(input: {
     pulito(riga.data.email).toLowerCase() === minuscola && pulito(riga.data.nomeCane) === nomeCane && pulito(riga.data.servizioId) === principale.id
   ))
   if (gia) {
+    // Email e nome del cane non provano chi scrive: li può conoscere chiunque. L'iscrizione cambia solo dalla stessa connessione
+    // da cui è nata; due mittenti vuoti non contano. Altrimenti non si tocca nulla e la pagina dice di scrivere al salone.
+    const stessaConnessione = mittente !== '' && pulito(gia.data.mittente) === mittente
     // Chi si riscrive aggiorna la settimana: una nuova vale al posto della vecchia, nessuna (o non valida) vuol dire «qualunque giorno».
-    const nuova = settimanaValida(input.settimana)
+    const nuova = settimanaNuova
     const vecchia = settimanaValida(gia.data.settimana)
     const uguale = nuova ? vecchia?.inizio === nuova.inizio && vecchia.fine === nuova.fine : gia.data.settimana === undefined
     const lingua = linguaValida(input.lingua)
     const altraLingua = lingua !== null && lingua !== gia.data.lingua
+    if (!stessaConnessione) {
+      // Un invio identico non cambia nulla: basta «sei in lista». Una modifica rifiutata lo dice, senza id.
+      return !uguale || altraLingua ? { ok: true, iscrittoId: '', giaInLista: true } : { ok: true, iscrittoId: '' }
+    }
     if (!uguale || altraLingua) {
       await db.doc(`${base}/attesa/${gia.id}`).update({
         ...(uguale ? {} : { settimana: nuova ?? FieldValue.delete() }),
@@ -95,7 +118,6 @@ export async function iscrivitiAttesaPer(input: {
     }
     return { ok: true, iscrittoId: gia.id }
   }
-  const mittente = input.mittente ?? ''
   // La lista non scade: nel tetto contano solo le iscrizioni recenti, altrimenti 20 iscritti vecchi la chiudono per sempre.
   const dal = input.adesso.getTime() - GIORNI_TETTO * 86_400_000
   const recenti = attive.filter((riga) => {
@@ -110,14 +132,9 @@ export async function iscrivitiAttesaPer(input: {
     esca: '',
   })
   if (conti.aperteEmail >= 2 || !antispam.ok) return { ok: false, errore: 'tante' }
-  try {
-    await riservaMittente(mittente, db, input.adesso.getTime())
-  } catch {
-    return { ok: false, errore: 'tante' }
-  }
 
   const ref = db.collection(`${base}/attesa`).doc()
-  const settimana = settimanaValida(input.settimana)
+  const settimana = settimanaNuova
   const lingua = linguaValida(input.lingua)
   const iscritto: Omit<IscrittoAttesa, 'id'> & { attivo: true } = {
     nome,

@@ -23,6 +23,17 @@ export function slugAttuale(salvato: string | undefined, nome: string): string {
 
 export const MESSAGGIO_SLUG_PRESO = 'Nome già preso'
 
+// Nomi che sembrano di Groomly o delle sue pagine: nessun salone li prende come link.
+const RISERVATI = new Set([
+  'admin', 'administrator', 'amministrazione', 'api', 'app', 'assistenza', 'aiuto', 'console', 'help', 'info', 'login',
+  'privacy', 'prenota', 'prenotazioni', 'salone', 'saloni', 'sicurezza', 'staff', 'supporto', 'support', 'termini', 'www',
+])
+
+/** Vero per i nomi riservati e per tutto ciò che comincia con «groomly». */
+export function slugRiservato(base: string): boolean {
+  return RISERVATI.has(base) || base.replace(/-/g, '').startsWith('groomly')
+}
+
 export function slugLibero(occupatoDa: string | null, salonId: string): { ok: true } | { ok: false; message: typeof MESSAGGIO_SLUG_PRESO } {
   if (occupatoDa && occupatoDa !== salonId) return { ok: false, message: MESSAGGIO_SLUG_PRESO }
   return { ok: true }

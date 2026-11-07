@@ -84,6 +84,7 @@
       inLista: 'Resti in lista.',
       uscito: 'Sei uscito dalla lista.',
       iscritto: 'Sei in lista. Se si libera un posto ti arriva una mail.',
+      giaInLista: 'Risulti già in lista per questo cane e questo trattamento. Per cambiare la settimana scrivi o telefona al salone.',
       linkKo: 'Questo link non è più valido.',
       listaSpenta: 'La lista d’attesa non è attiva.',
       offertaFinita: 'Questa offerta non è più disponibile. Per prenotare contatta il salone.',
@@ -165,6 +166,7 @@
       inLista: 'You stay on the list.',
       uscito: 'You have left the list.',
       iscritto: 'You are on the list. If a place opens, you will get an email.',
+      giaInLista: 'You are already on the list for this pet and this treatment. To change the week, write to or call the salon.',
       linkKo: 'This link is no longer valid.',
       listaSpenta: 'The waiting list is not on.',
       offertaFinita: 'This offer is no longer available. To book, please contact the salon.',
@@ -246,6 +248,7 @@
       inLista: 'Sigues en la lista.',
       uscito: 'Has salido de la lista.',
       iscritto: 'Estás en la lista. Si se libera un sitio, te llega un correo.',
+      giaInLista: 'Ya estás en la lista para esta mascota y este tratamiento. Para cambiar la semana, escribe o llama al salón.',
       linkKo: 'Este enlace ya no es válido.',
       listaSpenta: 'La lista de espera no está activa.',
       offertaFinita: 'Esta oferta ya no está disponible. Para reservar, contacta con el salón.',
@@ -327,6 +330,7 @@
       inLista: 'Vous restez sur la liste.',
       uscito: 'Vous avez quitté la liste.',
       iscritto: 'Vous êtes sur la liste. Si une place se libère, vous recevrez un e-mail.',
+      giaInLista: 'Vous êtes déjà sur la liste pour cet animal et ce soin. Pour changer de semaine, écrivez ou téléphonez au salon.',
       linkKo: 'Ce lien n’est plus valide.',
       listaSpenta: 'La liste d’attente n’est pas active.',
       offertaFinita: 'Cette offre n’est plus disponible. Pour réserver, contactez le salon.',
@@ -408,6 +412,7 @@
       inLista: 'Sie bleiben auf der Liste.',
       uscito: 'Sie haben die Liste verlassen.',
       iscritto: 'Sie stehen auf der Liste. Wird ein Platz frei, bekommen Sie eine E-Mail.',
+      giaInLista: 'Sie stehen für dieses Tier und diese Behandlung schon auf der Liste. Um die Woche zu ändern, schreiben Sie dem Salon oder rufen Sie an.',
       linkKo: 'Dieser Link ist nicht mehr gültig.',
       listaSpenta: 'Die Warteliste ist nicht aktiv.',
       offertaFinita: 'Dieses Angebot ist nicht mehr verfügbar. Für eine Buchung wenden Sie sich bitte an den Salon.',
@@ -1360,7 +1365,7 @@
   function moduloLista() {
     if (!stato.lista.aperta) return null
     if (stato.lista.fatto) {
-      var fatto = el('p', 'esito', t.iscritto)
+      var fatto = el('p', 'esito', stato.lista.giaInLista ? t.giaInLista : t.iscritto)
       fatto.id = 'lista-attesa'
       fatto.setAttribute('role', 'status')
       return fatto
@@ -1453,6 +1458,7 @@
       if (esito.ok === true) {
         stato.lista.invio = false
         stato.lista.fatto = true
+        stato.lista.giaInLista = esito.giaInLista === true
         disegna()
         mostra(document.getElementById('lista-attesa'))
         return

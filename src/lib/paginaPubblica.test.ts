@@ -93,6 +93,9 @@ describe('htmlPaginaPubblica', () => {
     expect(inviata).toContain('enviado a la peluquería')
     expect(inviata).not.toContain('Il salone la conferma')
     expect(inviata).not.toContain('{{')
+    // Nessun testo preso dal link: nome ed email nell'indirizzo non entrano nella pagina.
+    expect(inviata).not.toContain('URLSearchParams')
+    expect(inviata).not.toContain('location.search')
     const html = htmlPaginaPubblica(base)
     expect(html).toContain('.esito{color:var(--ink)}')
     expect(html).not.toContain('.ok{color:var(--ok)')

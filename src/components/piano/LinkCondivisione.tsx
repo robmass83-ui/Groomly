@@ -75,7 +75,7 @@ export function usePrenotazioniOnline() {
     }
     if (!decisione.ok) return
     void pubblica().then((slug) => {
-      save({ ...settings, prenotazioniOnline: true, ...(slug ? { slugPubblico: slug } : {}) })
+      save({ ...settings, prenotazioniOnline: true, paginaScelta: true, ...(slug ? { slugPubblico: slug } : {}) })
     }).catch((error: unknown) => {
       setErrore(fraseNomePreso(error) ?? frasi.authSalvataggio)
     })
@@ -140,6 +140,14 @@ export function LinkCondivisione() {
     if (slug && current.slugPubblico !== slug) save({ ...current, slugPubblico: slug })
   }
 
+  /** Chi copia o condivide il link sceglie di mostrarsi: da qui la pagina pubblica ha contatti, orari e listino. */
+  function ricordaCondiviso(slug: string) {
+    const current = settingsRef.current
+    const nuovoSlug = slug && current.slugPubblico !== slug
+    if (!nuovoSlug && current.paginaScelta === true) return
+    save({ ...current, paginaScelta: true, ...(nuovoSlug ? { slugPubblico: slug } : {}) })
+  }
+
   useEffect(() => {
     if (!uid || !ready) return
     let vivo = true
@@ -185,7 +193,7 @@ export function LinkCondivisione() {
     setErrore('')
     try {
       const slug = await pubblicaConAttesa()
-      ricordaSlug(slug)
+      ricordaCondiviso(slug)
       await navigator.clipboard.writeText(linkPrenotazione(slug) || link)
       setCopiato(true)
       window.setTimeout(() => setCopiato(false), 2000)
@@ -199,7 +207,7 @@ export function LinkCondivisione() {
     let condiviso = link
     try {
       const slug = await pubblicaConAttesa()
-      ricordaSlug(slug)
+      ricordaCondiviso(slug)
       condiviso = linkPrenotazione(slug) || link
     } catch (error) {
       setErrore(fraseNomePreso(error) ?? frasi.authSalvataggio)

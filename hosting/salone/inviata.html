@@ -31,35 +31,5 @@
     </div>
   </main>
   <script src="/lingua-pagina.js"></script>
-  <script>
-  (function () {
-    var q = new URLSearchParams(location.search)
-    var nome = (q.get('nome') || '').trim()
-    var email = (q.get('email') || '').trim()
-    if (!nome && !email) return
-    var blocchi = document.querySelectorAll('[data-lang]')
-    for (var i = 0; i < blocchi.length; i++) {
-      var lang = blocchi[i].getAttribute('data-lang')
-      var apertura = blocchi[i].querySelector('[data-apertura]')
-      var mezzo = blocchi[i].querySelector('[data-mezzo]')
-      if (nome && apertura) apertura.textContent = aperturaDi(lang, nome)
-      if (email && mezzo) mezzo.textContent = mezzoDi(lang, email)
-    }
-    function aperturaDi(lang, nome) {
-      if (lang === 'en') return 'Thank you, your request has been sent to ' + nome + '.'
-      if (lang === 'es') return 'Gracias, tu solicitud se ha enviado a ' + nome + '.'
-      if (lang === 'fr') return 'Merci, votre demande a été envoyée à ' + nome + '.'
-      if (lang === 'de') return 'Vielen Dank, Ihre Anfrage wurde an ' + nome + ' gesendet.'
-      return 'Grazie, richiesta inviata a ' + nome + '.'
-    }
-    function mezzoDi(lang, email) {
-      if (lang === 'en') return "This isn't a booking yet: the reply will arrive at " + email + ' (please check your spam folder too).'
-      if (lang === 'es') return 'Todavía no es una reserva: la respuesta llegará a ' + email + ' (revisa también la carpeta de spam).'
-      if (lang === 'fr') return 'Ce n\u2019est pas encore une réservation\u00a0: la réponse arrivera à ' + email + ' (pensez à vérifier vos spams).'
-      if (lang === 'de') return 'Das ist noch keine Buchung: Die Antwort kommt an ' + email + ' (sehen Sie bitte auch im Spam-Ordner nach).'
-      return 'Non è ancora una prenotazione: la risposta arriverà a ' + email + ' (dai un\u2019occhiata anche allo spam).'
-    }
-  })()
-  </script>
 </body>
 </html>

@@ -792,12 +792,10 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
   const account = accountOf((await db.doc(`accounts/${uid}`).get()).data())
   if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('accesso_negato')
   await richiediEmailConfermata(uid, request.auth?.token)
-  let nome = text(field(request.data, 'nome'))
-  // Senza nome: subito dopo la conferma dell'email l'app chiede il link del nome già salvato.
-  if (nome.trim() === '') {
-    const salvato = (await db.doc(`salons/${uid}/settings/main`).get()).data()?.business?.salonName
-    nome = typeof salvato === 'string' ? salvato : ''
-  }
+  // Il link nasce sempre dal nome salvato nelle impostazioni, mai da quello della richiesta: nessuno sceglie un nome diverso dal suo.
+  const salvato = (await db.doc(`salons/${uid}/settings/main`).get()).data()?.business?.salonName
+  const nome = typeof salvato === 'string' ? salvato : ''
+  if (nome.trim() === '') return { slug: '' }
   return registraSlug(uid, nome)
 })
 

@@ -5,7 +5,7 @@ import type { Request, Response } from 'express'
 import { pubblicabile, type VoceCatalogo, type TagliaPrenotazione } from '../../../src/lib/catalogoPrenotazione'
 import { prenotazioniConcesse } from '../../../src/lib/funzioniPiano'
 import { byteDelThumb, idFileLogo, logoDaThumb } from '../../../src/lib/logoPubblico'
-import { htmlPaginaAssente, htmlPaginaPubblica, testoOrari } from '../../../src/lib/paginaPubblica'
+import { htmlPaginaAssente, htmlPaginaPubblica, paginaCompleta, testoOrari } from '../../../src/lib/paginaPubblica'
 import { paginaPrenotabile, prenotazioneAccesa, specieAccettate } from '../../../src/lib/prenotazionePubblica'
 import type { ProMain } from '../../../src/lib/piano'
 import { profiloPubblico } from '../../../src/lib/slug'
@@ -45,13 +45,36 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     mostraDatiFiscali: business.mostraDatiFiscali === true,
   })
   const pro = (await db.doc(`salons/${salonId}/pro/main`).get()).data()
+  const attesa = listaAttesaAccesa(settings.serviziEmail, pro as ProMain | undefined, new Date())
+  const completa = paginaCompleta({
+    paginaScelta: settings.paginaScelta,
+    prenotazioniOnline: settings.prenotazioniOnline,
+    pausaPrenotazioni: (pro as ProMain | undefined)?.pausa?.prenotazioniOnline,
+    attesaAccesa: attesa,
+  })
+  const marchio = await logoDelSalone(db, salonId, settings)
+  if (!completa) {
+    // Il salone non ha ancora scelto di mostrarsi: solo il nome e il logo, senza contatti, orari e listino.
+    res.status(200).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
+      ridotta: true,
+      lang,
+      nome: profilo.nome,
+      indirizzo: '',
+      telefono: '',
+      prenotabile: false,
+      attesa: false,
+      salonId,
+      logo: marchio.logo,
+      catalogo: [],
+    }))
+    return
+  }
   const accesso = prenotazioniConcesse(pro as ProMain | undefined)
   const catalogo = (await catalogoDelSalone(salonId)).filter(pubblicabile)
   const prenotabile = paginaPrenotabile(
     prenotazioneAccesa({ prenotazioniOnline: settings.prenotazioniOnline === true, accesso }),
     catalogo,
   )
-  const marchio = await logoDelSalone(db, salonId, settings)
   const descrizione = testoBreve(intestazioneDi(settings).descrizione, 240)
   res.status(200).set('Cache-Control', 'no-cache').set('Content-Type', 'text/html; charset=utf-8').send(htmlPaginaPubblica({
     lang,
@@ -62,7 +85,7 @@ export async function paginaPubblicaHttp(req: Request, res: Response): Promise<v
     descrizione,
     orari: testoOrari(settings.orari, lang),
     prenotabile,
-    attesa: listaAttesaAccesa(settings.serviziEmail, pro as ProMain | undefined, new Date()),
+    attesa,
     salonId,
     logo: marchio.logo,
     specie: specieAccettate(settings.speciePrenotabili),

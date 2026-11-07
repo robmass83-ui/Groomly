@@ -11,7 +11,12 @@ function memoria(iniziale: Record<string, Dati>) {
   const figli = (path: string) => [...store.keys()].filter((chiave) => chiave.startsWith(`${path}/`) && !chiave.slice(path.length + 1).includes('/'))
   const snap = (path: string) => {
     const dati = store.get(path)
-    return { id: path.split('/').pop() as string, exists: dati !== undefined, data: () => (dati ? structuredClone(dati) : undefined) }
+    return {
+      id: path.split('/').pop() as string,
+      exists: dati !== undefined,
+      data: () => (dati ? structuredClone(dati) : undefined),
+      get: (campo: string) => (dati ? structuredClone(dati[campo]) : undefined),
+    }
   }
   const ref = (path: string) => ({
     path,
@@ -29,6 +34,10 @@ function memoria(iniziale: Record<string, Dati>) {
   })
   const db = {
     doc: (path: string) => ref(path),
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) => fn({
+      get: (r: { path: string }) => Promise.resolve(snap(r.path)),
+      set: (r: { path: string }, dati: Dati) => { store.set(r.path, structuredClone(dati)) },
+    }),
     collection: (path: string) => ({
       doc: (id?: string) => ref(`${path}/${id ?? `auto${++contatore}`}`),
       add: async (dati: Dati) => {
@@ -57,7 +66,7 @@ function salone(modo = 'manuale', senzaServizi = false, pro: Dati | null = { pia
   })
 }
 
-const base: Parameters<typeof iscrivitiAttesaPer>[0] = {
+const baseIniziale: Parameters<typeof iscrivitiAttesaPer>[0] = {
   salonId: 's1',
   nome: 'Mario',
   phone: '+39 333 1234567',
@@ -69,6 +78,9 @@ const base: Parameters<typeof iscrivitiAttesaPer>[0] = {
   consenso: true,
   adesso: ADESSO,
 }
+const base = baseIniziale
+// Le prove di chi si riscrive arrivano dalla stessa connessione dell’iscrizione.
+const stesso = { ...baseIniziale, mittente: 'conn-cliente' }
 
 describe('iscrivitiAttesaPer', () => {
   it('servizio spento: errore spento e la collezione attesa resta vuota', async () => {
@@ -124,15 +136,15 @@ describe('iscrivitiAttesaPer', () => {
 
   it('salva la lingua della pagina, ignora un valore sconosciuto e chi si riscrive la aggiorna', async () => {
     const { db, elenco } = salone()
-    await iscrivitiAttesaPer({ ...base, lingua: 'de' }, db)
+    await iscrivitiAttesaPer({ ...stesso, lingua: 'de' }, db)
     expect(elenco(`${BASE}/attesa`)[0].lingua).toBe('de')
-    await iscrivitiAttesaPer({ ...base, lingua: 'fr' }, db)
+    await iscrivitiAttesaPer({ ...stesso, lingua: 'fr' }, db)
     expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
     expect(elenco(`${BASE}/attesa`)[0].lingua).toBe('fr')
-    await iscrivitiAttesaPer({ ...base, lingua: 'pt' }, db)
+    await iscrivitiAttesaPer({ ...stesso, lingua: 'pt' }, db)
     expect(elenco(`${BASE}/attesa`)[0].lingua).toBe('fr')
     const altro = salone()
-    await iscrivitiAttesaPer({ ...base, lingua: 'pt' }, altro.db)
+    await iscrivitiAttesaPer({ ...stesso, lingua: 'pt' }, altro.db)
     expect(altro.elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('lingua')
   })
 
@@ -156,21 +168,21 @@ describe('iscrivitiAttesaPer', () => {
 
   it('lo stesso iscritto attivo (email, cane e servizio) trova il suo id e non scrive un secondo documento', async () => {
     const { db, elenco } = salone()
-    const prima = await iscrivitiAttesaPer(base, db)
-    const seconda = await iscrivitiAttesaPer({ ...base, email: '  M@Example.COM ', nomeCane: ' Rex ', phone: '+39 333 7654321', servizioIds: ['bagno'] }, db)
+    const prima = await iscrivitiAttesaPer(stesso, db)
+    const seconda = await iscrivitiAttesaPer({ ...stesso, email: '  M@Example.COM ', nomeCane: ' Rex ', phone: '+39 333 7654321', servizioIds: ['bagno'] }, db)
     expect(prima.ok && seconda).toEqual({ ok: true, iscrittoId: prima.ok ? prima.iscrittoId : '' })
     expect(elenco(`${BASE}/attesa`)).toHaveLength(1)
     // Il nome del cane distingue le maiuscole: «rex» è un altro iscritto.
-    expect((await iscrivitiAttesaPer({ ...base, nomeCane: 'rex' }, db)).ok).toBe(true)
+    expect((await iscrivitiAttesaPer({ ...stesso, nomeCane: 'rex' }, db)).ok).toBe(true)
     expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
   })
 
   it('il doppione vale prima del tetto: con due iscrizioni già attive, il ripetersi della prima non è «tante»', async () => {
     const { db, elenco } = salone()
-    const prima = await iscrivitiAttesaPer(base, db)
-    await iscrivitiAttesaPer({ ...base, nomeCane: 'Luna', phone: '+39 333 1111111' }, db)
+    const prima = await iscrivitiAttesaPer(stesso, db)
+    await iscrivitiAttesaPer({ ...stesso, nomeCane: 'Luna', phone: '+39 333 1111111' }, db)
     expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
-    expect(await iscrivitiAttesaPer(base, db)).toEqual(prima)
+    expect(await iscrivitiAttesaPer(stesso, db)).toEqual(prima)
     expect(elenco(`${BASE}/attesa`)).toHaveLength(2)
   })
 
@@ -243,6 +255,8 @@ describe('iscrivitiAttesaPer con la settimana', () => {
 describe('iscrivitiAttesaPer: riscriversi aggiorna la settimana', () => {
   const prima = { inizio: '2026-11-16', fine: '2026-11-22' }
   const dopo = { inizio: '2026-11-23', fine: '2026-11-29' }
+  // Il cliente vero si riscrive dalla stessa connessione da cui si era iscritto.
+  const base = { ...baseIniziale, mittente: 'conn-cliente' }
 
   it('con un’altra settimana valida sostituisce quella salvata e restituisce lo stesso id', async () => {
     const { db, elenco } = salone()
@@ -269,5 +283,50 @@ describe('iscrivitiAttesaPer: riscriversi aggiorna la settimana', () => {
     const prima1 = elenco(`${BASE}/attesa`)
     expect(await iscrivitiAttesaPer({ ...base, settimana: { ...prima } }, db)).toEqual(uno)
     expect(elenco(`${BASE}/attesa`)).toEqual(prima1)
+  })
+})
+
+describe('iscrivitiAttesaPer: chi conosce email e nome del cane non cambia l’iscrizione di un altro', () => {
+  const prima = { inizio: '2026-11-16', fine: '2026-11-22' }
+  const vittima = { ...baseIniziale, mittente: 'conn-cliente', settimana: prima, lingua: 'it' }
+
+  it('da un’altra connessione o senza connessione il documento resta uguale e la pagina lo dice', async () => {
+    for (const mittente of ['conn-altro', '', undefined]) {
+      const { db, elenco } = salone()
+      expect((await iscrivitiAttesaPer(vittima, db)).ok).toBe(true)
+      const salvato = elenco(`${BASE}/attesa`)
+      const esito = await iscrivitiAttesaPer({ ...baseIniziale, mittente, settimana: { inizio: '2026-11-23', fine: '2026-11-29' }, lingua: 'de' }, db)
+      expect(esito).toEqual({ ok: true, iscrittoId: '', giaInLista: true })
+      expect(elenco(`${BASE}/attesa`)).toEqual(salvato)
+    }
+  })
+
+  it('una riga senza mittente non si aggiorna nemmeno con mittente vuoto', async () => {
+    const { db, elenco } = salone()
+    await iscrivitiAttesaPer({ ...baseIniziale, settimana: prima }, db)
+    const salvato = elenco(`${BASE}/attesa`)
+    expect((await iscrivitiAttesaPer({ ...baseIniziale }, db))).toMatchObject({ giaInLista: true })
+    expect(elenco(`${BASE}/attesa`)).toEqual(salvato)
+  })
+
+  it('i tentativi contano nel tetto della connessione anche quando il cliente è già in lista', async () => {
+    const { db, store } = salone()
+    await iscrivitiAttesaPer(vittima, db)
+    for (let i = 0; i < 6; i += 1) await iscrivitiAttesaPer({ ...baseIniziale, mittente: 'conn-altro' }, db)
+    expect(await iscrivitiAttesaPer({ ...baseIniziale, mittente: 'conn-altro' }, db)).toEqual({ ok: false, errore: 'tante' })
+    expect(store.has('mittentiLimiti/conn-altro')).toBe(true)
+  })
+
+  it('una settimana già finita non si salva, né all’iscrizione né riscrivendosi', async () => {
+    const passata = { inizio: '2026-10-26', fine: '2026-11-01' }
+    const { db, elenco } = salone()
+    await iscrivitiAttesaPer({ ...vittima, settimana: passata }, db)
+    expect(elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('settimana')
+    await iscrivitiAttesaPer({ ...vittima, settimana: prima }, db)
+    await iscrivitiAttesaPer({ ...vittima, settimana: passata }, db)
+    expect(elenco(`${BASE}/attesa`)[0]).not.toHaveProperty('settimana')
+    // La settimana in corso (finisce dopo oggi) resta valida.
+    await iscrivitiAttesaPer({ ...vittima, settimana: { inizio: '2026-11-02', fine: '2026-11-08' } }, db)
+    expect(elenco(`${BASE}/attesa`)[0].settimana).toEqual({ inizio: '2026-11-02', fine: '2026-11-08' })
   })
 })

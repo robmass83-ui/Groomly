@@ -52,7 +52,23 @@ export function testoOrari(orari: unknown, lang: LinguaPagina): string {
   )).join(' · ')
 }
 
+/**
+ * La pagina intera (telefono, indirizzo, orari, listino) solo per chi l'ha scelta: ha acceso le prenotazioni o la lista d'attesa,
+ * le ha in pausa, oppure ha condiviso il link. Agli altri basta il nome, fuori dai motori di ricerca:
+ * chi lavora da casa non si ritrova indirizzo e cellulare in rete senza saperlo.
+ */
+export function paginaCompleta(input: {
+  paginaScelta?: unknown
+  prenotazioniOnline?: unknown
+  pausaPrenotazioni?: unknown
+  attesaAccesa?: boolean
+}): boolean {
+  return input.paginaScelta === true || input.prenotazioniOnline === true || input.pausaPrenotazioni === true || input.attesaAccesa === true
+}
+
 export function htmlPaginaPubblica(input: {
+  /** Pagina con il solo nome, non indicizzata: vedi paginaCompleta. */
+  ridotta?: boolean
   lang: LinguaPagina
   nome: string
   indirizzo: string
@@ -98,7 +114,7 @@ export function htmlPaginaPubblica(input: {
     input.indirizzo ? `<li><a href="${esc(mapsHref(input.indirizzo, input.placeId))}">${esc(input.indirizzo)}</a></li>` : '',
     input.telefono ? `<li><a href="${esc(telHref(input.telefono))}">${esc(input.telefono)}</a></li>` : '',
   ].filter(Boolean).join('')
-  return `<!DOCTYPE html><html lang="${input.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7"><title>${nome}</title><meta name="description" content="${testoOg}"><meta property="og:title" content="${nome}"><meta property="og:description" content="${testoOg}"><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingue(input.lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main><article class="scheda scheda-salone"><div class="identita">${marchio}<div>${input.prenotabile ? `<p class="kicker">${esc(copia.prenota)}</p>` : ''}<h1>${nome}</h1>${contatti ? `<ul class="contatti">${contatti}</ul>` : ''}${descrizione ? `<p class="muto">${esc(descrizione)}</p>` : ''}${orari ? `<p class="orari">${esc(orari)}</p>` : ''}</div></div></article><section id="prenota" class="scheda"><p class="nota" id="prezzi">${esc(copia.prezzi)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${input.lang}">${esc(copia.privacy)}</a></p></footer><script type="application/json" id="profilo">${profilo}</script><script type="application/json" id="catalogo">${catalogo}</script><script src="/s/pagina.js" defer></script></body></html>`
+  return `<!DOCTYPE html><html lang="${input.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#eef3f7">${input.ridotta ? '<meta name="robots" content="noindex">' : ''}<title>${nome}</title><meta name="description" content="${testoOg}"><meta property="og:title" content="${nome}"><meta property="og:description" content="${testoOg}"><style>${CSS}</style></head><body><header><nav class="lingue" aria-label="${esc(copia.lingue)}">${linkLingue(input.lang)}</nav><a class="marca" href="/"><img src="/groomly-logo-orizzontale.svg" alt="Groomly" width="437" height="120"></a></header><main><article class="scheda scheda-salone"><div class="identita">${marchio}<div>${input.prenotabile ? `<p class="kicker">${esc(copia.prenota)}</p>` : ''}<h1>${nome}</h1>${contatti ? `<ul class="contatti">${contatti}</ul>` : ''}${descrizione ? `<p class="muto">${esc(descrizione)}</p>` : ''}${orari ? `<p class="orari">${esc(orari)}</p>` : ''}</div></div></article><section id="prenota" class="scheda"><p class="nota" id="prezzi">${esc(copia.prezzi)}</p></section></main><footer><p>${esc(copia.gestito)} <a href="/">Groomly</a> · <a href="/privacy/?lang=${input.lang}">${esc(copia.privacy)}</a></p></footer><script type="application/json" id="profilo">${profilo}</script><script type="application/json" id="catalogo">${catalogo}</script><script src="/s/pagina.js" defer></script></body></html>`
 }
 
 const ASSENTE: Record<LinguaPagina, { titolo: string; testo: string }> = {

@@ -59,3 +59,38 @@ describe('lingua della pagina del salone', () => {
     expect(linguaDi(html)).toBe('fr')
   })
 })
+
+describe('pagina intera solo per chi ha scelto di mostrarsi', () => {
+  const business = { salonName: 'Da Casa', phone: '+39 333 0000000', address: 'Via Privata 1, Roma' }
+
+  beforeEach(() => {
+    archivio.clear()
+    archivio.set('pubblici/da-casa', { salonId: 's2', nome: 'Da Casa' })
+  })
+
+  it('un salone che non ha mai acceso le prenotazioni né condiviso il link mostra solo il nome, fuori dai motori di ricerca', async () => {
+    archivio.set('salons/s2/settings/main', { business, prenotazioniOnline: false })
+    const { stato, html } = await pagina('da-casa', 'it-IT')
+    expect(stato).toBe(200)
+    expect(html).toContain('Da Casa')
+    expect(html).not.toContain('333 0000000')
+    expect(html).not.toContain('Via Privata')
+    expect(html).toContain('<meta name="robots" content="noindex">')
+  })
+
+  it('con il link condiviso, le prenotazioni accese o in pausa la pagina resta intera', async () => {
+    for (const [settings, pro] of [
+      [{ business, paginaScelta: true }, null],
+      [{ business, prenotazioniOnline: true }, null],
+      [{ business, prenotazioniOnline: false }, { pausa: { prenotazioniOnline: true, attesa: null, dal: '2026-11-01T00:00:00.000Z' } }],
+    ] as const) {
+      archivio.set('salons/s2/settings/main', settings)
+      if (pro) archivio.set('salons/s2/pro/main', pro)
+      else archivio.delete('salons/s2/pro/main')
+      const { html } = await pagina('da-casa', 'it-IT')
+      expect(html).toContain('333 0000000')
+      expect(html).toContain('Via Privata')
+      expect(html).not.toContain('noindex')
+    }
+  })
+})
