@@ -39,7 +39,8 @@ export interface NegozioAbbonamenti {
   configura(apiKey: string, appUserID: string): Promise<void>
   collega(appUserID: string): Promise<void>
   offering(id: string): Promise<OfferingMinima | null>
-  compra(scelta: SceltaAcquisto): Promise<'ok'>
+  /** prodottoAttuale: l'abbonamento Play che il salone ha già, così Google lo sostituisce invece di affiancarlo. */
+  compra(scelta: SceltaAcquisto, prodottoAttuale?: string | null): Promise<'ok'>
   ripristina(): Promise<void>
 }
 
@@ -76,11 +77,15 @@ export type DatiNegozio = {
   chiaveSdk: string
   offeringId: string
   salonId: string
+  /** L'id del salone per RevenueCat, dato dal server (callable idAcquisti): mai il salonId, che è pubblico. */
+  idAcquisti: () => Promise<string>
+  /** Il prodotto Play che regge il piano in corso (pro/main.rcProdotto), se c'è. */
+  prodottoAttuale?: string | null
   distribuzione?: Distribuzione
   negozio?: () => Promise<NegozioAbbonamenti>
 }
 
-let collegato: { salonId: string; negozio: NegozioAbbonamenti } | null = null
+let collegato: { salonId: string; idUtente: string; negozio: NegozioAbbonamenti } | null = null
 let inCorso: Promise<EsitoAcquisto> | null = null
 
 export function azzeraNegozio(): void {
@@ -92,15 +97,19 @@ async function caricaNegozio(): Promise<NegozioAbbonamenti> {
   return (await import('./negozioRevenueCat')).negozioRevenueCat()
 }
 
-// RevenueCat collegato al salone (appUserID = salonId): acquisto e ripristino valgono da ogni telefono del titolare.
+// RevenueCat collegato al salone con l'id dato dal server: acquisto e ripristino valgono da ogni telefono del titolare,
+// e nessuno può far arrivare un acquisto al salone di un altro scrivendone il salonId.
 async function negozioPronto(d: DatiNegozio): Promise<NegozioAbbonamenti> {
+  if (collegato?.salonId === d.salonId) return collegato.negozio
+  const idUtente = (await d.idAcquisti()).trim()
+  if (idUtente === '') throw Object.assign(new Error('id acquisti'), { code: '23' })
   if (!collegato) {
     const negozio = await (d.negozio ?? caricaNegozio)()
-    await negozio.configura(d.chiaveSdk.trim(), d.salonId)
-    collegato = { salonId: d.salonId, negozio }
-  } else if (collegato.salonId !== d.salonId) {
-    await collegato.negozio.collega(d.salonId)
-    collegato = { ...collegato, salonId: d.salonId }
+    await negozio.configura(d.chiaveSdk.trim(), idUtente)
+    collegato = { salonId: d.salonId, idUtente, negozio }
+  } else {
+    await collegato.negozio.collega(idUtente)
+    collegato = { ...collegato, salonId: d.salonId, idUtente }
   }
   return collegato.negozio
 }
@@ -122,7 +131,7 @@ export function avviaAcquisto(d: DatiNegozio & { piano: 'plus' | 'salone'; early
       const offering = await negozio.offering(d.offeringId)
       const scelta = offering ? sceltaAcquisto(offering, d.piano, d.earlyAdopter) : null
       if (!scelta) return 'non-disponibile'
-      return await negozio.compra(scelta)
+      return await negozio.compra(scelta, d.prodottoAttuale ?? null)
     } catch (errore) {
       return esitoErrore(errore)
     } finally {

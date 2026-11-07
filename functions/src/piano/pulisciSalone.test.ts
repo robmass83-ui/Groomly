@@ -48,4 +48,15 @@ describe('pulizia di Assistenza e feedback', () => {
     expect(archivio.has('assistenza/feedback_z')).toBe(true)
     expect(archivio.has('betaFeedback/f3')).toBe(true)
   })
+
+  it('col salone va anche il suo id per RevenueCat', async () => {
+    const id = 'g_' + 'c'.repeat(32)
+    archivio.set('rcSaloni/s1', { rcId: id })
+    archivio.set('rcUtenti/' + id, { salonId: 's1' })
+    archivio.set('rcSaloni/s9', { rcId: 'g_' + 'd'.repeat(32) })
+    await pulisciRaccolteSalone(db(), 's1')
+    expect(archivio.has('rcSaloni/s1')).toBe(false)
+    expect(archivio.has('rcUtenti/' + id)).toBe(false)
+    expect(archivio.has('rcSaloni/s9')).toBe(true)
+  })
 })

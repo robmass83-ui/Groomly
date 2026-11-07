@@ -4,7 +4,8 @@ import { onRequest } from 'firebase-functions/v2/https'
 import { applicaEventoRc } from '../abbonamenti/applicaEventoRc'
 import { decisioneWebhook } from './rcWebhook'
 
-// Vanno creati in Secret Manager prima del deploy (anche con un valore provvisorio): vedi PRIMA-DEI-PAGAMENTI.md.
+// Vanno creati in Secret Manager prima del deploy: vedi PRIMA-DEI-PAGAMENTI.md. REVENUECAT_WEBHOOK_AUTH deve essere casuale
+// e lungo almeno 32 caratteri (decisioneWebhook risponde 503 con uno più corto).
 export const revenueCatApiKey = defineSecret('REVENUECAT_API_KEY')
 export const revenueCatWebhookAuth = defineSecret('REVENUECAT_WEBHOOK_AUTH')
 

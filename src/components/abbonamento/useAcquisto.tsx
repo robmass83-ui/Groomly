@@ -32,6 +32,8 @@ export function useAcquisto(piano: 'plus' | 'salone', onSpento: () => void): {
     chiaveSdk: acquisto?.chiaveSdk ?? '',
     offeringId: acquisto?.offeringId ?? '',
     salonId: currentSalonId() ?? '',
+    idAcquisti: async () => (await import('../../data/firebase/client')).callIdAcquisti(),
+    prodottoAttuale: acquisto?.prodottoPlay ?? null,
   }
 
   useEffect(() => {

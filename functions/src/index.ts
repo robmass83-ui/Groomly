@@ -42,6 +42,7 @@ import { anteprimaComunicazionePer, eliminaComunicazionePer, inviaComunicazioneP
 import { cancellaAvviso, eliminaAvvisoSistemaPer, pubblicaAvvisoSistemaPer, riservaAvviso, scriviAvviso } from './config/avvisiSistema'
 import { confermaAttesaPer, type AzioneAttesa } from './piano/confermaAttesa'
 import { iscrivitiAttesaPer } from './piano/iscrivitiAttesa'
+import { idAcquistiPer } from './abbonamenti/applicaEventoRc'
 import { gestisciPrenotazionePer } from './piano/gestisciPrenotazione'
 import { rispondiRichiestaHttp } from './piano/rispondiRichiesta'
 import { scadiProposteScadute } from './piano/scadiProposte'
@@ -797,6 +798,15 @@ export const pubblicaSalone = onCall(pianoCall, async (request) => {
   const nome = typeof salvato === 'string' ? salvato : ''
   if (nome.trim() === '') return { slug: '' }
   return registraSlug(uid, nome)
+})
+
+// L'id del salone per RevenueCat: solo il titolare del suo salone, con email confermata. Vedi idAcquistiPer.
+export const idAcquisti = onCall(pianoCall, async (request) => {
+  const uid = requireUid(request.auth)
+  const account = accountOf((await getFirestore().doc(`accounts/${uid}`).get()).data())
+  if (!account || account.role !== 'titolare' || account.salonId !== uid || account.salonId === 'shared') deny('accesso_negato')
+  await richiediEmailConfermata(uid, request.auth?.token)
+  return { id: await idAcquistiPer(uid) }
 })
 
 export const slugSalone = onDocumentWritten({ document: 'salons/{salonId}/settings/main', region: 'europe-west1' }, async (event) => {

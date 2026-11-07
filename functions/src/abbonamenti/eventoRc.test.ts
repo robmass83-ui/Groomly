@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eventoRcDi, pianoDaEvento, salonIdDiEvento, type EventoRc } from './eventoRc'
+import { eventoRcDi, idRcDiEvento, pianoDaEvento, type EventoRc } from './eventoRc'
 
 const ADESSO = new Date('2026-12-01T10:00:00.000Z')
 const GIORNO = 24 * 60 * 60 * 1000
@@ -79,17 +79,59 @@ describe('pianoDaEvento', () => {
   })
 })
 
-describe('salonIdDiEvento', () => {
-  it('usa app_user_id, o il primo alias non anonimo', () => {
-    expect(salonIdDiEvento(evento({}))).toBe('salone1')
-    expect(salonIdDiEvento(evento({ app_user_id: '$RCAnonymousID:abc', aliases: ['$RCAnonymousID:abc', 'salone2'] }))).toBe('salone2')
+describe('idRcDiEvento', () => {
+  const uno = `g_${'a'.repeat(32)}`
+  const due = `g_${'b'.repeat(32)}`
+
+  it('prende app_user_id e poi gli alias, solo se sono id dati dal server', () => {
+    expect(idRcDiEvento(evento({ app_user_id: uno }))).toEqual([uno])
+    expect(idRcDiEvento(evento({ app_user_id: '$RCAnonymousID:abc', aliases: ['$RCAnonymousID:abc', due] }))).toEqual([due])
   })
 
-  it('mai shared, percorsi o vuoti', () => {
-    expect(salonIdDiEvento(evento({ app_user_id: 'shared' }))).toBeNull()
-    expect(salonIdDiEvento(evento({ app_user_id: 'a/b' }))).toBeNull()
-    expect(salonIdDiEvento(evento({ app_user_id: '$RCAnonymousID:x', aliases: [] }))).toBeNull()
-    expect(salonIdDiEvento(evento({ app_user_id: undefined }))).toBeNull()
+  it('un salonId nudo, shared, percorsi o vuoti non contano', () => {
+    for (const id of ['salone1', 'shared', 'a/b', '$RCAnonymousID:x', undefined, 'g_corto']) {
+      expect(idRcDiEvento(evento({ app_user_id: id, aliases: [] }))).toEqual([])
+    }
+  })
+})
+
+describe('due abbonamenti Play insieme', () => {
+  const salonAttivo = {
+    piano: 'salone' as const, stato: 'attivo' as const, fonte: 'play' as const,
+    scadeIl: new Date(ADESSO.getTime() + 20 * 86_400_000).toISOString(), rcProdotto: 'groomly_salone:mensile',
+  }
+
+  it('scadenza, disdetta, rinnovo e problemi del vecchio Plus non toccano il Salon pagato', () => {
+    for (const type of ['EXPIRATION', 'CANCELLATION', 'RENEWAL', 'UNCANCELLATION', 'BILLING_ISSUE']) {
+      expect(pianoDaEvento(evento({ type, product_id: 'groomly_plus:mensile' }), salonAttivo, ADESSO), type).toEqual({ azione: 'ignora', motivo: 'altro-abbonamento' })
+    }
+  })
+
+  it('un prodotto che non è un piano non chiude mai il salone, nemmeno alla scadenza', () => {
+    expect(pianoDaEvento(evento({ type: 'EXPIRATION', product_id: 'groomly_posto_extra:mensile' }), salonAttivo, ADESSO).azione).toBe('ignora')
+  })
+
+  it('il passaggio da Plus a Salon e l’acquisto di un livello più alto passano sempre', () => {
+    const plusAttivo = { ...salonAttivo, piano: 'pro' as const, rcProdotto: 'groomly_plus:mensile' }
+    expect(pianoDaEvento(evento({ type: 'PRODUCT_CHANGE', product_id: 'groomly_plus:mensile', new_product_id: 'groomly_salone:mensile' }), plusAttivo, ADESSO))
+      .toMatchObject({ azione: 'scrivi', campi: { piano: 'salone' }, prodotto: 'groomly_salone:mensile' })
+    expect(pianoDaEvento(evento({ type: 'INITIAL_PURCHASE', product_id: 'groomly_salone:mensile' }), plusAttivo, ADESSO))
+      .toMatchObject({ azione: 'scrivi', campi: { piano: 'salone' } })
+  })
+
+  it('la scadenza del prodotto che regge il piano lo chiude e toglie rcProdotto', () => {
+    expect(pianoDaEvento(evento({ type: 'EXPIRATION', product_id: 'groomly_salone:mensile' }), salonAttivo, ADESSO))
+      .toMatchObject({ azione: 'scrivi', campi: { piano: 'base' }, prodotto: null })
+  })
+
+  it('senza rcProdotto (documenti di prima) si comporta come prima', () => {
+    const { rcProdotto: _tolto, ...vecchio } = salonAttivo
+    expect(pianoDaEvento(evento({ type: 'EXPIRATION', product_id: 'groomly_plus:mensile' }), vecchio, ADESSO)).toMatchObject({ azione: 'scrivi', campi: { piano: 'base' } })
+  })
+
+  it('a piano già scaduto anche l’altro abbonamento vale', () => {
+    const scaduto = { ...salonAttivo, scadeIl: new Date(ADESSO.getTime() - 1000).toISOString() }
+    expect(pianoDaEvento(evento({ type: 'RENEWAL', product_id: 'groomly_plus:mensile' }), scaduto, ADESSO)).toMatchObject({ azione: 'scrivi', campi: { piano: 'pro' } })
   })
 })
 

@@ -75,11 +75,14 @@ describe('esitoErrore', () => {
 describe('avviaAcquisto e ripristino', () => {
   let negozio: { [K in keyof NegozioAbbonamenti]: Mock<NegozioAbbonamenti[K]> }
   const carica = vi.fn(async () => negozio)
+  // Il server dà a ogni salone un id casuale per RevenueCat.
+  const idDi = (salonId: string) => `g_${salonId}`
   const dati = (extra: Partial<Parameters<typeof avviaAcquisto>[0]> = {}) => ({
     abbonamentiAttivi: true,
     chiaveSdk: 'goog_x',
     offeringId: 'groomly_standard',
     salonId: 'salone1',
+    idAcquisti: vi.fn(async () => idDi(extra.salonId ?? 'salone1')),
     distribuzione: 'play' as const,
     piano: 'plus' as const,
     earlyAdopter: false,
@@ -107,16 +110,28 @@ describe('avviaAcquisto e ripristino', () => {
     expect(carica).not.toHaveBeenCalled()
   })
 
-  it('compra il pacchetto, configura una volta e collega il salone nuovo', async () => {
+  it('compra il pacchetto con l’id del server, configura una volta e collega il salone nuovo', async () => {
     expect(await avviaAcquisto(dati())).toBe('ok')
-    expect(negozio.configura).toHaveBeenCalledWith('goog_x', 'salone1')
+    expect(negozio.configura).toHaveBeenCalledWith('goog_x', 'g_salone1')
     expect(negozio.offering).toHaveBeenCalledWith('groomly_standard')
-    expect(negozio.compra).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'pacchetto' }))
+    expect(negozio.compra).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'pacchetto' }), null)
     await avviaAcquisto(dati())
     expect(negozio.configura).toHaveBeenCalledTimes(1)
     expect(negozio.collega).not.toHaveBeenCalled()
     await avviaAcquisto(dati({ salonId: 'salone2' }))
-    expect(negozio.collega).toHaveBeenCalledWith('salone2')
+    expect(negozio.collega).toHaveBeenCalledWith('g_salone2')
+    // Il salonId non arriva mai a RevenueCat.
+    expect([...negozio.configura.mock.calls, ...negozio.collega.mock.calls].flat()).not.toContain('salone1')
+  })
+
+  it('senza id dal server non compra', async () => {
+    expect(await avviaAcquisto(dati({ idAcquisti: async () => '' }))).toBe('non-disponibile')
+    expect(negozio.compra).not.toHaveBeenCalled()
+  })
+
+  it('chi ha già un abbonamento Play lo passa all’acquisto, così Google lo sostituisce', async () => {
+    await avviaAcquisto(dati({ piano: 'salone', prodottoAttuale: 'groomly_plus:mensile' }))
+    expect(negozio.compra).toHaveBeenCalledWith(expect.anything(), 'groomly_plus:mensile')
   })
 
   it('offering assente o senza pacchetto: non disponibile, nessun errore', async () => {

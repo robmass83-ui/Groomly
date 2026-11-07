@@ -45,13 +45,14 @@ webhook che aggiorna il piano (attivo, rinnovo, grazia, disdetta, scadenza; un s
 offerta fondatori per gli early adopter, annuncio con email, controllo pre-accensione, accensione e spegnimento dall'Admin Manager.
 
 **Subito, gratis** (anche prima della Partita IVA):
-- [ ] **Segreti nelle functions, prima del prossimo deploy** (senza, il deploy si ferma). Va bene un valore provvisorio:
+- [ ] **Segreti nelle functions, prima del prossimo deploy** (senza, il deploy si ferma). REVENUECAT_API_KEY può essere provvisoria; REVENUECAT_WEBHOOK_AUTH invece va generata a caso, lunga almeno 32 caratteri (per esempio con un generatore di password), altrimenti il webhook risponde 503. Lo stesso valore va poi nel webhook di RevenueCat:
       `npx firebase functions:secrets:set REVENUECAT_WEBHOOK_AUTH` e `npx firebase functions:secrets:set REVENUECAT_API_KEY`.
 - [ ] Account RevenueCat, progetto Groomly, app Android `it.groomly.app` collegata alla Play Console con un account di servizio Google Cloud.
 - [ ] Chiave **segreta V2** (Project settings → API keys → New → V2, permessi in lettura su offerings, packages, products): va in `REVENUECAT_API_KEY`.
 - [ ] ID del progetto RevenueCat in `functions/.env` come `REVENUECAT_PROJECT_ID=…` (non è un segreto).
 - [ ] Chiave pubblica SDK Android (`goog_…`): Admin Manager → Piani → RevenueCat.
 - [ ] Webhook in RevenueCat: URL `https://europe-west1-groomly-3128b.cloudfunctions.net/rcWebhook`, header di autorizzazione uguale a `REVENUECAT_WEBHOOK_AUTH`. Premere «Send test event»: nel pannello di accensione la voce «Webhook attivo» diventa verde.
+- [ ] In RevenueCat, Project settings → **Transfer behavior**: scegliere di non trasferire gli acquisti tra utenti (oppure lasciare il trasferimento: il webhook chiude il salone di partenza).
 - [ ] Entitlement `plus` e `salone`, offering `groomly_standard` con i 6 pacchetti (ID sopra).
 - [ ] Facoltativo: provare il flusso con il **Test Store** di RevenueCat (chiave `test_…`, solo build di debug, sugli emulatori): mostra una finestra con «acquisto riuscito / fallito / annulla». Non mettere mai la chiave `test_…` in produzione: il controllo la segna rossa.
 

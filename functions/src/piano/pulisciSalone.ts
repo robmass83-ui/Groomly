@@ -11,6 +11,10 @@ export async function pulisciRaccolteSalone(db: Firestore, salonId: string): Pro
   await cancellaQuery(db, db.collection('betaFeedback').where('salonId', '==', salonId))
   await cancellaQuery(db, db.collection('assistenza').where('salonId', '==', salonId))
   await db.doc(`invitiLimiti/${salonId}`).delete()
+  // L'id del salone per RevenueCat: senza salone non deve più portare a nulla.
+  const rcId = (await db.doc(`rcSaloni/${salonId}`).get()).data()?.rcId
+  if (typeof rcId === 'string' && rcId !== '') await db.doc(`rcUtenti/${rcId}`).delete()
+  await db.doc(`rcSaloni/${salonId}`).delete()
 }
 
 /** I resti di una persona: tutto tranne l'accesso (Auth), che si cancella per ultimo. */

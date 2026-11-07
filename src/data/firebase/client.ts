@@ -603,6 +603,13 @@ export async function callEliminaSalone(salonId: string): Promise<void> {
   await callCallable('eliminaSalone', { salonId })
 }
 
+/** L'id del salone per RevenueCat: lo crea il server la prima volta, poi resta quello. */
+export async function callIdAcquisti(): Promise<string> {
+  const data = await callCallableData('idAcquisti', {})
+  const id = data && typeof data === 'object' && 'id' in data ? (data as { id: unknown }).id : ''
+  return typeof id === 'string' ? id : ''
+}
+
 /** Registra il link del salone e dice quale ha avuto: con un numero se il nome era già di un altro salone. */
 export async function callPubblicaSalone(nome: string): Promise<string> {
   const data = await callCallableData('pubblicaSalone', { nome })

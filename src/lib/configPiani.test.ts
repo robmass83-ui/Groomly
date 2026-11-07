@@ -59,7 +59,7 @@ describe('prova self-service per l’app', () => {
 describe('dati per l’acquisto', () => {
   it('config e traccia early adopter del salone, con ripieghi', () => {
     expect(datiAcquistoPiano(undefined, undefined)).toEqual({
-      chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '', fr: '', de: '' }, pagamentiDal: null,
+      chiaveSdk: '', offeringId: 'groomly_standard', earlyAdopter: false, offertaEarly: { it: '', en: '', es: '', fr: '', de: '' }, pagamentiDal: null, prodottoPlay: null,
     })
     expect(datiAcquistoPiano(
       { piani: { revenueCat: { chiaveSdk: 'goog_x' }, offertaEarlyAdopter: { it: 'Metà prezzo' }, pagamentiDal: '2027-01-01T00:00:00.000Z' } },

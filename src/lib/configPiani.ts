@@ -96,6 +96,8 @@ export interface DatiAcquistoPiano {
   earlyAdopter: boolean
   offertaEarly: Record<LinguaOfferta, string>
   pagamentiDal: string | null
+  /** Il prodotto Play che regge il piano in corso (rcProdotto, scritto dal webhook), o null. */
+  prodottoPlay: string | null
 }
 
 export function datiAcquistoPiano(globale: unknown, pro: unknown): DatiAcquistoPiano {
@@ -106,5 +108,11 @@ export function datiAcquistoPiano(globale: unknown, pro: unknown): DatiAcquistoP
     earlyAdopter: tracciaBetaDi(pro).earlyAdopter === true,
     offertaEarly: piani.offertaEarlyAdopter,
     pagamentiDal: piani.pagamentiDal,
+    prodottoPlay: prodottoPlayDi(pro),
   }
+}
+
+function prodottoPlayDi(pro: unknown): string | null {
+  const grezzo = pro && typeof pro === 'object' ? (pro as { fonte?: unknown; rcProdotto?: unknown }) : {}
+  return grezzo.fonte === 'play' && typeof grezzo.rcProdotto === 'string' && grezzo.rcProdotto !== '' ? grezzo.rcProdotto : null
 }

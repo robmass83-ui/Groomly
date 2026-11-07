@@ -15,9 +15,12 @@ export function negozioRevenueCat(): NegozioAbbonamenti {
       const offerings = await Purchases.getOfferings()
       return offerings.all[id] ?? null
     },
-    async compra(scelta) {
-      if (scelta.tipo === 'pacchetto') await Purchases.purchasePackage({ aPackage: scelta.pacchetto as PurchasesPackage })
-      else await Purchases.purchaseSubscriptionOption({ subscriptionOption: scelta.opzione as SubscriptionOption })
+    async compra(scelta, prodottoAttuale) {
+      // Chi passa da Plus a Salon sostituisce l'abbonamento: due abbonamenti insieme si pesterebbero i piedi.
+      const vecchio = (prodottoAttuale ?? '').split(':')[0]
+      const cambio = vecchio ? { googleProductChangeInfo: { oldProductIdentifier: vecchio } } : {}
+      if (scelta.tipo === 'pacchetto') await Purchases.purchasePackage({ aPackage: scelta.pacchetto as PurchasesPackage, ...cambio })
+      else await Purchases.purchaseSubscriptionOption({ subscriptionOption: scelta.opzione as SubscriptionOption, ...cambio })
       return 'ok'
     },
     async ripristina() {
