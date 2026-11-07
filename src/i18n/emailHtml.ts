@@ -199,20 +199,35 @@ const TAGLIA_MAIL: Record<Lingua, Record<string, string>> = {
   de: { piccola: 'klein', media: 'mittelgroß', grande: 'groß' },
 }
 
-const PREZZI_MAIL: Record<Lingua, string> = {
-  it: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.',
-  en: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
-  es: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.',
-  fr: 'Les prix sont indicatifs. Ils peuvent changer une fois l’animal vu, en cas de nœuds ou de problèmes qui demandent plus de temps.',
-  de: 'Die Preise sind Richtwerte. Sie können sich ändern, sobald wir das Tier gesehen haben, wenn Knoten oder andere Probleme mehr Zeit brauchen.',
+/** «Prezzo indicativo: da € 50. Il prezzo finale sarà confermato in salone dopo aver visto il cane.» */
+const PREZZO_MAIL: Record<Lingua, (prezzo: string, animale: string) => string> = {
+  it: (prezzo, animale) => `Prezzo indicativo: da ${prezzo}. Il prezzo finale sarà confermato in salone dopo aver visto ${animale}.`,
+  en: (prezzo, animale) => `Guide price: from ${prezzo}. The final price will be confirmed at the salon after seeing ${animale}.`,
+  es: (prezzo, animale) => `Precio orientativo: desde ${prezzo}. El precio final se confirmará en el salón después de ver ${animale}.`,
+  fr: (prezzo, animale) => `Prix indicatif : à partir de ${prezzo}. Le prix final sera confirmé au salon après avoir vu ${animale}.`,
+  de: (prezzo, animale) => `Richtpreis: ab ${prezzo}. Der Endpreis wird im Salon bestätigt, nachdem wir ${animale} gesehen haben.`,
 }
 
-const DURATA_MAIL: Record<Lingua, (minuti: number, prezzo: string) => string> = {
-  it: (minuti, prezzo) => `Durata ${minuti} min · Prezzo indicativo ${prezzo}`,
-  en: (minuti, prezzo) => `Duration ${minuti} min · Guide price ${prezzo}`,
-  es: (minuti, prezzo) => `Duración ${minuti} min · Precio orientativo ${prezzo}`,
-  fr: (minuti, prezzo) => `Durée ${minuti} min · Prix indicatif ${prezzo}`,
-  de: (minuti, prezzo) => `Dauer ${minuti} Min. · Richtpreis ${prezzo}`,
+const ANIMALE_PREZZO: Record<Lingua, Record<'cane' | 'gatto' | 'altro', string>> = {
+  it: { cane: 'il cane', gatto: 'il gatto', altro: 'l’animale' },
+  en: { cane: 'the dog', gatto: 'the cat', altro: 'your pet' },
+  es: { cane: 'al perro', gatto: 'al gato', altro: 'al animal' },
+  fr: { cane: 'le chien', gatto: 'le chat', altro: 'l’animal' },
+  de: { cane: 'den Hund', gatto: 'die Katze', altro: 'das Tier' },
+}
+
+/** La riga del prezzo indicativo nelle email al cliente (ricevuta e conferma). */
+export function rigaPrezzoIndicativo(lingua: Lingua, totale: number, specie?: string): string {
+  const animale = specie === 'gatto' || specie === 'altro' ? specie : 'cane'
+  return PREZZO_MAIL[lingua](euro(lingua, totale), ANIMALE_PREZZO[lingua][animale])
+}
+
+const DURATA_MAIL: Record<Lingua, (minuti: number) => string> = {
+  it: (minuti) => `Durata ${minuti} min`,
+  en: (minuti) => `Duration ${minuti} min`,
+  es: (minuti) => `Duración ${minuti} min`,
+  fr: (minuti) => `Durée ${minuti} min`,
+  de: (minuti) => `Dauer ${minuti} Min.`,
 }
 
 const TELEFONO_MAIL: Record<Lingua, (telefono: string) => string> = {
@@ -291,10 +306,11 @@ export function riepilogoRicevuta(lingua: Lingua, dati: {
   const quando = Number.isNaN(dati.inizio.getTime())
     ? ''
     : `${giornoMail(lingua, dati.inizio)}, ${oraRoma(dati.inizio)}–${oraRoma(dati.fine)}`
-  const durata = DURATA_MAIL[lingua](dati.durataMin, euro(lingua, dati.totale))
+  const durata = DURATA_MAIL[lingua](dati.durataMin)
+  const prezzo = rigaPrezzoIndicativo(lingua, dati.totale, dati.specie)
   const telefono = (dati.telefono ?? '').trim()
   const contatto = telefono ? TELEFONO_MAIL[lingua](telefono) : ''
-  return [dati.nome.trim(), animale, servizi, quando, durata, PREZZI_MAIL[lingua], contatto].filter(Boolean).join('\n')
+  return [dati.nome.trim(), animale, servizi, quando, durata, prezzo, contatto].filter(Boolean).join('\n')
 }
 
 const OGGETTI: Record<Lingua, Record<TipoCliente, (nome: string) => string>> = {

@@ -387,6 +387,14 @@ describe('riquadro richiesta', () => {
     expect(screen.getByText('Totale indicativo 28 €')).toBeVisible()
   })
 
+  it('dice con una riga discreta che il cliente ha accettato il prezzo indicativo, solo se l’ha accettato', () => {
+    const { unmount } = apri({ richiesta: richiesta({ totaleIndicativo: 50, prezzoStimato: 50 }) })
+    expect(screen.getByText('✓ Il cliente ha accettato il prezzo indicativo (da 50 €)')).toBeVisible()
+    unmount()
+    apri({ richiesta: richiesta({ totaleIndicativo: 50 }) })
+    expect(screen.queryByTestId('prezzo-accettato')).not.toBeInTheDocument()
+  })
+
   it('un errore diverso dalla mail lascia aperto il riquadro con il messaggio di salvataggio', async () => {
     chiamate.gestisci.mockRejectedValue(new Error('rete'))
     const onFatto = vi.fn()

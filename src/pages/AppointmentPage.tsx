@@ -30,6 +30,7 @@ import { useServices } from '../hooks/useServices'
 import { useAppointments } from '../hooks/useAppointments'
 import { useClosures } from '../hooks/useClosures'
 import { ChiediPronto } from '../components/piano/ChiediPronto'
+import { PrezzoAccettatoVisita } from '../components/piano/PrezzoAccettato'
 import { RigaRecensione } from '../components/piano/RigaRecensione'
 import { LinkWhatsApp, MessaggiPronti, STILE_PILLOLA_CONTATTO } from '../components/piano/PulsanteMessaggi'
 import { StrumentiCane } from '../components/piano/StrumentiCane'
@@ -605,6 +606,7 @@ function AppointmentRead({
           <span>{frasi.appTotale}</span>
           <span style={{ fontVariantNumeric: 'tabular-nums' }}>{euro(lingua, total)}</span>
         </div>
+        <PrezzoAccettatoVisita richiestaId={appointment.richiestaId} />
       </Card>
       {done ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

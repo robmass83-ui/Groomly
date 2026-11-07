@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { getFirestore } from 'firebase-admin/firestore'
+import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { riepilogoRicevuta } from '../../../src/i18n/emailHtml'
 import { nomeServizioVisibile } from '../../../src/i18n/servizioVisibile'
 import { linguaValida } from '../../../src/i18n/lingua'
@@ -23,6 +23,8 @@ export async function inviaRichiestaPer(input: {
   fine: string
   esca: string
   consenso?: boolean
+  /** La casella «Ho capito che il prezzo è indicativo» della pagina: senza, la richiesta non si scrive. */
+  prezzoIndicativoAccettato?: boolean
   giorno?: string
   ora?: string
   cane?: string
@@ -40,6 +42,7 @@ export async function inviaRichiestaPer(input: {
     throw erroreServer('invalid-argument', 'richiesta_non_valida')
   }
   if (!(await salonPrenota(input.salonId))) throw erroreServer('failed-precondition', 'prenotazioni_spente')
+  if (input.prezzoIndicativoAccettato !== true) throw erroreServer('invalid-argument', 'prezzo_non_accettato')
   const db = getFirestore()
   const aperte = await db.collection(`salons/${input.salonId}/richieste`).where('status', '==', 'nuova').get()
   const conti = contaAperte(
@@ -106,6 +109,9 @@ export async function inviaRichiestaPer(input: {
       prezzo: voce.prezzo[taglia],
     })),
     totaleIndicativo: scelta.totaleIndicativo,
+    prezzoIndicativoAccettato: true,
+    prezzoIndicativoAccettatoAt: FieldValue.serverTimestamp(),
+    prezzoStimato: scelta.totaleIndicativo,
     durataMin: scelta.durataMin,
     emailStato: 'non_inviata',
     consenso: true,

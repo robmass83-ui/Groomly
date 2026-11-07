@@ -303,6 +303,8 @@ export type RichiestaNuova = Pick<RichiestaDoc, 'nome' | 'phone' | 'email' | 'ca
   voci?: VoceRichiesta[]
   totaleIndicativo?: number
   durataMin?: number
+  /** C'è solo se il cliente ha spuntato «Ho capito che il prezzo è indicativo». */
+  prezzoStimato?: number
 }
 
 function numeroFinito(value: unknown): number | undefined {
@@ -346,7 +348,22 @@ function richiestaDa(id: string, data: Record<string, unknown>): RichiestaNuova 
     ...(voci ? { voci } : {}),
     ...(totaleIndicativo !== undefined ? { totaleIndicativo } : {}),
     ...(durataMin !== undefined ? { durataMin } : {}),
+    ...(prezzoAccettato(data) !== undefined ? { prezzoStimato: prezzoAccettato(data) } : {}),
   }
+}
+
+/** Il prezzo «da» che il cliente ha accettato sulla pagina pubblica, se l'ha accettato. */
+function prezzoAccettato(data: Record<string, unknown>): number | undefined {
+  return data.prezzoIndicativoAccettato === true ? numeroFinito(data.prezzoStimato) : undefined
+}
+
+/** Per il dettaglio della visita nata da una richiesta online: null se manca o non c'è l'accettazione. */
+export async function leggiPrezzoAccettato(richiestaId: string): Promise<number | null> {
+  const db = await database()
+  const { doc, getDoc } = await loadFirestore()
+  const snap = await getDoc(doc(db, ...salonPath('richieste', richiestaId)))
+  if (!snap.exists()) return null
+  return prezzoAccettato(snap.data() as Record<string, unknown>) ?? null
 }
 
 export async function callFermaCoda(id: string): Promise<void> {

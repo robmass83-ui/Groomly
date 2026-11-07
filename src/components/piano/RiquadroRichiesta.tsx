@@ -6,6 +6,7 @@ import { appointmentEnd, rangesOverlap } from '../../lib/appointments'
 import { candidatiRichiesta } from '../../lib/candidatiRichiesta'
 import { chiaveGiornoRoma, fineOccupata, intervalloImpegnoPersonale, oraRoma } from '../../lib/disponibilita'
 import { TYPE } from '../../theme/theme'
+import { RigaPrezzoAccettato } from './PrezzoAccettato'
 import { USER_TEXT } from '../../theme/text'
 import type { Appointment, Dog } from '../../types/models'
 import { Dialog } from '../layout/Dialog'
@@ -268,6 +269,7 @@ export function RiquadroRichiesta({
           <p style={{ margin: 0, width: 'fit-content', fontSize: TYPE.base, fontWeight: 700, color: 'var(--tx)' }}>{etichettaTotale}</p>
         </div>
       ) : null}
+      {richiesta.prezzoStimato !== undefined ? <RigaPrezzoAccettato prezzo={richiesta.prezzoStimato} /> : null}
       <fieldset style={{ margin: 0, padding: 0, border: 0, display: 'flex', flexDirection: 'column' }}>
         <legend style={{ padding: 0, fontSize: TYPE.meta, fontWeight: 700, color: 'var(--tx2)' }}>{frasi.richiestaScegli}</legend>
         <Scelta checked={scelta === NUOVO} onChange={() => setScelta(NUOVO)}>{frasi.richiestaNuovo}</Scelta>

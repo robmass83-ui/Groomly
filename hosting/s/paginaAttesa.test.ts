@@ -615,7 +615,7 @@ describe('lingua della pagina di prenotazione', () => {
     expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'iscrivitiAttesa')?.corpo.lingua).toBe('fr')
   })
 
-  async function compila(lang: 'it' | 'de', errore: unknown): Promise<Pagina> {
+  async function compila(lang: 'it' | 'de', errore: unknown, spunta = true): Promise<Pagina> {
     const pagina = await apri({ lang })
     vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
       const funzione = String(url).split('/').pop() as string
@@ -638,6 +638,7 @@ describe('lingua della pagina di prenotazione', () => {
     scrivi('cane', 'Rex')
     scrivi('razza', 'Barboncino')
     ;(document.getElementById('consenso') as HTMLInputElement).click()
+    if (spunta) (document.getElementById('prezzo-ok') as HTMLInputElement).click()
     ;(document.getElementById('dati-richiesta') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }))
     await flush()
     await flush()
@@ -648,6 +649,35 @@ describe('lingua della pagina di prenotazione', () => {
     const pagina = await compila('de', { error: { status: 'FAILED_PRECONDITION', message: 'Orario non disponibile', details: { codice: 'orario_non_disponibile' } } })
     expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'inviaRichiesta')?.corpo.lingua).toBe('de')
     expect(erroreDi()).toBe('Diese Uhrzeit ist nicht mehr frei. Wählen Sie eine andere.')
+  })
+
+  it('prezzo indicativo: «da» nel totale, riepilogo, pulsante spento finché la casella non è spuntata', async () => {
+    const pagina = await compila('it', { error: { status: 'INVALID_ARGUMENT', message: 'x', details: { codice: 'prezzo_non_accettato' } } }, false)
+    expect(document.querySelector('.totale')?.textContent).toMatch(/^Totale: da \d+ €$/)
+    const riassunto = document.querySelector('.riassunto') as HTMLElement
+    expect(riassunto.textContent).toContain('Riepilogo')
+    expect(riassunto.querySelector('strong')?.textContent).toMatch(/^da \d+ €$/)
+    const casella = document.getElementById('prezzo-ok') as HTMLInputElement
+    const bottone = document.querySelector('#dati-richiesta .invia') as HTMLButtonElement
+    expect(casella.checked).toBe(false)
+    expect(bottone.getAttribute('aria-disabled')).toBe('true')
+    // Senza spunta non parte nulla: bordo rosso e frase sotto la casella.
+    expect(pagina.chiamate.some((chiamata) => chiamata.funzione === 'inviaRichiesta')).toBe(false)
+    expect(casella.closest('label')?.classList.contains('non-valido')).toBe(true)
+    expect(document.getElementById('prezzo-ok-errore')?.textContent).toBe('Per continuare conferma di aver letto questa nota.')
+    // Il testo intero è cliccabile; spunta e tolta riaccendono e rispengono il pulsante.
+    ;(document.querySelector('.prezzo-testo') as HTMLElement).click()
+    expect(casella.checked).toBe(true)
+    expect(bottone.hasAttribute('aria-disabled')).toBe(false)
+    expect(document.getElementById('prezzo-ok-errore')).toBeNull()
+    casella.click()
+    expect(bottone.getAttribute('aria-disabled')).toBe('true')
+    casella.click()
+    ;(document.getElementById('dati-richiesta') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }))
+    await flush()
+    await flush()
+    expect(pagina.chiamate.find((chiamata) => chiamata.funzione === 'inviaRichiesta')?.corpo.prezzoIndicativoAccettato).toBe(true)
+    expect(erroreDi()).toBe('Per continuare conferma di aver letto questa nota.')
   })
 
   it('un codice ignoto dà la frase generica, mai il messaggio del server', async () => {

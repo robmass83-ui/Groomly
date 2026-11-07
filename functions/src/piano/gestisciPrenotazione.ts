@@ -1,5 +1,5 @@
 import { FieldValue, getFirestore, type DocumentData } from 'firebase-admin/firestore'
-import { giornoEOra, giornoMail, nomeAnimaleVuoto, oraLimite, type TipoEmail } from '../../../src/i18n/emailHtml'
+import { giornoEOra, giornoMail, nomeAnimaleVuoto, oraLimite, rigaPrezzoIndicativo, type TipoEmail } from '../../../src/i18n/emailHtml'
 import { linguaValida, type Lingua } from '../../../src/i18n/lingua'
 import { chiaveGiornoRoma, oraRoma } from '../../../src/lib/disponibilita'
 import { minutiRichiesta, pianoRichiesta, serviziDellaRichiesta, vociSalvate, type ComandoRichiesta, type PianoRichiesta, type RichiestaDoc, type SceltaAnimale } from '../../../src/lib/pianoRichiesta'
@@ -18,8 +18,11 @@ const URL_RISPOSTA = 'https://europe-west1-groomly-3128b.cloudfunctions.net/risp
 
 export type EmailStato = 'inviata' | 'non_inviata'
 
-/** La richiesta come la legge il server: `lingua` c'è solo se l'ha mandata la pagina pubblica. */
-export type RichiestaSalvata = RichiestaDoc & { lingua?: Lingua }
+/**
+ * La richiesta come la legge il server: `lingua` c'è solo se l'ha mandata la pagina pubblica,
+ * `prezzoStimato` solo se il cliente ha spuntato «Ho capito che il prezzo è indicativo».
+ */
+export type RichiestaSalvata = RichiestaDoc & { lingua?: Lingua; prezzoStimato?: number }
 
 export type ErroreGestione = 'stato' | 'scelta' | 'orario' | 'token' | 'scaduta' | 'email' | 'appuntamento'
 
@@ -55,6 +58,9 @@ export function leggiRichiesta(data: DocumentData): RichiestaSalvata | null {
   const scadeIl = testo(data.scadeIl)
   const voci = vociSalvate(data.voci)
   const lingua = linguaValida(data.lingua)
+  const prezzoStimato = data.prezzoIndicativoAccettato === true && typeof data.prezzoStimato === 'number' && Number.isFinite(data.prezzoStimato)
+    ? data.prezzoStimato
+    : undefined
   return {
     status,
     token: typeof data.token === 'string' ? data.token : '',
@@ -74,6 +80,7 @@ export function leggiRichiesta(data: DocumentData): RichiestaSalvata | null {
     ...(typeof data.durataMin === 'number' && Number.isFinite(data.durataMin) && data.durataMin >= 1 ? { durataMin: data.durataMin } : {}),
     ...(voci.length > 0 ? { voci } : {}),
     ...(lingua ? { lingua } : {}),
+    ...(prezzoStimato !== undefined ? { prezzoStimato } : {}),
   }
 }
 
@@ -178,6 +185,9 @@ export async function inviaMailRichiesta(input: {
       cane: input.richiesta.cane,
       rispondi: Boolean(replyTo),
       ...(input.tipo === 'conferma' ? quandoConferma(lingua, input.richiesta) : {}),
+      ...(input.tipo === 'conferma' && input.richiesta.prezzoStimato !== undefined
+        ? { scheda: rigaPrezzoIndicativo(lingua, input.richiesta.prezzoStimato, input.richiesta.specie) }
+        : {}),
       ...scadenza,
       ...(salone ? { salone } : {}),
       ...(input.url ? { url: conLingua(input.url, lingua) } : {}),

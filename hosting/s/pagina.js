@@ -21,7 +21,7 @@
       tagliaManca: 'Scegli la taglia per aprire gli orari.',
       servizio: 'Servizio',
       prezzi: 'I prezzi sono indicativi. Possono variare dopo aver visto l’animale, se ci sono nodi o problemi che richiedono più tempo.',
-      totale: 'Totale indicativo {{n}} €',
+      totale: 'Totale: da {{n}} €',
       giorno: 'Giorno',
       carico: 'Sto controllando i giorni liberi del salone…',
       vuoto: 'In queste settimane non ci sono orari liberi.',
@@ -59,6 +59,16 @@
       fotoKo: 'Questa foto non si può usare. Scegline un’altra.',
       fotoTroppe: 'Puoi allegare al massimo 3 foto.',
       consensoKo: 'Serve il consenso per inviare la richiesta.',
+      riassunto: 'Riepilogo',
+      rAnimale: 'Animale',
+      rServizio: 'Servizio',
+      rGiorno: 'Giorno',
+      rOrario: 'Orario',
+      rPrezzo: 'Prezzo',
+      durata: 'durata stimata {{n}} min',
+      da: 'da {{n}} €',
+      prezzoOk: 'Ho capito che il prezzo è indicativo e può variare in base alle condizioni del pelo e dell’animale.',
+      prezzoKo: 'Per continuare conferma di aver letto questa nota.',
       specie: { cane: 'Cane', gatto: 'Gatto', altro: 'Altro' },
       taglie: { piccola: 'taglia piccola', media: 'taglia media', grande: 'taglia grande' },
       lista: 'Lista d’attesa',
@@ -92,7 +102,7 @@
       tagliaManca: 'Choose the size to open the times.',
       servizio: 'Service',
       prezzi: 'Prices are a guide. They can change after we see the animal, if there are mats or problems that need more time.',
-      totale: 'Indicative total {{n}} €',
+      totale: 'Total: from {{n}} €',
       giorno: 'Day',
       carico: 'Checking the salon’s free days…',
       vuoto: 'There are no free times in these weeks.',
@@ -130,6 +140,16 @@
       fotoKo: 'This photo cannot be used. Choose another one.',
       fotoTroppe: 'You can attach up to 3 photos.',
       consensoKo: 'Consent is needed to send the request.',
+      riassunto: 'Summary',
+      rAnimale: 'Pet',
+      rServizio: 'Service',
+      rGiorno: 'Day',
+      rOrario: 'Time',
+      rPrezzo: 'Price',
+      durata: 'estimated {{n}} min',
+      da: 'from {{n}} €',
+      prezzoOk: 'I understand the price is an estimate and may change depending on the condition of the coat and the dog.',
+      prezzoKo: 'To continue, confirm you have read this note.',
       specie: { cane: 'Dog', gatto: 'Cat', altro: 'Other' },
       taglie: { piccola: 'small', media: 'medium', grande: 'large' },
       lista: 'Waiting list',
@@ -163,7 +183,7 @@
       tagliaManca: 'Elige el tamaño para abrir los horarios.',
       servizio: 'Servicio',
       prezzi: 'Los precios son orientativos. Pueden cambiar después de ver al animal, si hay nudos o problemas que pidan más tiempo.',
-      totale: 'Total orientativo {{n}} €',
+      totale: 'Total: desde {{n}} €',
       giorno: 'Día',
       carico: 'Estoy mirando los días libres del salón…',
       vuoto: 'En estas semanas no hay horarios libres.',
@@ -201,6 +221,16 @@
       fotoKo: 'Esta foto no se puede usar. Elige otra.',
       fotoTroppe: 'Puedes adjuntar como máximo 3 fotos.',
       consensoKo: 'Hace falta el consentimiento para enviar la solicitud.',
+      riassunto: 'Resumen',
+      rAnimale: 'Animal',
+      rServizio: 'Servicio',
+      rGiorno: 'Día',
+      rOrario: 'Hora',
+      rPrezzo: 'Precio',
+      durata: 'duración estimada {{n}} min',
+      da: 'desde {{n}} €',
+      prezzoOk: 'Entiendo que el precio es orientativo y puede variar según el estado del pelo y del animal.',
+      prezzoKo: 'Para continuar, confirma que has leído esta nota.',
       specie: { cane: 'Perro', gatto: 'Gato', altro: 'Otro' },
       taglie: { piccola: 'tamaño pequeño', media: 'tamaño mediano', grande: 'tamaño grande' },
       lista: 'Lista de espera',
@@ -234,7 +264,7 @@
       tagliaManca: 'Choisissez la taille pour afficher les horaires.',
       servizio: 'Prestation',
       prezzi: 'Les prix sont indicatifs. Ils peuvent changer une fois l’animal vu, en cas de nœuds ou de problèmes qui demandent plus de temps.',
-      totale: 'Total indicatif {{n}} €',
+      totale: 'Total : à partir de {{n}} €',
       giorno: 'Jour',
       carico: 'Recherche des jours libres du salon…',
       vuoto: 'Aucun horaire libre ces prochaines semaines.',
@@ -272,6 +302,16 @@
       fotoKo: 'Cette photo ne peut pas être utilisée. Choisissez-en une autre.',
       fotoTroppe: 'Vous pouvez joindre 3 photos au maximum.',
       consensoKo: 'Votre consentement est nécessaire pour envoyer la demande.',
+      riassunto: 'Récapitulatif',
+      rAnimale: 'Animal',
+      rServizio: 'Prestation',
+      rGiorno: 'Jour',
+      rOrario: 'Heure',
+      rPrezzo: 'Prix',
+      durata: 'durée estimée {{n}} min',
+      da: 'à partir de {{n}} €',
+      prezzoOk: 'J’ai compris que le prix est indicatif et peut varier selon l’état du pelage et de l’animal.',
+      prezzoKo: 'Pour continuer, confirmez avoir lu cette note.',
       specie: { cane: 'Chien', gatto: 'Chat', altro: 'Autre' },
       taglie: { piccola: 'petite taille', media: 'taille moyenne', grande: 'grande taille' },
       lista: 'Liste d’attente',
@@ -305,7 +345,7 @@
       tagliaManca: 'Wählen Sie die Größe, um die Uhrzeiten zu sehen.',
       servizio: 'Leistung',
       prezzi: 'Die Preise sind Richtwerte. Sie können sich ändern, wenn wir das Tier gesehen haben, zum Beispiel bei Knoten oder Problemen, die mehr Zeit brauchen.',
-      totale: 'Richtpreis gesamt {{n}} €',
+      totale: 'Gesamt: ab {{n}} €',
       giorno: 'Tag',
       carico: 'Die freien Tage des Salons werden geprüft…',
       vuoto: 'In diesen Wochen gibt es keine freien Uhrzeiten.',
@@ -343,6 +383,16 @@
       fotoKo: 'Dieses Foto kann nicht verwendet werden. Wählen Sie ein anderes.',
       fotoTroppe: 'Sie können höchstens 3 Fotos anhängen.',
       consensoKo: 'Ohne Ihre Einwilligung kann die Anfrage nicht gesendet werden.',
+      riassunto: 'Zusammenfassung',
+      rAnimale: 'Tier',
+      rServizio: 'Leistung',
+      rGiorno: 'Tag',
+      rOrario: 'Uhrzeit',
+      rPrezzo: 'Preis',
+      durata: 'geschätzte Dauer {{n}} Min.',
+      da: 'ab {{n}} €',
+      prezzoOk: 'Ich habe verstanden, dass der Preis ein Richtwert ist und sich je nach Zustand des Fells und des Tieres ändern kann.',
+      prezzoKo: 'Bitte bestätigen Sie, dass Sie diesen Hinweis gelesen haben.',
       specie: { cane: 'Hund', gatto: 'Katze', altro: 'Andere' },
       taglie: { piccola: 'klein', media: 'mittelgroß', grande: 'groß' },
       lista: 'Warteliste',
@@ -381,6 +431,7 @@
     razza_obbligatoria: 'razzaKo',
     animale_non_accettato: 'animaleKo',
     consenso_mancante: 'consensoKo',
+    prezzo_non_accettato: 'prezzoKo',
     nome_non_valido: 'nomeKo',
     telefono_non_valido: 'telKo',
     email_obbligatoria: 'emailKo',
@@ -414,7 +465,7 @@
   var posto = parametriPosto(queryPosto.get('giorno'), queryPosto.get('ora'))
   var stato = {
     specie: '', taglia: '', principale: '', extra: [], giorno: posto ? posto.giorno : '', ora: posto ? posto.ora : '',
-    nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false,
+    nome: '', telefono: '', email: '', cane: '', razza: '', consenso: false, prezzoOk: false,
     foto: [], fotoErrore: '', fotoCarico: false,
     mese: '', liberi: null, errore: false, invio: false,
     lista: { aperta: false, invio: false, fatto: false, settimana: null },
@@ -642,6 +693,7 @@
     return voce.nome + ' · ' + numeroTaglia(voce, 'minuti') + ' min · ' + numeroTaglia(voce, 'prezzo') + ' €'
   }
   function azzeraOrario() {
+    stato.prezzoOk = false
     stato.giorno = ''
     stato.ora = ''
     stato.liberi = null
@@ -967,12 +1019,6 @@
     form.id = 'dati-richiesta'
     form.noValidate = true
     form.append(el('h3', '', t.dati))
-    var nomi = serviziScelti().map(function (id) {
-      var voce = vocePerId(id)
-      return voce ? voce.nome : ''
-    }).filter(Boolean)
-    var riepilogo = [t.specie[stato.specie], t.taglie[stato.taglia]].concat(nomi, [etichettaGiorno(stato.giorno), stato.ora]).filter(Boolean).join(' · ')
-    form.append(el('p', 'testo', riepilogo))
     form.append(campo('nome', t.nome, 'text', stato.nome, 'name'))
     form.append(campo('telefono', t.telefono, 'tel', stato.telefono, 'tel'))
     form.append(campo('email', t.email, 'email', stato.email, 'email'))
@@ -1002,15 +1048,69 @@
     form.append(informativa)
     var fraseFoto = (t.fotoNota && t.fotoNota[stato.specie]) || t.fotoNota.altro
     form.append(el('p', 'nota', t.nota.replace('{{foto}}', fraseFoto)))
+    form.append(riassunto())
+    // Il prezzo è indicativo: il cliente lo conferma qui, mai precompilato, e il server lo ricontrolla.
+    var prezzo = el('label', 'consenso prezzo-ok')
+    var spunta = document.createElement('input')
+    spunta.type = 'checkbox'
+    spunta.id = 'prezzo-ok'
+    spunta.checked = stato.prezzoOk
+    prezzo.append(spunta, el('span', 'prezzo-testo', t.prezzoOk))
+    form.append(prezzo)
     var invia = el('button', 'invia', t.invia)
     invia.type = 'submit'
     invia.disabled = stato.invio || stato.fotoCarico
+    function aggiornaInvia() {
+      if (stato.prezzoOk) invia.removeAttribute('aria-disabled')
+      else invia.setAttribute('aria-disabled', 'true')
+    }
+    aggiornaInvia()
+    spunta.addEventListener('change', function () {
+      stato.prezzoOk = spunta.checked
+      aggiornaInvia()
+      if (!spunta.checked) return
+      prezzo.classList.remove('non-valido')
+      var avviso = document.getElementById('prezzo-ok-errore')
+      if (avviso) avviso.remove()
+      spunta.removeAttribute('aria-describedby')
+    })
     form.append(invia)
     form.addEventListener('submit', function (evento) {
       evento.preventDefault()
       inviaRichiesta(form, esca)
     })
     return form
+  }
+  function maiuscola(testo) {
+    return testo ? testo.charAt(0).toUpperCase() + testo.slice(1) : ''
+  }
+  // Riepilogo sopra il pulsante: animale, servizio con gli extra, giorno, orario e prezzo «da».
+  function riassunto() {
+    var box = el('section', 'riassunto')
+    box.setAttribute('aria-labelledby', 'riassunto-titolo')
+    var titolo = el('h4', '', t.riassunto)
+    titolo.id = 'riassunto-titolo'
+    box.append(titolo)
+    var lista = el('dl')
+    function riga(etichetta, contenuto) {
+      var valore = el('dd')
+      if (typeof contenuto === 'string') valore.textContent = contenuto
+      else valore.append(contenuto)
+      lista.append(el('dt', '', etichetta), valore)
+      return valore
+    }
+    riga(t.rAnimale, [t.specie[stato.specie], maiuscola(t.taglie[stato.taglia] || '')].filter(Boolean).join(' · '))
+    var principale = vocePerId(stato.principale)
+    var servizio = riga(t.rServizio, principale ? principale.nome : '')
+    stato.extra.forEach(function (id) {
+      var voce = vocePerId(id)
+      if (voce && id !== stato.principale) servizio.append(el('span', 'extra', '+ ' + voce.nome))
+    })
+    riga(t.rGiorno, maiuscola(etichettaGiorno(stato.giorno)))
+    riga(t.rOrario, stato.ora + ' · ' + t.durata.replace('{{n}}', String(durataScelta())))
+    riga(t.rPrezzo, el('strong', '', t.da.replace('{{n}}', String(totaleScelto()))))
+    box.append(lista)
+    return box
   }
   function problemi(form) {
     var voci = []
@@ -1020,6 +1120,7 @@
     if (!caneOk(stato.cane)) voci.push(['cane', t.caneKo])
     if (stato.razza.trim().length < 2) voci.push(['razza', t.razzaKo])
     if (!stato.consenso) voci.push(['consenso', t.consensoKo])
+    if (!stato.prezzoOk) voci.push(['prezzo-ok', t.prezzoKo])
     form.querySelectorAll('.errore:not(.foto-avviso),.somma').forEach(function (nodo) { nodo.remove() })
     form.querySelectorAll('.non-valido').forEach(function (nodo) { nodo.classList.remove('non-valido') })
     if (voci.length === 0) return false
@@ -1086,6 +1187,7 @@
         fine: stato.giorno + 'T' + stato.ora + ':00',
         esca: esca.value,
         consenso: true,
+        prezzoIndicativoAccettato: stato.prezzoOk === true,
         lingua: lang,
       } }),
     }).then(function (risposta) {

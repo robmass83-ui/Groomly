@@ -2208,6 +2208,7 @@ export const en = {
   ruoloSocio: 'Partner',
   ruoloCollaboratore: 'Staff member',
   richiestaTotale: 'Indicative total {{importo}} €',
+  prezzoAccettato: '✓ The client accepted the guide price (from {{importo}} €)',
   salutoNome: 'Hi {{nome}}',
   salutoAnonimo: 'Hi!',
   incGenerato: 'Created with Groomly on {{giorno}} at {{ora}} · summary document, not an invoice',

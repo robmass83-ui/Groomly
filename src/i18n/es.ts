@@ -2208,6 +2208,7 @@ export const es = {
   ruoloSocio: 'Socio',
   ruoloCollaboratore: 'Colaborador',
   richiestaTotale: 'Total orientativo {{importo}} €',
+  prezzoAccettato: '✓ El cliente aceptó el precio orientativo (desde {{importo}} €)',
   salutoNome: 'Hola {{nome}}',
   salutoAnonimo: '¡Hola!',
   incGenerato: 'Generado con Groomly el {{giorno}} a las {{ora}} · documento resumen, no es una factura',

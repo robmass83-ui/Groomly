@@ -41,6 +41,7 @@ const ERRORI_SERVER = {
   orario_non_disponibile: { it: 'Orario non disponibile', en: 'Time not available', es: 'Horario no disponible', fr: 'Horaire non disponible', de: 'Uhrzeit nicht verfügbar' },
   servizio_non_valido: { it: 'Servizio non valido', en: 'Invalid service', es: 'Servicio no válido', fr: 'Prestation non valide', de: 'Ungültige Leistung' },
   foto_non_valida: { it: 'Foto non valida', en: 'Invalid photo', es: 'Foto no válida', fr: 'Photo non valide', de: 'Ungültiges Foto' },
+  prezzo_non_accettato: { it: 'Conferma di aver letto che il prezzo è indicativo', en: 'Please confirm you have read that the price is an estimate', es: 'Confirma que has leído que el precio es orientativo', fr: 'Confirmez avoir lu que le prix est indicatif', de: 'Bitte bestätigen Sie, dass der Preis ein Richtwert ist' },
   razza_obbligatoria: { it: 'Razza obbligatoria', en: 'Breed is required', es: 'La raza es obligatoria', fr: 'La race est obligatoire', de: 'Rasse ist erforderlich' },
   animale_non_accettato: { it: 'Questo salone non accetta questo animale', en: 'This salon doesn’t accept this animal', es: 'Esta peluquería no acepta este animal', fr: 'Ce salon n’accepte pas cet animal', de: 'Dieser Salon nimmt dieses Tier nicht an' },
   consenso_mancante: { it: 'Serve il consenso', en: 'Your consent is required', es: 'Hace falta tu consentimiento', fr: 'Votre consentement est nécessaire', de: 'Ihre Einwilligung ist erforderlich' },

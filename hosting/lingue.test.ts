@@ -14,7 +14,7 @@ const RIGA_ITALIANO: Record<string, string> = {
 const CODICI = [
   'prenotazioni_spente', 'orario_non_disponibile', 'servizio_non_valido', 'foto_non_valida', 'razza_obbligatoria',
   'animale_non_accettato', 'consenso_mancante', 'nome_non_valido', 'telefono_non_valido', 'email_obbligatoria',
-  'richiesta_non_valida', 'troppe_richieste',
+  'richiesta_non_valida', 'troppe_richieste', 'prezzo_non_accettato',
 ]
 
 type Tabella = Record<string, Record<string, unknown>>

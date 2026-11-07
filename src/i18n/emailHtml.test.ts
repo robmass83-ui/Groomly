@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emailMessaggio, etichettaRuolo, mailPostoLibero, riepilogoRicevuta, type TipoEmail } from './emailHtml'
+import { emailMessaggio, etichettaRuolo, mailPostoLibero, riepilogoRicevuta, rigaPrezzoIndicativo, type TipoEmail } from './emailHtml'
 import { LINGUE, type Lingua } from './lingua'
 
 const TIPI: TipoEmail[] = ['verifica', 'reset', 'invito', 'ricevuta', 'conferma', 'proposta', 'rifiuto', 'liberato', 'scadenza', 'disdetta', 'promemoria', 'pronto', 'auguri', 'recensione', 'attesa']
@@ -431,8 +431,8 @@ describe('email', () => {
     expect(mail.html).toContain('Hai una domanda? Rispondi a questa email, arriva direttamente al salone.')
     expect(mail.html).toContain('Birba · cane · taglia media · Meticcio')
     expect(mail.html).toContain('Bagno, Nodi')
-    expect(mail.html).toContain('Durata 60 min · Prezzo indicativo € 35')
-    expect(mail.html).toContain('I prezzi sono indicativi.')
+    expect(mail.html).toContain('Durata 60 min<br>')
+    expect(mail.html).toContain('Prezzo indicativo: da € 35. Il prezzo finale sarà confermato in salone dopo aver visto il cane.')
     expect(mail.html).toContain('Telefono del salone: 3331234567')
     expect(mail.html).not.toContain('cartella spam')
     expect(mail.html).not.toContain('<a ')
@@ -556,5 +556,18 @@ describe('email in francese e tedesco', () => {
   it('tutte le lingue hanno il posto libero nella propria lingua', () => {
     const titoli = LINGUE.map((lingua) => mailPostoLibero({ lingua, nomeSalone: '', quando: '', url: 'https://x.it' }).oggetto)
     expect(new Set(titoli).size).toBe(LINGUE.length)
+  })
+})
+
+describe('riga del prezzo indicativo', () => {
+  it('dice «da» e segue lingua e animale', () => {
+    expect(rigaPrezzoIndicativo('it', 50, 'gatto')).toBe('Prezzo indicativo: da € 50. Il prezzo finale sarà confermato in salone dopo aver visto il gatto.')
+    expect(rigaPrezzoIndicativo('en', 50)).toBe('Guide price: from € 50. The final price will be confirmed at the salon after seeing the dog.')
+    expect(rigaPrezzoIndicativo('es', 50, 'cane')).toBe('Precio orientativo: desde € 50. El precio final se confirmará en el salón después de ver al perro.')
+    expect(rigaPrezzoIndicativo('de', 50, 'altro')).toMatch(/ab 50\s€/)
+  })
+  it('entra nella mail di conferma come scheda', () => {
+    const mail = emailMessaggio('it', 'conferma', { cliente: 'Ada', cane: 'Birba', scheda: rigaPrezzoIndicativo('it', 50) })
+    expect(mail.html).toContain('Prezzo indicativo: da € 50.')
   })
 })

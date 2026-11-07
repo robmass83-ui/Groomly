@@ -2208,6 +2208,7 @@ export const de = {
   ruoloSocio: 'Teilhaber',
   ruoloCollaboratore: 'Mitarbeiter',
   richiestaTotale: 'Richtsumme {{importo}} €',
+  prezzoAccettato: '✓ Der Kunde hat den Richtpreis akzeptiert (ab {{importo}} €)',
   salutoNome: 'Hallo {{nome}}',
   salutoAnonimo: 'Hallo!',
   incGenerato: 'Erstellt mit Groomly am {{giorno}} um {{ora}} · Übersicht, keine Rechnung',
