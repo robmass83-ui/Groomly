@@ -1,20 +1,15 @@
 {
-  "version": "1.1.204",
-  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.204/groomly.apk",
+  "version": "1.1.205",
+  "url": "https://github.com/robmass83-ui/Groomly/releases/download/v1.1.205/groomly.apk",
   "notes": [
-    "La pagina pubblica del salone mostra telefono, indirizzo e listino solo dopo che accendi le prenotazioni o condividi il link.",
-    "Più protezioni per la lista d’attesa e per i link dei saloni.",
+    "Abbonamenti preparati in modo più sicuro, in vista dei pagamenti.",
     "[en]",
-    "The salon’s public page shows phone, address and price list only after you turn on bookings or share the link.",
-    "More protection for the waiting list and for salon links.",
+    "Subscriptions set up more securely, ahead of payments.",
     "[es]",
-    "La página pública del salón muestra teléfono, dirección y tarifas solo después de activar las reservas o compartir el enlace.",
-    "Más protección para la lista de espera y los enlaces de los salones.",
+    "Suscripciones preparadas de forma más segura, de cara a los pagos.",
     "[fr]",
-    "La page publique du salon affiche téléphone, adresse et tarifs seulement après l’activation des réservations ou le partage du lien.",
-    "Plus de protection pour la liste d’attente et les liens des salons.",
+    "Abonnements préparés de façon plus sûre, en vue des paiements.",
     "[de]",
-    "Die öffentliche Seite des Salons zeigt Telefon, Adresse und Preisliste erst, wenn Sie Buchungen einschalten oder den Link teilen.",
-    "Mehr Schutz für die Warteliste und die Salon-Links."
+    "Abos sicherer vorbereitet, im Hinblick auf die Zahlungen."
   ]
 }
